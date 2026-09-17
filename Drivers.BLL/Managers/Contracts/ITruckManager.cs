@@ -1,14 +1,23 @@
-﻿using Drivers.BLL.DTOs.Responses;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using Drivers.BLL.DTOs.Responses;
+using Drivers.BLL.Models;
 
-namespace Drivers.BLL.Managers.Contracts
+namespace Drivers.BLL.Managers.Contracts;
+
+/// <summary>
+/// Інтерфейс менеджера управління вантажівками
+/// </summary>
+public interface ITruckManager
 {
-    public interface ITruckManager
-    {
-        Task<IEnumerable<TruckResponceDTO>> GetAllTrucks();
-    }
+    Task<IEnumerable<TruckResponceDTO>> GetAllTrucks(
+        DataAccessProvider provider, 
+        CancellationToken cancellationToken);
+
+    Task<TruckMaintenanceSummaryResponseDTO?> GetTruckMaintenanceSummaryAsync(
+        int truckId, 
+        DataAccessProvider provider, 
+        CancellationToken cancellationToken);
+
+    Task<QueryComparisonResultDTO<TruckMaintenanceSummaryResponseDTO>> CompareTruckMaintenancePerformanceAsync(
+        int truckId, 
+        CancellationToken cancellationToken);
 }

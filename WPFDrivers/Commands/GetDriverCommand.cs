@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -16,9 +16,9 @@ namespace WPFDrivers.Commands
             _driversViewModel = driversViewModel;
         }
 
-        public override async Task ExecuteAsync(object parameter)
+        public override async Task ExecuteAsync(object? parameter)
         {
-            await _driversViewModel.GetFullInfoAboutDriverAsync(_driversViewModel.DriverId);
+            await _driversViewModel.LoadDriverAsync();
         }
     }
 }

@@ -1,4 +1,4 @@
-﻿using Drivers.DAL.EF.Entities;
+using Drivers.DAL.EF.Entities;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,5 +9,6 @@ namespace Drivers.DAL.EF.Repositories.Contracts
 {
     public interface IEFInspectionRepository : IEFGenericRepository<EFInspection>
     {
+        Task<IEnumerable<EFInspection>> GetInspectionsByTruckIdAsync(int truckId);
     }
 }

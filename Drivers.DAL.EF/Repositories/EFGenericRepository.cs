@@ -1,4 +1,4 @@
-using Drivers.DAL.EF.Data;
+﻿using Drivers.DAL.EF.Data;
 using Drivers.DAL.EF.Exceptions;
 using Drivers.DAL.EF.Repositories.Contracts;
 using Microsoft.EntityFrameworkCore;
@@ -6,120 +6,98 @@ using System.Linq.Expressions;
 
 namespace Drivers.DAL.EF.Repositories;
 
+/// <summary>
+/// Базовий узагальнений репозиторій для Entity Framework Core.
+/// Забезпечує стандартні CRUD-операції з DbContext.
+/// </summary>
+/// <typeparam name="TEntity">Тип сутності</typeparam>
 public abstract class EFGenericRepository<TEntity> : IEFGenericRepository<TEntity> where TEntity : class
 {
-    // properties
     protected readonly DriversManagementContext databaseContext;
     protected readonly DbSet<TEntity> table;
 
-    // constructor
     public EFGenericRepository(DriversManagementContext databaseContext)
     {
         this.databaseContext = databaseContext;
         table = this.databaseContext.Set<TEntity>();
     }
 
-    /////////////////////////////////////////////////////////////////////
-    ///   Generic CRUD
-    /////////////////////////////////////////////////////////////////////
-
     /// <summary>
-    /// GetByIdAsync
+    /// Отримання сутності за Id
     /// </summary>
-    /// <param name="id"></param>
-    /// <returns>TEntity</returns>
-    /// <exception cref="EntityNotFoundException"></exception>
     public virtual async Task<TEntity> GetByIdAsync(int id)
     {
         return await table.FindAsync(id)
-        ?? throw new EntityNotFoundException($"{typeof(TEntity).Name} with id {id} not found.");
+            ?? throw new EntityNotFoundException($"{typeof(TEntity).Name} з id {id} не знайдено.");
     }
 
     /// <summary>
-    /// GetAllAsync
+    /// Отримання всіх сутностей
     /// </summary>
-    /// <returns>IEnumerable<TEntity></returns>
-    /// <exception cref="Exception"></exception>
     public virtual async Task<IEnumerable<TEntity>> GetAllAsync()
     {
-        return await table.ToListAsync()
-        ?? throw new Exception($"Couldn't retrieve entities {typeof(TEntity).Name}");
+        return await table.ToListAsync();
     }
 
     /// <summary>
-    /// AddAsync
+    /// Додавання нової сутності
     /// </summary>
-    /// <param name="entity"></param>
-    /// <returns></returns>
-    /// <exception cref="ArgumentNullException"></exception>
     public virtual async Task<TEntity> AddAsync(TEntity entity)
     {
         if (entity == null)
         {
-            throw new ArgumentNullException($"{nameof(TEntity)} entity can't be null");
+            throw new ArgumentNullException(nameof(entity), $"{typeof(TEntity).Name} entity не може бути null");
         }
-        var added_entity = await table.AddAsync(entity);
-        return added_entity.Entity;
+
+        var addedEntity = await table.AddAsync(entity);
+        return addedEntity.Entity;
     }
 
     /// <summary>
-    /// UpdateAsync
+    /// Оновлення сутності
     /// </summary>
-    /// <param name="entity"></param>
-    /// <returns></returns>
     public virtual async Task UpdateAsync(TEntity entity)
     {
         if (entity == null)
         {
-            throw new ArgumentNullException($"{nameof(TEntity)} entity can't be null");
+            throw new ArgumentNullException(nameof(entity), $"{typeof(TEntity).Name} entity не може бути null");
         }
         await Task.Run(() => table.Update(entity));
     }
 
     /// <summary>
-    /// DeleteByIdAsync
+    /// Видалення сутності за Id
     /// </summary>
-    /// <param name="id"></param>
-    /// <returns></returns>
     public virtual async Task DeleteByIdAsync(int id)
     {
-        var entity = await GetByIdAsync(id) ?? throw new EntityNotFoundException($"{typeof(TEntity).Name} with id {id} not found. Cann't delete.");
+        var entity = await table.FindAsync(id)
+            ?? throw new EntityNotFoundException($"{typeof(TEntity).Name} з id {id} не знайдено. Неможливо видалити.");
         await Task.Run(() => table.Remove(entity));
     }
 
     /// <summary>
-    /// DeleteAsync
+    /// Видалення переданої сутності
     /// </summary>
-    /// <param name="entity"></param>
-    /// <returns></returns>
     public virtual async Task DeleteAsync(TEntity entity)
     {
         if (entity == null)
         {
-            throw new ArgumentNullException($"{nameof(AddAsync)} entity must not be null");
+            throw new ArgumentNullException(nameof(entity), $"{typeof(TEntity).Name} entity не може бути null");
         }
         await Task.Run(() => table.Remove(entity));
     }
 
-    /////////////////////////////////////////////////////////////////////
-    ///   FILTERS
-    /////////////////////////////////////////////////////////////////////
-
     /// <summary>
-    /// �����
+    /// Отримання IQueryable без відстеження змін
     /// </summary>
-    /// <returns></returns>
     public IQueryable<TEntity> FindAll()
     {
-        return databaseContext.Set<TEntity>()
-            .AsNoTracking();
+        return databaseContext.Set<TEntity>().AsNoTracking();
     }
 
     /// <summary>
-    /// ����� ������������
+    /// Пошук сутностей за предикатом без відстеження змін
     /// </summary>
-    /// <param name="expression"></param>
-    /// <returns></returns>
     public async Task<IQueryable<TEntity>> FindByCondition(Expression<Func<TEntity, bool>> expression)
     {
         return await Task.Run(() => databaseContext.Set<TEntity>()
@@ -127,14 +105,8 @@ public abstract class EFGenericRepository<TEntity> : IEFGenericRepository<TEntit
             .AsNoTracking());
     }
 
-    /////////////////////////////////////////////////////////////////////
-    ///   Contracts
-    /////////////////////////////////////////////////////////////////////
-
     /// <summary>
-    /// GetCompleteEntityAsync
+    /// Отримання повної сутності разом із пов'язаними навігаційними властивостями
     /// </summary>
-    /// <param name="id"></param>
-    /// <returns></returns>
-    public abstract Task<TEntity> GetCompleteEntityAsync(int id);
+    public abstract Task<TEntity?> GetCompleteEntityAsync(int id);
 }

@@ -1,4 +1,4 @@
-﻿<Application x:Class="WPFDrivers.App"
+<Application x:Class="WPFDrivers.App"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
 
@@ -20,6 +20,8 @@
 
             <helpers:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter" />
             <helpers:NullToVisibilityConverter x:Key="NullToVisibilityConverter" />
+            <helpers:InverseBoolToVisibilityConverter x:Key="InverseBoolToVisibilityConverter" />
+            <helpers:InverseNullToVisibilityConverter x:Key="InverseNullToVisibilityConverter" />
 
         </ResourceDictionary>
 

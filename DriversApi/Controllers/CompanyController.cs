@@ -1,76 +1,151 @@
-﻿using Drivers.BLL.DTOs.Responses;
-using Drivers.BLL.Managers;
+using Drivers.BLL.DTOs.Requests;
+using Drivers.BLL.DTOs.Responses;
 using Drivers.BLL.Managers.Contracts;
+using Drivers.BLL.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
-namespace Drivers.Api.Controllers
+namespace Drivers.Api.Controllers;
+
+/// <summary>
+/// Контролер управління компаніями-перевізниками.
+/// Підтримує повний REST CRUD та вибір провайдера даних (EF Core або Dapper).
+/// </summary>
+[Route("api/[controller]")]
+[ApiController]
+public class CompanyController : ControllerBase
 {
-    [Route("api/[controller]")]
-    [ApiController]
-    public class CompanyController : ControllerBase
+    private readonly ILogger<CompanyController> _logger;
+    private readonly ICompanyManager _companyManager;
+
+    public CompanyController(
+        ILogger<CompanyController> logger,
+        ICompanyManager companyManager)
     {
-        private readonly ILogger<CompanyController> _logger;
-        private ICompanyManager _companyManager;
+        _logger = logger;
+        _companyManager = companyManager;
+    }
 
-        public CompanyController(ILogger<CompanyController> logger,
-            ICompanyManager companyManager)
+    /// <summary>
+    /// Отримання списку всіх компаній
+    /// </summary>
+    [AllowAnonymous]
+    [HttpGet]
+    [ProducesResponseType(typeof(IEnumerable<CompanyResponceDTO>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<IEnumerable<CompanyResponceDTO>>> GetAll(
+        [FromQuery] DataAccessProvider provider = DataAccessProvider.EntityFramework,
+        CancellationToken cancellationToken = default)
+    {
+        var companies = await _companyManager.GetAllCompaniesAsync(provider, cancellationToken);
+        return Ok(companies);
+    }
+
+    /// <summary>
+    /// Отримання інформації про компанію за ідентифікатором
+    /// </summary>
+    [AllowAnonymous]
+    [HttpGet("{id}")]
+    [ProducesResponseType(typeof(CompanyResponceDTO), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<CompanyResponceDTO>> GetById(
+        int id,
+        [FromQuery] DataAccessProvider provider = DataAccessProvider.EntityFramework,
+        CancellationToken cancellationToken = default)
+    {
+        var company = await _companyManager.GetCompanyByIdAsync(id, provider, cancellationToken);
+        if (company == null)
         {
-            _logger = logger;
-            _companyManager = companyManager;
+            _logger.LogWarning("Компанію з Id {Id} не знайдено", id);
+            return NotFound($"Компанію з Id {id} не знайдено.");
+        }
+        return Ok(company);
+    }
+
+    /// <summary>
+    /// Отримання компанії разом із закріпленими водіями
+    /// </summary>
+    [AllowAnonymous]
+    [HttpGet("{id}/drivers")]
+    [ProducesResponseType(typeof(CompanyWithDriversResponseDTO), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<CompanyWithDriversResponseDTO>> GetWithDrivers(
+        int id,
+        [FromQuery] DataAccessProvider provider = DataAccessProvider.EntityFramework,
+        CancellationToken cancellationToken = default)
+    {
+        var company = await _companyManager.GetCompanyWithDriversAsync(id, provider, cancellationToken);
+        if (company == null)
+        {
+            return NotFound($"Компанію з Id {id} не знайдено.");
+        }
+        return Ok(company);
+    }
+
+    /// <summary>
+    /// Створення нової компанії
+    /// </summary>
+    [AllowAnonymous]
+    [HttpPost]
+    [ProducesResponseType(typeof(CompanyResponceDTO), StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<CompanyResponceDTO>> Create(
+        [FromBody] CompanyReqDTO dto,
+        [FromQuery] DataAccessProvider provider = DataAccessProvider.EntityFramework,
+        CancellationToken cancellationToken = default)
+    {
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ModelState);
         }
 
-        // GET: api/<CompanyController>
-        [HttpGet]
-        public IEnumerable<string> Get()
+        var created = await _companyManager.CreateCompanyAsync(dto, provider, cancellationToken);
+        return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
+    }
+
+    /// <summary>
+    /// Оновлення даних компанії
+    /// </summary>
+    [AllowAnonymous]
+    [HttpPut("{id}")]
+    [ProducesResponseType(typeof(CompanyResponceDTO), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<CompanyResponceDTO>> Update(
+        int id,
+        [FromBody] CompanyReqDTO dto,
+        [FromQuery] DataAccessProvider provider = DataAccessProvider.EntityFramework,
+        CancellationToken cancellationToken = default)
+    {
+        if (!ModelState.IsValid)
         {
-            return new string[] { "value1", "value2" };
+            return BadRequest(ModelState);
         }
 
-        // GET api/<CompanyController>/5
-        [HttpGet("{id}")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
-        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<CompanyResponceDTO>> GetById(int id)
+        var updated = await _companyManager.UpdateCompanyAsync(id, dto, provider, cancellationToken);
+        if (updated == null)
         {
-            try
-            {
-                var result = await _companyManager.GetCompanyById(id);
-                if (result == null)
-                {
-                    _logger.LogInformation($"Company із Id: {id}, не був знайдейний у базі даних");
-                    return NotFound();
-                }
-                else
-                {
-                    _logger.LogInformation($"Отримали Company з бази даних!");
-                    return Ok(result);
-                }
-
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError($"Транзакція сфейлилась! Щось пішло не так - {ex.Message}");
-                return StatusCode(StatusCodes.Status500InternalServerError, "Потрібно дивитись!");
-            }
+            return NotFound($"Компанію з Id {id} не знайдено для оновлення.");
         }
+        return Ok(updated);
+    }
 
-        // POST api/<CompanyController>
-        [HttpPost]
-        public void Post([FromBody] string value)
+    /// <summary>
+    /// Видалення компанії за ідентифікатором
+    /// </summary>
+    [AllowAnonymous]
+    [HttpDelete("{id}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Delete(
+        int id,
+        [FromQuery] DataAccessProvider provider = DataAccessProvider.EntityFramework,
+        CancellationToken cancellationToken = default)
+    {
+        var deleted = await _companyManager.DeleteCompanyAsync(id, provider, cancellationToken);
+        if (!deleted)
         {
+            return NotFound($"Компанію з Id {id} не знайдено для видалення.");
         }
-
-        // PUT api/<CompanyController>/5
-        [HttpPut("{id}")]
-        public void Put(int id, [FromBody] string value)
-        {
-        }
-
-        // DELETE api/<CompanyController>/5
-        [HttpDelete("{id}")]
-        public void Delete(int id)
-        {
-        }
+        return NoContent();
     }
 }

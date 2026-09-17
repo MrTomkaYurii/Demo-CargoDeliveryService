@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Windows.Input;
 using WPFDrivers.Commands;
 using static WPFDrivers.Commands.NavigateCommand;
@@ -20,8 +20,12 @@ public class MainViewModel : ViewModelBase
         NavigateCommand.Execute(ViewType.Drivers);
     }
 
-    public ViewModelBase CurrentVM { get; set; }
-    public DriversViewModel DriversVM { get; set; }
+    private ViewModelBase? _currentVM;
+    public ViewModelBase? CurrentVM
+    {
+        get => _currentVM;
+        set => OnPropertyChanged(ref _currentVM, value);
+    }
 
 
 }

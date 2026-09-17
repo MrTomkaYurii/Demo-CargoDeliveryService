@@ -1,4 +1,4 @@
-﻿using System.Threading.Tasks;
+using System.Threading.Tasks;
 
 namespace WPFDrivers.Commands;
 
@@ -16,13 +16,12 @@ public abstract class CommandBaseAsync : CommandBase
         }
     }
 
-    public override bool CanExecute(object parameter)
+    public override bool CanExecute(object? parameter)
     {
         return !IsExecuting && base.CanExecute(parameter);
     }
 
-
-    public override async void Execute(object parameter)
+    public override async void Execute(object? parameter)
     {
         IsExecuting = true;
 
@@ -34,8 +33,7 @@ public abstract class CommandBaseAsync : CommandBase
         {
             IsExecuting = false;
         }
-
     }
 
-    public abstract Task ExecuteAsync(object parameter);
+    public abstract Task ExecuteAsync(object? parameter);
 }

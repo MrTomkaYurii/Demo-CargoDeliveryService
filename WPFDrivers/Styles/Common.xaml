@@ -1,51 +1,127 @@
-﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
-    
-    <!-- Button Style -->
-    <Style TargetType="Button">
-        <Setter Property="Padding" Value="10 5" />
-    </Style>
 
-    <!-- Textbox Style -->
+    <!-- ================================================================= -->
+    <!-- ОФІЦІЙНА ПАЛІТРА КОЛЬОРІВ C# ТА .NET (PURPLE / VIOLET BRANDING)  -->
+    <!-- ================================================================= -->
+
+    <!-- Основні фірмові фіолетові відтінки .NET / C# -->
+    <Color x:Key="CSharpBrandColor">#512BD4</Color>
+    <SolidColorBrush x:Key="CSharpPrimaryBrush" Color="#512BD4" />
+    <SolidColorBrush x:Key="CSharpPrimaryDarkBrush" Color="#371B96" />
+    <SolidColorBrush x:Key="CSharpPrimaryLightBrush" Color="#6C44E8" />
+
+    <SolidColorBrush x:Key="CSharpVioletBrush" Color="#7F52FF" />
+    <SolidColorBrush x:Key="CSharpVioletSoftBrush" Color="#9A70FF" />
+    <SolidColorBrush x:Key="CSharpDeepBackgroundBrush" Color="#160E2E" />
+    <SolidColorBrush x:Key="CSharpHeaderDarkBrush" Color="#1F1340" />
+
+    <!-- Пастельні лавандові фони та межі -->
+    <SolidColorBrush x:Key="CSharpLavenderBgBrush" Color="#F5F3FF" />
+    <SolidColorBrush x:Key="CSharpLavenderSurfaceBrush" Color="#FAF8FF" />
+    <SolidColorBrush x:Key="CSharpLavenderCardBrush" Color="#EDE9FE" />
+    <SolidColorBrush x:Key="CSharpLavenderBorderBrush" Color="#DDD6FE" />
+    <SolidColorBrush x:Key="CSharpLavenderBorderDarkBrush" Color="#C4B5FD" />
+
+    <!-- Текстові кольори -->
+    <SolidColorBrush x:Key="CSharpTextPrimaryBrush" Color="#1E1338" />
+    <SolidColorBrush x:Key="CSharpTextSecondaryBrush" Color="#645E7D" />
+    <SolidColorBrush x:Key="CSharpTextLightBrush" Color="#DDD6FE" />
+
+    <!-- Акцентні градієнти C# -->
+    <LinearGradientBrush x:Key="CSharpHeroGradient" StartPoint="0,0" EndPoint="1,1">
+        <GradientStop Color="#1E113E" Offset="0.0" />
+        <GradientStop Color="#371B96" Offset="0.5" />
+        <GradientStop Color="#512BD4" Offset="1.0" />
+    </LinearGradientBrush>
+
+    <LinearGradientBrush x:Key="CSharpButtonGradient" StartPoint="0,0" EndPoint="1,0">
+        <GradientStop Color="#512BD4" Offset="0.0" />
+        <GradientStop Color="#7F52FF" Offset="1.0" />
+    </LinearGradientBrush>
+
+    <LinearGradientBrush x:Key="CSharpBenchmarkGradient" StartPoint="0,0" EndPoint="1,0">
+        <GradientStop Color="#7C3AED" Offset="0.0" />
+        <GradientStop Color="#C026D3" Offset="1.0" />
+    </LinearGradientBrush>
+
+    <LinearGradientBrush x:Key="CSharpWinnerGradient" StartPoint="0,0" EndPoint="1,0">
+        <GradientStop Color="#EDE9FE" Offset="0.0" />
+        <GradientStop Color="#F3E8FF" Offset="1.0" />
+    </LinearGradientBrush>
+
+    <!-- ================================================================= -->
+    <!-- БАЗОВІ СТИЛІ ЕЛЕМЕНТІВ КЕРУВАННЯ                                -->
+    <!-- ================================================================= -->
+
+    <!-- Стиль текстових полів TextBox -->
     <Style TargetType="TextBox">
-        <Setter Property="Padding" Value="2" />
+        <Setter Property="Padding" Value="8,4" />
+        <Setter Property="BorderBrush" Value="#C4B5FD" />
+        <Setter Property="BorderThickness" Value="1.5" />
+        <Setter Property="Background" Value="White" />
+        <Setter Property="Foreground" Value="#1E1338" />
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
     </Style>
 
-    <!--Brushes (Palette from: https://flatuicolors.com/palette/de)-->
-    <SolidColorBrush x:Key="BlueHorizon" Color="#FF4B6584"/>
-    <SolidColorBrush x:Key="BlueGrey" Color="#FF778CA3"/>
+    <!-- Стиль звичайних кнопок Button -->
+    <Style TargetType="Button">
+        <Setter Property="Padding" Value="14,6" />
+        <Setter Property="Background" Value="#512BD4" />
+        <Setter Property="Foreground" Value="White" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Cursor" Value="Hand" />
+    </Style>
 
-    <SolidColorBrush x:Key="Innuendo" Color="#FFA5b1C2"/>
-    <SolidColorBrush x:Key="TwinkleBlue" Color="#FFD1D8E0"/>
+    <!-- Стиль радіокнопок RadioButton -->
+    <Style TargetType="RadioButton">
+        <Setter Property="Foreground" Value="#2D1B69" />
+        <Setter Property="FontWeight" Value="Medium" />
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="Margin" Value="0,0,14,0" />
+    </Style>
 
-    <SolidColorBrush x:Key="GloomyPurple" Color="#FF8854D0"/>
-    <SolidColorBrush x:Key="LighterPurple" Color="#FFA55EEA"/>
+    <!-- Стиль таблиць DataGrid -->
+    <Style TargetType="DataGrid">
+        <Setter Property="Background" Value="White" />
+        <Setter Property="BorderBrush" Value="#DDD6FE" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="GridLinesVisibility" Value="Horizontal" />
+        <Setter Property="HorizontalGridLinesBrush" Value="#EDE9FE" />
+        <Setter Property="RowBackground" Value="White" />
+        <Setter Property="AlternatingRowBackground" Value="#FAF8FF" />
+        <Setter Property="CanUserAddRows" Value="False" />
+        <Setter Property="IsReadOnly" Value="True" />
+        <Setter Property="RowHeaderWidth" Value="0" />
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="Foreground" Value="#1E1338" />
+    </Style>
 
-    <SolidColorBrush x:Key="RoyalBlue" Color="#FF3867D6"/>
-    <SolidColorBrush x:Key="NTSC" Color="#FF4B7BEC"/>
+    <!-- Стиль заголовків колонок DataGrid -->
+    <Style TargetType="DataGridColumnHeader">
+        <Setter Property="Background" Value="#371B96" />
+        <Setter Property="Foreground" Value="White" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Padding" Value="10,8" />
+        <Setter Property="BorderThickness" Value="0,0,1,0" />
+        <Setter Property="BorderBrush" Value="#512BD4" />
+    </Style>
 
-    <SolidColorBrush x:Key="BoyZone" Color="#FF2D98DA"/>
-    <SolidColorBrush x:Key="HighBlue" Color="#FF45AAF2"/>
+    <Style TargetType="DataGridCell">
+        <Setter Property="Padding" Value="8,6" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="DataGridCell">
+                    <Border Padding="{TemplateBinding Padding}" Background="{TemplateBinding Background}">
+                        <ContentPresenter VerticalAlignment="Center" />
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
 
-    <SolidColorBrush x:Key="AlgalFuel" Color="#FF20BF6B"/>
-    <SolidColorBrush x:Key="ReptileGreen" Color="#FF26DE81"/>
-
-    <SolidColorBrush x:Key="TurquioseTopaz" Color="#FF0FB9B1"/>
-    <SolidColorBrush x:Key="MaximumBlueGreen" Color="#FF2BCBBA"/>
-
-    <SolidColorBrush x:Key="AlmostBlack" Color="#FF131313"/>
-
-    <!--Gradient Brushes-->
-    <LinearGradientBrush x:Key="BlueGreyGradient" EndPoint="0,1">
-        <GradientStop Color="#FF4B6584" Offset="0.0" />
-        <GradientStop Color="#FF526B89" Offset="0.5" />
-        <GradientStop Color="#FF59718F" Offset="1.0" />
-    </LinearGradientBrush>
-
-    <LinearGradientBrush x:Key="LightBlueGreyGradient" EndPoint="0,1">
-        <GradientStop Color="#FF778CA3" Offset="0.0" />
-        <GradientStop Color="#FF7B8FA4" Offset="0.5" />
-        <GradientStop Color="#FF8798AA" Offset="1.0" />
-    </LinearGradientBrush>
-    
 </ResourceDictionary>

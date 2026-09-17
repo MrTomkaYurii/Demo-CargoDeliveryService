@@ -93,11 +93,17 @@ builder.Services.AddScoped<ITruckManager, TruckManager>();
 //MIDLLEWARE
 builder.Services.AddTransient<ExceptionMiddleware>();
 //AUTOMAPPER
-builder.Services.AddAutoMapper(typeof(Program).Assembly);
+builder.Services.AddAutoMapper(typeof(Program).Assembly, typeof(Drivers.BLL.Mapping.BLLMappingProfile).Assembly);
 //FLUENT VALIDATION
 builder.Services.AddFluentValidationAutoValidation();
 builder.Services.AddFluentValidationClientsideAdapters();
 builder.Services.AddScoped<IValidator<MiniDriverReqDTO>, MiniDriverReqDTO_Validator>();
+builder.Services.AddScoped<IValidator<Drivers.DAL.EF.Entities.HelpModels.DriverParameters>, DriverParametersValidator>();
+builder.Services.AddScoped<IValidator<DateRange>, DateRangeValidator>();
+builder.Services.AddScoped<IValidator<CompanyReqDTO>, CompanyReqDTO_Validator>();
+builder.Services.AddScoped<IValidator<ExpenseReqDTO>, ExpenseReqDTO_Validator>();
+builder.Services.AddScoped<IValidator<InspectionReqDTO>, InspectionReqDTO_Validator>();
+builder.Services.AddScoped<IValidator<RepairReqDTO>, RepairReqDTO_Validator>();
 
 //JWT TOKEN VALIDATION FOR => AuthJWTModule
 //var jwt = builder.Configuration.GetSection("JWT").Get<jwtConfig>();

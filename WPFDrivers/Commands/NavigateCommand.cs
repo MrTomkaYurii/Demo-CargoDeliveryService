@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using WPFDrivers.ViewModels;
 
 namespace WPFDrivers.Commands;
@@ -25,7 +25,7 @@ public class NavigateCommand : CommandBase
  //       _driversManager = driversManager;
     }
 
-    public override void Execute(object parameter)
+    public override void Execute(object? parameter)
     {
         if (parameter is ViewType viewType)
         {

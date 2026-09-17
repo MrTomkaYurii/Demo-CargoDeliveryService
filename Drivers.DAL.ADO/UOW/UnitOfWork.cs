@@ -1,20 +1,31 @@
-﻿using Drivers.DAL.ADO.Repositories.Contracts;
+using Drivers.DAL.ADO.Repositories.Contracts;
 using Drivers.DAL.ADO.UOW.Contracts;
 using System.Data;
 
 namespace Drivers.DAL.ADO.UOW;
 
+/// <summary>
+/// Реалізація Unit of Work для ADO.NET / Dapper
+/// </summary>
 public class UnitOfWork : IUnitOfWork, IDisposable
 {
-    public IDriverRepository _driverRepository { get; }
-    public ICompanyRepository _companyRepository { get; }
-    public IExpensesRepository _expensesRepository { get; }
-    public IPhotoRepository _photoRepository { get; }
-    public IInspectionRepository _inspectionRepository { get; }
-    public IRepairRepository _repairRepository { get; }
-    public ITruckRepository _truckRepository { get; }
+    public IDriverRepository DriverRepository { get; }
+    public ICompanyRepository CompanyRepository { get; }
+    public IExpensesRepository ExpensesRepository { get; }
+    public IPhotoRepository PhotoRepository { get; }
+    public IInspectionRepository InspectionRepository { get; }
+    public IRepairRepository RepairRepository { get; }
+    public ITruckRepository TruckRepository { get; }
 
-    readonly IDbTransaction _dbTransaction;
+    public IDriverRepository _driverRepository => DriverRepository;
+    public ICompanyRepository _companyRepository => CompanyRepository;
+    public IExpensesRepository _expensesRepository => ExpensesRepository;
+    public IPhotoRepository _photoRepository => PhotoRepository;
+    public IInspectionRepository _inspectionRepository => InspectionRepository;
+    public IRepairRepository _repairRepository => RepairRepository;
+    public ITruckRepository _truckRepository => TruckRepository;
+
+    private readonly IDbTransaction _dbTransaction;
 
     public UnitOfWork(
         IDriverRepository driverRepository,
@@ -26,15 +37,14 @@ public class UnitOfWork : IUnitOfWork, IDisposable
         ITruckRepository truckRepository,
         IDbTransaction dbTransaction)
     {
-        _driverRepository = driverRepository;
-        _companyRepository = companyRepository;
-        _expensesRepository = expensesRepository;
-        _photoRepository = photoRepository;
-        _inspectionRepository = inspectionRepository;
-        _repairRepository = repairRepository;
-        _truckRepository = truckRepository;
+        DriverRepository = driverRepository;
+        CompanyRepository = companyRepository;
+        ExpensesRepository = expensesRepository;
+        InspectionRepository = inspectionRepository;
+        PhotoRepository = photoRepository;
+        RepairRepository = repairRepository;
+        TruckRepository = truckRepository;
         _dbTransaction = dbTransaction;
-
     }
 
     public void Commit()
@@ -42,8 +52,6 @@ public class UnitOfWork : IUnitOfWork, IDisposable
         try
         {
             _dbTransaction.Commit();
-            // By adding this we can have muliple transactions as part of a single request
-            //_dbTransaction.Connection.BeginTransaction();
         }
         catch (Exception ex)
         {
@@ -54,7 +62,6 @@ public class UnitOfWork : IUnitOfWork, IDisposable
 
     public void Dispose()
     {
-        //Close the SQL Connection and dispose the objects
         _dbTransaction.Connection?.Close();
         _dbTransaction.Connection?.Dispose();
         _dbTransaction.Dispose();

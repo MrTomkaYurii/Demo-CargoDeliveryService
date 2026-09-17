@@ -1,4 +1,4 @@
-﻿<Window x:Class="WPFDrivers.MainWindow"
+<Window x:Class="WPFDrivers.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -8,8 +8,10 @@
         d:DataContext="{d:DesignInstance Type=vm:MainViewModel}"
         
         mc:Ignorable="d"
-        Title="DRIVERS" 
-        Height="600" Width="1200">
+        Title="C# Drivers Management System (.NET 10 Enterprise Showcase)" 
+        Height="780" Width="1220"
+        WindowStartupLocation="CenterScreen"
+        Background="#F5F3FF">
 
     <Grid>
         <Grid.RowDefinitions>
