@@ -29,8 +29,11 @@
 - 📄 **[01. Патерн Пагінації](docs/Guides/01_Patterns_Pagination.md)** — наскрізний потік `QueryStringParameters` ➔ `PagedList<T>` ➔ SQL `OFFSET/FETCH` ➔ `PagedResponseDTO<T>`.
 - 🛡️ **[02. Патерн Валідації](docs/Guides/02_Patterns_Validation.md)** — порівняння Data Annotations / `ModelState` проти FluentValidation, крос-польова валідація, тести.
 - 🚨 **[03. Патерн Централізованої Обробки Помилок](docs/Guides/03_Patterns_Centralized_Exception_Handling.md)** — `ExceptionMiddleware`, стандарт RFC 7807, безпека від витоку SQL, трейсинг через `ErrorId`.
-- 📐 **[04. Патерн Специфікація та Expression Trees](docs/Guides/04_Patterns_Specification.md)** — глибокий розбір патерну Specification для початківців: Дерева Виразів (AST) проти Func, усунення Fat Repository, транслятор `SpecificationEvaluator`.
-- ⚡ **[05. Порівняння EF Core 10 vs Dapper](docs/Guides/EF-vs-Dapper-Architecture-Guide.md)** — аналіз швидкодії ORM vs Micro-ORM, бенчмаркінг, Dual-Engine Strategy.
+- 📐 **[04. Патерн Специфікація та Expression Trees](docs/Guides/04_Patterns_Specification.md)** — Дерева Виразів (AST) проти `Func`, усунення Fat Repository, компілятор запитів `SpecificationEvaluator`.
+- 🏛️ **[05. Патерн Generic Repository](docs/Guides/05_Patterns_Generic_Repository.md)** — універсальний репозиторій над `DbSet<TEntity>`, усунення дублювання CRUD, `AsNoTracking()`, спеціалізація репозиторіїв.
+- 💼 **[06. Патерн Unit of Work](docs/Guides/06_Patterns_Unit_Of_Work.md)** — атомарні бізнес-транзакції (ACID), координація множинних репозиторіїв, порівняння EF Core UoW проти ADO.NET `IDbTransaction`.
+- ⚡ **[07. Патерн Dual-Engine DAL (EF Core vs Dapper)](docs/Guides/07_Patterns_Dual_Engine_ORM_vs_Dapper.md)** — гібридна стратегія доступу до даних: ORM для транзакцій проти Micro-ORM для важких аналітичних вибірок, бенчмаркінг.
+- 🔄 **[08. Патерн DTO та AutoMapper](docs/Guides/08_Patterns_DTO_and_AutoMapper.md)** — ізоляція моделі БД від зовнішнього REST API, захист від Over-Posting, подолання циклічних посилань у JSON.
 
 ---
 

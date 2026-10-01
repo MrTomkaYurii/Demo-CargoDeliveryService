@@ -12,10 +12,11 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "01-Documentation", "01-Docu
 		01-Ntier-Drivers\docs\Guides\02_Patterns_Validation.md = 01-Ntier-Drivers\docs\Guides\02_Patterns_Validation.md
 		01-Ntier-Drivers\docs\Guides\03_Patterns_Centralized_Exception_Handling.md = 01-Ntier-Drivers\docs\Guides\03_Patterns_Centralized_Exception_Handling.md
 		01-Ntier-Drivers\docs\Guides\04_Patterns_Specification.md = 01-Ntier-Drivers\docs\Guides\04_Patterns_Specification.md
-		01-Ntier-Drivers\docs\Guides\Specification-and-Repository-Guide.md = 01-Ntier-Drivers\docs\Guides\Specification-and-Repository-Guide.md
-		01-Ntier-Drivers\docs\Guides\EF-vs-Dapper-Architecture-Guide.md = 01-Ntier-Drivers\docs\Guides\EF-vs-Dapper-Architecture-Guide.md
+		01-Ntier-Drivers\docs\Guides\05_Patterns_Generic_Repository.md = 01-Ntier-Drivers\docs\Guides\05_Patterns_Generic_Repository.md
+		01-Ntier-Drivers\docs\Guides\06_Patterns_Unit_Of_Work.md = 01-Ntier-Drivers\docs\Guides\06_Patterns_Unit_Of_Work.md
+		01-Ntier-Drivers\docs\Guides\07_Patterns_Dual_Engine_ORM_vs_Dapper.md = 01-Ntier-Drivers\docs\Guides\07_Patterns_Dual_Engine_ORM_vs_Dapper.md
+		01-Ntier-Drivers\docs\Guides\08_Patterns_DTO_and_AutoMapper.md = 01-Ntier-Drivers\docs\Guides\08_Patterns_DTO_and_AutoMapper.md
 		01-Ntier-Drivers\docs\Presentations\01-Ntier-3Tier-Architecture-Masterclass.md = 01-Ntier-Drivers\docs\Presentations\01-Ntier-3Tier-Architecture-Masterclass.md
-		01-Ntier-Drivers\docs\Presentations\Architecture-Presentation.md = 01-Ntier-Drivers\docs\Presentations\Architecture-Presentation.md
 		01-Ntier-Drivers\docs\Presentations\README.md = 01-Ntier-Drivers\docs\Presentations\README.md
 	EndProjectSection
 EndProject
