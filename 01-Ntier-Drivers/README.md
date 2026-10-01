@@ -29,7 +29,7 @@
 - 📄 **[01. Патерн Пагінації](docs/Guides/01_Patterns_Pagination.md)** — наскрізний потік `QueryStringParameters` ➔ `PagedList<T>` ➔ SQL `OFFSET/FETCH` ➔ `PagedResponseDTO<T>`.
 - 🛡️ **[02. Патерн Валідації](docs/Guides/02_Patterns_Validation.md)** — порівняння Data Annotations / `ModelState` проти FluentValidation, крос-польова валідація, тести.
 - 🚨 **[03. Патерн Централізованої Обробки Помилок](docs/Guides/03_Patterns_Centralized_Exception_Handling.md)** — `ExceptionMiddleware`, стандарт RFC 7807, безпека від витоку SQL, трейсинг через `ErrorId`.
-- 📐 **[04. Specification, Repository & Unit of Work](docs/Guides/Specification-and-Repository-Guide.md)** — динамічна побудова LINQ Expression Trees через `SpecificationEvaluator`.
+- 📐 **[04. Патерн Специфікація та Expression Trees](docs/Guides/04_Patterns_Specification.md)** — глибокий розбір патерну Specification для початківців: Дерева Виразів (AST) проти Func, усунення Fat Repository, транслятор `SpecificationEvaluator`.
 - ⚡ **[05. Порівняння EF Core 10 vs Dapper](docs/Guides/EF-vs-Dapper-Architecture-Guide.md)** — аналіз швидкодії ORM vs Micro-ORM, бенчмаркінг, Dual-Engine Strategy.
 
 ---

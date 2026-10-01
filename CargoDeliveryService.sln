@@ -11,6 +11,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "01-Documentation", "01-Docu
 		01-Ntier-Drivers\docs\Guides\01_Patterns_Pagination.md = 01-Ntier-Drivers\docs\Guides\01_Patterns_Pagination.md
 		01-Ntier-Drivers\docs\Guides\02_Patterns_Validation.md = 01-Ntier-Drivers\docs\Guides\02_Patterns_Validation.md
 		01-Ntier-Drivers\docs\Guides\03_Patterns_Centralized_Exception_Handling.md = 01-Ntier-Drivers\docs\Guides\03_Patterns_Centralized_Exception_Handling.md
+		01-Ntier-Drivers\docs\Guides\04_Patterns_Specification.md = 01-Ntier-Drivers\docs\Guides\04_Patterns_Specification.md
 		01-Ntier-Drivers\docs\Guides\Specification-and-Repository-Guide.md = 01-Ntier-Drivers\docs\Guides\Specification-and-Repository-Guide.md
 		01-Ntier-Drivers\docs\Guides\EF-vs-Dapper-Architecture-Guide.md = 01-Ntier-Drivers\docs\Guides\EF-vs-Dapper-Architecture-Guide.md
 		01-Ntier-Drivers\docs\Presentations\01-Ntier-3Tier-Architecture-Masterclass.md = 01-Ntier-Drivers\docs\Presentations\01-Ntier-3Tier-Architecture-Masterclass.md

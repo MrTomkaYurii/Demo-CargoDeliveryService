@@ -4,38 +4,49 @@ using Microsoft.EntityFrameworkCore;
 namespace Drivers.DAL.EF.Specifications.Evaluator;
 
 /// <summary>
-/// Оцінювач специфікацій (Specification Evaluator).
-/// Відповідає за трансляцію об'єкта ISpecification у фінальний конвеєр запиту IQueryable для Entity Framework Core.
-/// Динамічно компонує Where, Include, OrderBy, Skip та Take без витоку деталей запиту у вищі шари.
+/// Оцінювач та компілятор специфікацій (Specification Evaluator).
+/// <para>
+/// <b>Архітектурна роль:</b> Виступає сполучною ланкою між доменною специфікацією (<see cref="ISpecification{T}"/>) 
+/// та конвеєром побудови запиту <see cref="IQueryable{T}"/> в Entity Framework Core.
+/// </para>
+/// <para>
+/// <b>Принцип роботи:</b> Приймає базовий набір даних DbSet та послідовно накладає на нього 
+/// дерево виразів фільтрації (<c>.Where()</c>), зв'язки жадібного завантаження (<c>.Include()</c>), 
+/// правила сортування (<c>.OrderBy()</c>) та серверну пагінацію (<c>.Skip().Take()</c>).
+/// </para>
 /// </summary>
-/// <typeparam name="TEntity">Тип сутності</typeparam>
+/// <typeparam name="TEntity">Тип сутності бази даних</typeparam>
 public static class SpecificationEvaluator<TEntity> where TEntity : class
 {
     /// <summary>
-    /// Побудова IQueryable на основі переданої специфікації
+    /// Будує та конфігурує фінальний <see cref="IQueryable{TEntity}"/> запит на основі переданої специфікації.
     /// </summary>
-    /// <param name="inputQuery">Базовий набір даних DbSet або IQueryable</param>
-    /// <param name="specification">Специфікація з критеріями запиту</param>
-    /// <returns>Готовий до виконання IQueryable</returns>
+    /// <param name="inputQuery">Базовий набір даних (DbSet або AsNoTracking запит)</param>
+    /// <param name="specification">Об'єкт специфікації з налаштуваннями запиту</param>
+    /// <returns>Скомпонований IQueryable, готовий до трансляції в SQL Server T-SQL</returns>
     public static IQueryable<TEntity> GetQuery(IQueryable<TEntity> inputQuery, ISpecification<TEntity> specification)
     {
         var query = inputQuery;
 
-        // 1. Застосування умови фільтрації (WHERE)
+        // 1. Застосування умови фільтрації (WHERE предикат)
+        // Expression<Func<T, bool>> передається в Where, де Query Provider розбирає AST-вузли на T-SQL WHERE
         if (specification.Criteria != null)
         {
             query = query.Where(specification.Criteria);
         }
 
-        // 2. Жадібне завантаження через сильно типізовані Expressions (.Include)
+        // 2. Жадібне завантаження (Eager Loading) через типізовані Expression дерева (.Include)
+        // Використовуємо функціональну згортку Aggregate, що послідовно огортає query:
+        // query.Include(expr1).Include(expr2)...
         query = specification.Includes.Aggregate(query,
             (current, include) => current.Include(include));
 
-        // 3. Жадібне завантаження через рядкові шляхи (для глибоких вкладених зв'язків)
+        // 3. Жадібне завантаження через рядкові шляхи (для вкладених зв'язків типу "Expenses.Truck")
         query = specification.IncludeStrings.Aggregate(query,
             (current, include) => current.Include(include));
 
-        // 4. Сортування
+        // 4. Сортування результату (ORDER BY)
+        // Встановлюється вираз сортування за зростанням або спаданням
         if (specification.OrderBy != null)
         {
             query = query.OrderBy(specification.OrderBy);
@@ -45,7 +56,9 @@ public static class SpecificationEvaluator<TEntity> where TEntity : class
             query = query.OrderByDescending(specification.OrderByDescending);
         }
 
-        // 5. Пагінація (Skip / Take)
+        // 5. Серверна пагінація (Skip / Take)
+        // Перетворюється на T-SQL: OFFSET @Skip ROWS FETCH NEXT @Take ROWS ONLY
+        // Важливо: пагінація завжди має застосовуватися ПІСЛЯ сортування!
         if (specification.IsPagingEnabled)
         {
             query = query.Skip(specification.Skip).Take(specification.Take);
