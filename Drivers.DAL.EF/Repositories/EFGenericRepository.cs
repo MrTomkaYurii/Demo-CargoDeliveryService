@@ -1,6 +1,8 @@
-﻿using Drivers.DAL.EF.Data;
+using Drivers.DAL.EF.Data;
 using Drivers.DAL.EF.Exceptions;
 using Drivers.DAL.EF.Repositories.Contracts;
+using Drivers.DAL.EF.Specifications.Contracts;
+using Drivers.DAL.EF.Specifications.Evaluator;
 using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
 
@@ -109,4 +111,36 @@ public abstract class EFGenericRepository<TEntity> : IEFGenericRepository<TEntit
     /// Отримання повної сутності разом із пов'язаними навігаційними властивостями
     /// </summary>
     public abstract Task<TEntity?> GetCompleteEntityAsync(int id);
+
+    /// <summary>
+    /// Вибірка списку сутностей за об'єктом специфікації (WHERE, Includes, OrderBy, Paging)
+    /// </summary>
+    public virtual async Task<IReadOnlyList<TEntity>> GetWithSpecAsync(ISpecification<TEntity> specification, CancellationToken cancellationToken = default)
+    {
+        return await ApplySpecification(specification).ToListAsync(cancellationToken);
+    }
+
+    /// <summary>
+    /// Отримання одиничної сутності за об'єктом специфікації
+    /// </summary>
+    public virtual async Task<TEntity?> GetEntityWithSpecAsync(ISpecification<TEntity> specification, CancellationToken cancellationToken = default)
+    {
+        return await ApplySpecification(specification).FirstOrDefaultAsync(cancellationToken);
+    }
+
+    /// <summary>
+    /// Підрахунок кількості сутностей, що відповідають критеріям специфікації
+    /// </summary>
+    public virtual async Task<int> CountAsync(ISpecification<TEntity> specification, CancellationToken cancellationToken = default)
+    {
+        return await ApplySpecification(specification).CountAsync(cancellationToken);
+    }
+
+    /// <summary>
+    /// Допоміжний метод підключення SpecificationEvaluator до поточного набору даних
+    /// </summary>
+    protected IQueryable<TEntity> ApplySpecification(ISpecification<TEntity> specification)
+    {
+        return SpecificationEvaluator<TEntity>.GetQuery(table.AsNoTracking(), specification);
+    }
 }

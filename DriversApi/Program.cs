@@ -197,22 +197,36 @@ builder.Services.AddSwaggerGen(opt =>
         }
     });
 
-    // Додаємо Security Requirement для вказівки що використовується OAuth 2.0
-    opt.AddSecurityRequirement(new OpenApiSecurityRequirement
-    {
+        // Додаємо Security Requirement для вказівки що використовується OAuth 2.0
+        opt.AddSecurityRequirement(new OpenApiSecurityRequirement
         {
-            new OpenApiSecurityScheme
             {
-                Reference = new OpenApiReference
+                new OpenApiSecurityScheme
                 {
-                    Type = ReferenceType.SecurityScheme,
-                    Id = "oauth2"
-                }
-            },
-            new[] { "openid", "profile", "DriverApi.read", "DriverApi.write" }
+                    Reference = new OpenApiReference
+                    {
+                        Type = ReferenceType.SecurityScheme,
+                        Id = "oauth2"
+                    }
+                },
+                new[] { "openid", "profile", "DriverApi.read", "DriverApi.write" }
+            }
+        });
+
+        // Підключення XML-документації для Swagger
+        var apiXmlFile = $"{System.Reflection.Assembly.GetExecutingAssembly().GetName().Name}.xml";
+        var apiXmlPath = Path.Combine(AppContext.BaseDirectory, apiXmlFile);
+        if (File.Exists(apiXmlPath))
+        {
+            opt.IncludeXmlComments(apiXmlPath);
+        }
+
+        var bllXmlPath = Path.Combine(AppContext.BaseDirectory, "Drivers.BLL.xml");
+        if (File.Exists(bllXmlPath))
+        {
+            opt.IncludeXmlComments(bllXmlPath);
         }
     });
-});
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///PIPELINE
@@ -245,5 +259,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.UseMiddleware<ExceptionMiddleware>();
+
 app.MapControllers();
+app.MapGet("/", () => Results.Redirect("/swagger"));
 app.Run();

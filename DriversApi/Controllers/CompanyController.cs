@@ -30,6 +30,8 @@ public class CompanyController : ControllerBase
     /// Отримання списку всіх компаній
     /// </summary>
     [AllowAnonymous]
+
+    
     [HttpGet]
     [ProducesResponseType(typeof(IEnumerable<CompanyResponceDTO>), StatusCodes.Status200OK)]
     public async Task<ActionResult<IEnumerable<CompanyResponceDTO>>> GetAll(

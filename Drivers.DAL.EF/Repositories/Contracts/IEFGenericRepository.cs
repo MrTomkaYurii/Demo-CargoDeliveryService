@@ -26,4 +26,11 @@ public interface IEFGenericRepository<TEntity> where TEntity : class
     IQueryable<TEntity> FindAll();
 
     Task<IQueryable<TEntity>> FindByCondition(Expression<Func<TEntity, bool>> expression);
+
+    // Specification Pattern
+    Task<IReadOnlyList<TEntity>> GetWithSpecAsync(Drivers.DAL.EF.Specifications.Contracts.ISpecification<TEntity> specification, CancellationToken cancellationToken = default);
+
+    Task<TEntity?> GetEntityWithSpecAsync(Drivers.DAL.EF.Specifications.Contracts.ISpecification<TEntity> specification, CancellationToken cancellationToken = default);
+
+    Task<int> CountAsync(Drivers.DAL.EF.Specifications.Contracts.ISpecification<TEntity> specification, CancellationToken cancellationToken = default);
 }
