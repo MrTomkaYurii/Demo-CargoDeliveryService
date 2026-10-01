@@ -5,4 +5,4 @@ services:
     image: ${DOCKER_REGISTRY-}duendeidentityinmemory
     build:
       context: .
-      dockerfile: DuendeIdentityInMemory/Dockerfile
+      dockerfile: 03-Identity-Security/DuendeIdentityInMemory/Dockerfile

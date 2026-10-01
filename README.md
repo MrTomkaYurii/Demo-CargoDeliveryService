@@ -1,134 +1,113 @@
-# 🚛 Demo Cargo Delivery Service (.NET 10 Enterprise N-Tier Solution)
+# 🚛 Cargo Delivery Service: Enterprise Multi-Paradigm Platform (.NET 10)
 
-> Сучасне корпоративне рішення на базі **.NET 10** для логістичних перевезень та управління автопарком, що демонструє чисту **Тришарову архітектуру (3-Tier)**, паралельний **Dual-Engine DAL (Entity Framework Core 10 проти Dapper)**, патерни **Specification**, **Unit of Work**, **Generic Repository**, декларативну валідацію **FluentValidation**, централізовану обробку помилок **RFC 7807** та гібридний десктопний клієнт на **WPF (MVVM)**.
-
----
-
-## 📚 Швидка навігація по архітектурній документації
-
-| Документ | Опис | Посилання |
-| :--- | :--- | :---: |
-| 🎓 **Архітектурна презентація** | Інтерактивна майстер-клас презентація на 22 слайди з TOC, переходами, схемами та клікабельними лінками на вихідний код | [Відкрити презентацію](docs/Architecture-Presentation.md) |
-| 📘 **Технічний довідник** | Глибокий посібник з патернів **Specification, Generic Repository та Unit of Work** (внутрішня механіка, Evaluator, пайплайн «матрьошка») | [Відкрити довідник](docs/Specification-and-Repository-Guide.md) |
-| ⚡ **Бенчмаркінг: EF Core vs Dapper** | Порівняльний аналіз швидкодії ORM та Micro-ORM, усунення N+1 та Cartesian Product, заміри часу виконання | [Відкрити звіт](NTIER_DRIVERS_EF_VS_DAPPER.md) |
+> Комплексна демонстраційна платформа вантажних перевезень, структурована за трьома чіткими архітектурними підсистемами в єдиному репозиторії:
+> 1. **Класичний N-Tier моноліт з WPF-клієнтом** (EF Core 10, Dapper, Specification Pattern)
+> 2. **Розподілені Craftsman мікросервіси** (Clean Architecture, CQRS, MediatR, gRPC & Message Brokers)
+> 3. **Централізована безпека та авторизація** (Keycloak з Pulumi IaC, Duende IdentityServer, JWT Bearer)
 
 ---
 
-## 🏛️ Загальна архітектура системи (N-Tier Pipeline)
+## 🏛️ Архітектурна карта платформи
 
 ```mermaid
-flowchart TD
-    subgraph Clients ["Presentation Layer (Клієнти)"]
-        WebAPI["DriversApi (REST Web API / Swagger DX)"]
-        WPF["WPFDrivers (Desktop MVVM Client)"]
+flowchart TB
+    subgraph Block3 ["🛡️ 03-Identity-Security (Автентифікація та авторизація)"]
+        Keycloak["Keycloak (OAuth2/OIDC)\nDocker Port: 5000"]
+        Pulumi["KeycloakPulumiAuth (IaC)"]
+        Duende["DuendeIdentityInMemory (IdentityServer)"]
+        AuthAPI["AuthorizationModuleAPI (JWT Bearer)"]
+        Pulumi -->|Configures Realms| Keycloak
     end
 
-    subgraph CrossCutting ["Cross-Cutting Concerns"]
-        Middleware["Centralized Exception Middleware (RFC 7807 ProblemDetails)"]
-        FluentVal["FluentValidation Pipeline"]
-        AutoMap["AutoMapper (Object-to-Object Mapping)"]
+    subgraph Block1 ["🚛 01-Ntier-Drivers (Класичний N-Tier + WPF)"]
+        WPF["WPFDrivers (Desktop MVVM)"]
+        DriversApi["DriversApi (.NET 10 REST)"]
+        BLL["Drivers.BLL (Business Logic)"]
+        DAL_EF["Drivers.DAL.EF (Specification Pattern)"]
+        DAL_ADO["Drivers.DAL.ADO (Dapper / Fast SQL)"]
+        SQL_DB[(SQL Server 2022\nPort: 1434)]
+
+        WPF --> DriversApi
+        DriversApi --> BLL
+        BLL --> DAL_EF
+        BLL --> DAL_ADO
+        DAL_EF --> SQL_DB
+        DAL_ADO --> SQL_DB
     end
 
-    subgraph BLL ["Business Logic Layer (Drivers.BLL)"]
-        DriversMgr["DriversManager (Комплаєнс, Pricing Engine, KPI-скоринг)"]
-        TruckMgr["TruckManager (Аналітика ТО та ремонтів)"]
-        Specs["Specification Pattern (DriverFilterSpecification)"]
+    subgraph Block2 ["📦 02-Microservices-Craftsman (Clean Architecture & CQRS)"]
+        Orders["CargoOrderingService\n(Замовлення та доставки)"]
+        Blog["DriversBlogManagement\n(Блог водіїв та відгуки)"]
+        DriversMs["DriversManagement\n(Мікросервіс водіїв)"]
+        SharedK["SharedKernel (Events & DTOs)"]
+        MsgBroker{{"Event Bus / MassTransit & gRPC"}}
+
+        Orders <-->|gRPC / Events| MsgBroker
+        DriversMs <-->|gRPC / Events| MsgBroker
+        Blog <-->|Events| MsgBroker
+        SharedK -.-> Orders
+        SharedK -.-> DriversMs
+        SharedK -.-> Blog
     end
 
-    subgraph DAL ["Data Access Layer (Dual-Engine Strategy)"]
-        UOW_EF["EFUnitOfWork (Entity Framework Core 10)"]
-        UOW_ADO["UnitOfWork (ADO.NET + Dapper)"]
-        Evaluator["SpecificationEvaluator (LINQ Expression Trees)"]
-    end
-
-    DB[(Microsoft SQL Server 2022\nPort: 1434)]
-
-    Clients --> Middleware
-    Middleware --> FluentVal
-    FluentVal --> BLL
-    BLL --> AutoMap
-    BLL --> Specs
-
-    DriversMgr -->|DataAccessProvider.EntityFramework| UOW_EF
-    DriversMgr -->|DataAccessProvider.Dapper| UOW_ADO
-    
-    UOW_EF --> Evaluator
-    Evaluator --> DB
-    UOW_ADO --> DB
+    Keycloak -.->|Protects APIs| DriversApi
+    Keycloak -.->|Protects APIs| Orders
+    Keycloak -.->|Protects APIs| DriversMs
 ```
 
 ---
 
-## 📦 Огляд проєктів рішення (`NtierDriversModule`)
+## 📂 Структура репозиторію за логічними блоками
 
-| Проєкт | Платформа | Призначення | Ключові технології |
-| :--- | :---: | :--- | :--- |
-| **`DriversApi`** | `net10.0` | Презентаційний рівень (REST Web API) | ASP.NET Core, Swagger OpenAPI, OAuth2 PKCE, Exception Middleware |
-| **`WPFDrivers`** | `net10.0-windows` | Гібридний десктопний клієнт | WPF, MVVM, RelayCommand, Live Benchmarking UI, Purple C# Styling |
-| **`Drivers.BLL`** | `net10.0` | Рівень бізнес-логіки та розрахунків | FluentValidation, AutoMapper, Pricing Engine, KPI Scoring |
-| **`Drivers.DAL.EF`** | `net10.0` | ORM рівень збереження даних | EF Core 10, Specification Pattern, SpecificationEvaluator, Change Tracking |
-| **`Drivers.DAL.ADO`** | `net10.0` | Micro-ORM рівень збереження | Dapper, ADO.NET, QueryMultipleAsync, Raw SQL, SqlTransaction |
-| **`NtierDrivers.UnitTests`** | `net10.0` | Набір модульних тестів (49 тестів) | xUnit, Moq, FluentAssertions, AAA Pattern |
+```text
+Demo-CargoDeliveryService/
+│
+├── 📂 01-Ntier-Drivers/               <-- Блок 1: N-Tier архітектура, EF Core 10, Dapper та WPF
+│   ├── DriversApi/                    (REST Web API з інтерактивним Swagger)
+│   ├── Drivers.BLL/                   (Бізнес-логіка, валідація, скоринг)
+│   ├── Drivers.DAL.EF/                (EF Core 10 + Specification Pattern + Evaluator)
+│   ├── Drivers.DAL.ADO/               (ADO.NET + Dapper мікро-ORM)
+│   ├── Drivers.Db/                    (SQL Server Database Project)
+│   ├── Drivers.JWT/                   (Схеми безпеки БД)
+│   ├── WPFDrivers/                    (Десктопний WPF-клієнт у фіолетових тонах)
+│   ├── FakeDataDbGenerator/           (Генератор фейкових даних через Bogus)
+│   ├── NtierDrivers.UnitTests/        (Комплекс із 49 юніт-тестів)
+│   ├── docs/                          (Презентація на 22 слайди, посібники EF vs Dapper та Specification)
+│   └── README.md                      (Детальний опис блоку N-Tier)
+│
+├── 📂 02-Microservices-Craftsman/     <-- Блок 2: Мікросервіси Clean Architecture (Craftsman)
+│   ├── CargoOrderingService/          (Сервіс замовлень і доставок вантажів)
+│   ├── DriversBlogManagement/         (Сервіс блогу водіїв)
+│   ├── DriversManagement/             (Сервіс обліку водіїв і автопарку)
+│   ├── SharedKernel/                  (Спільні контракти та доменні події)
+│   ├── docs/                          (Документація мікросервісів та ендпоінтів)
+│   └── README.md                      (Детальний опис мікросервісного блоку)
+│
+├── 📂 03-Identity-Security/           <-- Блок 3: Безпека, OIDC та авторизація
+│   ├── AuthorizationModuleAPI/        (JWT Bearer Gateway та керування доступом)
+│   ├── DuendeIdentityInMemory/        (Duende IdentityServer провайдер)
+│   ├── KeycloakPulumiAuth/            (IaC скрипти конфігурації Keycloak на Pulumi)
+│   └── README.md                      (Детальний опис підсистеми безпеки)
+│
+├── CargoDeliveryService.sln           <-- Єдине головне рішення Visual Studio
+├── docker-compose.yaml                <-- Інфраструктура Docker (SQL Server, Keycloak, Jaeger)
+└── README.md                          <-- Цей файл
+```
 
 ---
 
-## 🚀 Швидкий запуск проєкту (Developer Experience)
+## ⚡ Швидкий старт та перевірка
 
-### 1. Запуск бази даних через Docker
-У корені репозиторію налаштовано Docker Compose для підняття MS SQL Server 2022 на нестандартному безпечному порті `1434`:
+### 1. Перевірка та запуск юніт-тестів N-Tier
+```powershell
+dotnet test 01-Ntier-Drivers/NtierDrivers.UnitTests/NtierDrivers.UnitTests.csproj
+```
+*(49 тестів проходять успішно).*
 
-```bash
+### 2. Запуск інфраструктури в Docker
+```powershell
 docker compose up -d
 ```
-* **Хост:** `localhost,1434`
-* **Користувач:** `sa`
-* **Пароль:** `yourStrong(!)Password`
-* **База даних:** `DriversManagement`
-
-### 2. Запуск Web API з автоматичним Swagger
-Проєкт налаштовано з прапорцем `launchBrowser: true` та редиректом з кореня `/`:
-
-```bash
-dotnet run --project .\DriversApi\Drivers.Api.csproj
-```
-Браузер автоматично відкриє інтерактивну документацію Swagger за адресою:  
-👉 **`https://localhost:4002/swagger`**
-
-### 3. Запуск десктопного клієнта WPF
-```bash
-dotnet run --project .\WPFDrivers\WPFDrivers.csproj
-```
-Клієнт надає можливість перемикання між:
-- **Архітектурними режимами:** `Direct BLL` (пряме використання шарів) проти `Web API` (віддалений HTTP клієнт).
-- **Провайдерами даних:** `EF Core` проти `Dapper`.
-- **Живим бенчмаркінгом:** вимір мілісекунд виконання запитів та коефіцієнта прискорення.
-
-### 4. Запуск модульних тестів
-```bash
-dotnet test .\NtierDrivers.UnitTests\NtierDrivers.UnitTests.csproj
-```
-**Результат:** `49 Passed! - 0 Failed, 0 Skipped (100% успішність)`.
-
----
-
-## 🔑 Ключові бізнес-процеси у BLL
-
-1. **`AssessAndDispatchDriverForTripAsync` (Комплаєнс-допуск до рейсу):**
-   - Перевірка вікового цензу (від 21 року, від 25 років для небезпечних вантажів `ADR`).
-   - Перевірка вантажної категорії прав (`C`, `CE`) та терміну дії ліцензії з 14-денним запасом.
-   - Контроль придатності тягача (останній техогляд не повинен бути провалений або старший за 180 днів).
-   - Багаторівневий тарифний калькулятор (базова ставка, надбавка за стаж $+10\%/+20\%$, надбавка за ризик $+35\%$, добові 800 грн/день, прогнозне пальне та $10\%$ аварійний фонд).
-   - Автоматичне транзакційне створення запису витрат (`Expenses`).
-
-2. **`ConductDriverAnnualPerformanceAuditAsync` (Річний KPI-аудит):**
-   - Нормалізовані показники (0–100): паливна ефективність ($KPI_{Fuel}$), дбайливість до техніки ($KPI_{Care}$), безпека та дисципліна ($KPI_{Safety}$).
-   - Інтегральний рейтинг: $\text{Score} = 0.35 \times KPI_{Fuel} + 0.35 \times KPI_{Care} + 0.30 \times KPI_{Safety}$.
-   - Корпоративна матриця грейдування: **Grade A (Platinum)**, **Grade B (Gold)**, **Grade C (Silver)**, **UnderReview**.
-   - Автоматичне преміювання: нарахування та фіксація бонусної виплати ($10\%$ або $5\%$).
-
----
-
-## 🛠️ Вимоги до середовища
-- **.NET SDK:** 10.0 або новіший
-- **IDE:** Visual Studio 2022 / 2025 або JetBrains Rider / VS Code
-- **Docker:** Docker Desktop для контейнера бази даних
+- SQL Server: `localhost:1434`
+- Keycloak: `http://localhost:5000`
+- Jaeger Tracing: `http://localhost:16686`
