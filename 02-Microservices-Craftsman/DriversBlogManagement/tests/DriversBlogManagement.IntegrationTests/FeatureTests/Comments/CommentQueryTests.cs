@@ -48,8 +48,8 @@ public class CommentQueryTests : TestBase
         testingServiceScope.SetUserNotPermitted(Permissions.CanReadComment);
 
         // Act
-        var command = new GetComment.Query(Guid.NewGuid());
-        Func<Task> act = () => testingServiceScope.SendAsync(command);
+        var query = new GetComment.Query(Guid.NewGuid());
+        Func<Task> act = () => testingServiceScope.SendAsync(query);
 
         // Assert
         await act.Should().ThrowAsync<ForbiddenAccessException>();

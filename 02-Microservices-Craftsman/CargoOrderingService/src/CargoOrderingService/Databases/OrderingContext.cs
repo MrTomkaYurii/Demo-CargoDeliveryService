@@ -9,6 +9,7 @@ using CargoOrderingService.Domain.RolePermissions;
 using CargoOrderingService.Domain.Users;
 using CargoOrderingService.Domain.Orders;
 using CargoOrderingService.Domain.Deliveries;
+using CargoOrderingService.Domain.Drivers;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using System.Linq.Expressions;
@@ -33,6 +34,7 @@ public sealed class OrderingContext : DbContext
     #region DbSet Region - Do Not Delete
     public DbSet<Order> Orders { get; set; }
     public DbSet<Delivery> Deliveries { get; set; }
+    public DbSet<Driver> Drivers { get; set; }
     public DbSet<UserRole> UserRoles { get; set; }
     public DbSet<User> Users { get; set; }
     public DbSet<RolePermission> RolePermissions { get; set; }
@@ -50,6 +52,7 @@ public sealed class OrderingContext : DbContext
         #region Entity Database Config Region - Only delete if you don't want to automatically add configurations
         modelBuilder.ApplyConfiguration(new OrderConfiguration());
         modelBuilder.ApplyConfiguration(new DeliveryConfiguration());
+        modelBuilder.ApplyConfiguration(new DriverConfiguration());
         modelBuilder.ApplyConfiguration(new UserRoleConfiguration());
         modelBuilder.ApplyConfiguration(new UserConfiguration());
         modelBuilder.ApplyConfiguration(new RolePermissionConfiguration());

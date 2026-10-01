@@ -52,8 +52,8 @@ public class OrderQueryTests : TestBase
         testingServiceScope.SetUserNotPermitted(Permissions.CanReadOrder);
 
         // Act
-        var command = new GetOrder.Query(Guid.NewGuid());
-        Func<Task> act = () => testingServiceScope.SendAsync(command);
+        var query = new GetOrder.Query(Guid.NewGuid());
+        Func<Task> act = () => testingServiceScope.SendAsync(query);
 
         // Assert
         await act.Should().ThrowAsync<ForbiddenAccessException>();

@@ -28,6 +28,7 @@ public static class WebAppServiceConfiguration
         builder.Services.AddCorsService("CargoOrderingServiceCorsPolicy", builder.Environment);
         builder.OpenTelemetryRegistration(builder.Configuration, "CargoOrderingService");
         builder.Services.AddInfrastructure(builder.Environment, builder.Configuration);
+        builder.Services.AddMassTransitServices(builder.Environment, builder.Configuration);
 
         builder.Services.AddControllers()
             .AddJsonOptions(o => o.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles);

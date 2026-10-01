@@ -37,8 +37,8 @@ public class CommentListQueryTests : TestBase
         var queryParameters = new CommentParametersDto();
 
         // Act
-        var command = new GetCommentList.Query(queryParameters);
-        Func<Task> act = () => testingServiceScope.SendAsync(command);
+        var query = new GetCommentList.Query(queryParameters);
+        Func<Task> act = () => testingServiceScope.SendAsync(query);
 
         // Assert
         await act.Should().ThrowAsync<ForbiddenAccessException>();

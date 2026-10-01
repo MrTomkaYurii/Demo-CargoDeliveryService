@@ -447,5 +447,13 @@
             <param name="serviceBinder">Service methods will be bound by calling <c>AddMethod</c> on this object.</param>
             <param name="serviceImpl">An object implementing the server-side handling logic.</param>
         </member>
+        <member name="T:Billing.Domain.SyncDriver">
+            <summary>
+            ПАТЕРН EVENT-DRIVEN DATA REPLICATION / EVENTUAL CONSISTENCY:
+            Асинхронний споживач подій шини повідомлень MassTransit (RabbitMQ).
+            Забезпечує реплікацію довідника водіїв з основного мікросервісу DriversManagement
+            у локальну базу даних мікросервісу блогів (DriversBlogManagement).
+            </summary>
+        </member>
     </members>
 </doc>

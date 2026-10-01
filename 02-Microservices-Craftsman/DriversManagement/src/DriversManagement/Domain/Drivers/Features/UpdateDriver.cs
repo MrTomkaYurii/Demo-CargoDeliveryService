@@ -1,4 +1,4 @@
-namespace DriversManagement.Domain.Drivers.Features;
+﻿namespace DriversManagement.Domain.Drivers.Features;
 
 using DriversManagement.Domain.Drivers;
 using DriversManagement.Domain.Drivers.Dtos;
@@ -36,18 +36,20 @@ public static class UpdateDriver
 
         public async Task Handle(Command request, CancellationToken cancellationToken)
         {
-            //await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanUpdateDriver);
+            await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanUpdateDriver);
 
-            //var driverToUpdate = await _driverRepository.GetById(request.DriverId, cancellationToken: cancellationToken);
+            var driverToUpdate = await _driverRepository.GetById(request.DriverId, cancellationToken: cancellationToken);
             var driverToAdd = request.UpdatedDriverData.ToDriverForUpdate();
-            //driverToUpdate.Update(driverToAdd);
+            driverToUpdate.Update(driverToAdd);
 
-            //_driverRepository.Update(driverToUpdate);
-            //await _unitOfWork.CommitChanges(cancellationToken);
+            _driverRepository.Update(driverToUpdate);
+            await _unitOfWork.CommitChanges(cancellationToken);
 
+            // ПАТЕРН EVENT-DRIVEN SYNC (Публікація оновлення сутності через RabbitMQ):
+            // Сповіщаємо всі зацікавлені мікросервіси про зміну даних водія
             var message = new SharedKernel.Messages.DriverUpdated
             {
-                DriverId = new Guid(),
+                DriverId = request.DriverId,
                 FirstName = driverToAdd.FirstName,
                 LastName = driverToAdd.LastName
             };

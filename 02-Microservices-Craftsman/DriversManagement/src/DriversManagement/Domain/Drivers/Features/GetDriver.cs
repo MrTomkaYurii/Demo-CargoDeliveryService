@@ -1,4 +1,4 @@
-namespace DriversManagement.Domain.Drivers.Features;
+﻿namespace DriversManagement.Domain.Drivers.Features;
 
 using DriversManagement.Domain.Drivers.Dtos;
 using DriversManagement.Domain.Drivers.Services;
@@ -8,6 +8,8 @@ using HeimGuard;
 using Mappings;
 using MediatR;
 using DriversBlogManagement;
+using Grpc.Core;
+using System.Linq;
 
 public static class GetDriver
 {
@@ -39,11 +41,28 @@ public static class GetDriver
 
             result.Driver = drvDTO;
 
-            // �������� ������� ����� gRPC
-            // var grpcRequest = new DriverWithPostsRequest { driver_id = request.DriverId.ToString() };
-            DriverWithPostsResponse grpcResponse = await _client.GetDriverWithPostsAsync(grpcRequest);
+            // Виклик віддаленого мікросервісу через синхронний gRPC контракт
+            try
+            {
+                var grpcRequest = new DriverWithPostsRequest { DriverId = request.DriverId.ToString() };
+                DriverWithPostsResponse grpcResponse = await _client.GetDriverWithPostsAsync(grpcRequest, cancellationToken: cancellationToken);
 
-            /// result.Posts = grpcResponse.Posts.ToList();
+                if (grpcResponse?.Posts != null)
+                {
+                    result.Posts = grpcResponse.Posts.Select(p => new DriversBlogManagement.Domain.PostAboutDrivers.Dtos.PostAboutDriverDto
+                    {
+                        Id = Guid.TryParse(p.Id, out var postId) ? postId : Guid.Empty,
+                        Title = p.Title,
+                        Content = p.Content
+                    }).ToList();
+                }
+            }
+            catch (RpcException)
+            {
+                // Патерн стійкості (Graceful Degradation): якщо мікросервіс блогів недоступний,
+                // повертаємо дані водія з порожнім списком постів, уникаючи відмови всієї операції
+                result.Posts = new List<DriversBlogManagement.Domain.PostAboutDrivers.Dtos.PostAboutDriverDto>();
+            }
 
             return result;
         }

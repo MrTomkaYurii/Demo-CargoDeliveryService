@@ -37,8 +37,8 @@ public class RolePermissionListQueryTests : TestBase
         var queryParameters = new RolePermissionParametersDto();
 
         // Act
-        var command = new GetRolePermissionList.Query(queryParameters);
-        Func<Task> act = () => testingServiceScope.SendAsync(command);
+        var query = new GetRolePermissionList.Query(queryParameters);
+        Func<Task> act = () => testingServiceScope.SendAsync(query);
 
         // Assert
         await act.Should().ThrowAsync<ForbiddenAccessException>();

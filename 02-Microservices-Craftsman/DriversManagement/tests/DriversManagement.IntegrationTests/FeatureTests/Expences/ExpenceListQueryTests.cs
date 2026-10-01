@@ -37,8 +37,8 @@ public class ExpenceListQueryTests : TestBase
         var queryParameters = new ExpenceParametersDto();
 
         // Act
-        var command = new GetExpenceList.Query(queryParameters);
-        Func<Task> act = () => testingServiceScope.SendAsync(command);
+        var query = new GetExpenceList.Query(queryParameters);
+        Func<Task> act = () => testingServiceScope.SendAsync(query);
 
         // Assert
         await act.Should().ThrowAsync<ForbiddenAccessException>();

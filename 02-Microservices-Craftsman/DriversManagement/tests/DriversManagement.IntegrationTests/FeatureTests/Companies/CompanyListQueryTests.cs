@@ -37,8 +37,8 @@ public class CompanyListQueryTests : TestBase
         var queryParameters = new CompanyParametersDto();
 
         // Act
-        var command = new GetCompanyList.Query(queryParameters);
-        Func<Task> act = () => testingServiceScope.SendAsync(command);
+        var query = new GetCompanyList.Query(queryParameters);
+        Func<Task> act = () => testingServiceScope.SendAsync(query);
 
         // Assert
         await act.Should().ThrowAsync<ForbiddenAccessException>();

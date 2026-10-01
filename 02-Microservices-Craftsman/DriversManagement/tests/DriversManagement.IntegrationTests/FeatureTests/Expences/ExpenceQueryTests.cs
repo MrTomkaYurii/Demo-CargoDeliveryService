@@ -53,8 +53,8 @@ public class ExpenceQueryTests : TestBase
         testingServiceScope.SetUserNotPermitted(Permissions.CanReadExpence);
 
         // Act
-        var command = new GetExpence.Query(Guid.NewGuid());
-        Func<Task> act = () => testingServiceScope.SendAsync(command);
+        var query = new GetExpence.Query(Guid.NewGuid());
+        Func<Task> act = () => testingServiceScope.SendAsync(query);
 
         // Assert
         await act.Should().ThrowAsync<ForbiddenAccessException>();

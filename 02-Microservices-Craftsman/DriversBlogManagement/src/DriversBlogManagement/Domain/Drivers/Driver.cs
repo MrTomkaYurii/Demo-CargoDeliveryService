@@ -30,6 +30,15 @@ public class Driver : BaseEntity
         return newDriver;
     }
 
+    public static Driver CreateWithId(Guid id, string firstName, string lastName)
+    {
+        var newDriver = new Driver();
+        newDriver.Id = id;
+        newDriver.FirstName = firstName;
+        newDriver.LastName = lastName;
+        return newDriver;
+    }
+
     public Driver Update(DriverForUpdate driverForUpdate)
     {
         FirstName = driverForUpdate.FirstName;

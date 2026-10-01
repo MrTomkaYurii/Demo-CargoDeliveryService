@@ -29,6 +29,10 @@ public static class SyncPatientEndpointRegistration
             {
                 e.ExchangeType = ExchangeType.Fanout;
             });
+            re.Bind("driver-created", e =>
+            {
+                e.ExchangeType = ExchangeType.Fanout;
+            });
         });
     }
 }

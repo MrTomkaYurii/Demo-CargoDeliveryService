@@ -35,6 +35,7 @@ public static class MassTransitServiceExtension
                         });
 
                     // Producers -- Do Not Delete This Comment
+                    cfg.DriverCreatedEndpoint();
                     cfg.DriverUpdatedEndpoint();
 
                     // Consumers -- Do Not Delete This Comment

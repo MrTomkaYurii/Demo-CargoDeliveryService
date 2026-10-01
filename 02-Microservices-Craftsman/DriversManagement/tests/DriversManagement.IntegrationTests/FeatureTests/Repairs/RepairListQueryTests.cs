@@ -37,8 +37,8 @@ public class RepairListQueryTests : TestBase
         var queryParameters = new RepairParametersDto();
 
         // Act
-        var command = new GetRepairList.Query(queryParameters);
-        Func<Task> act = () => testingServiceScope.SendAsync(command);
+        var query = new GetRepairList.Query(queryParameters);
+        Func<Task> act = () => testingServiceScope.SendAsync(query);
 
         // Assert
         await act.Should().ThrowAsync<ForbiddenAccessException>();

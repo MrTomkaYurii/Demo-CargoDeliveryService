@@ -37,8 +37,8 @@ public class OrderListQueryTests : TestBase
         var queryParameters = new OrderParametersDto();
 
         // Act
-        var command = new GetOrderList.Query(queryParameters);
-        Func<Task> act = () => testingServiceScope.SendAsync(command);
+        var query = new GetOrderList.Query(queryParameters);
+        Func<Task> act = () => testingServiceScope.SendAsync(query);
 
         // Assert
         await act.Should().ThrowAsync<ForbiddenAccessException>();

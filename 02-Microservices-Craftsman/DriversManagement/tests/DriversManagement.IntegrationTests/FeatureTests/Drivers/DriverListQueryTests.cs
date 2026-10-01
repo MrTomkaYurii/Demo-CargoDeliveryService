@@ -37,8 +37,8 @@ public class DriverListQueryTests : TestBase
         var queryParameters = new DriverParametersDto();
 
         // Act
-        var command = new GetDriverList.Query(queryParameters);
-        Func<Task> act = () => testingServiceScope.SendAsync(command);
+        var query = new GetDriverList.Query(queryParameters);
+        Func<Task> act = () => testingServiceScope.SendAsync(query);
 
         // Assert
         await act.Should().ThrowAsync<ForbiddenAccessException>();

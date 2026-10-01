@@ -38,7 +38,7 @@ public class GetAllExpencesQueryTests : TestBase
 
         // Act
         var query = new GetAllExpences.Query();
-        Func<Task> act = () => testingServiceScope.SendAsync(command);
+        Func<Task> act = () => testingServiceScope.SendAsync(query);
 
         // Assert
         await act.Should().ThrowAsync<ForbiddenAccessException>();

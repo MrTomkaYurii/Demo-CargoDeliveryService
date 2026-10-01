@@ -37,8 +37,8 @@ public class UserListQueryTests : TestBase
         var queryParameters = new UserParametersDto();
 
         // Act
-        var command = new GetUserList.Query(queryParameters);
-        Func<Task> act = () => testingServiceScope.SendAsync(command);
+        var query = new GetUserList.Query(queryParameters);
+        Func<Task> act = () => testingServiceScope.SendAsync(query);
 
         // Assert
         await act.Should().ThrowAsync<ForbiddenAccessException>();

@@ -50,8 +50,8 @@ public class InspectionQueryTests : TestBase
         testingServiceScope.SetUserNotPermitted(Permissions.CanReadInspection);
 
         // Act
-        var command = new GetInspection.Query(Guid.NewGuid());
-        Func<Task> act = () => testingServiceScope.SendAsync(command);
+        var query = new GetInspection.Query(Guid.NewGuid());
+        Func<Task> act = () => testingServiceScope.SendAsync(query);
 
         // Assert
         await act.Should().ThrowAsync<ForbiddenAccessException>();

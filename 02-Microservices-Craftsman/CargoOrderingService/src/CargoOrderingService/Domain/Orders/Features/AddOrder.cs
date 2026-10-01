@@ -1,4 +1,4 @@
-namespace CargoOrderingService.Domain.Orders.Features;
+﻿namespace CargoOrderingService.Domain.Orders.Features;
 
 using CargoOrderingService.Domain.Orders.Services;
 using CargoOrderingService.Domain.Orders;
@@ -10,6 +10,8 @@ using CargoOrderingService.Domain;
 using HeimGuard;
 using Mappings;
 using MediatR;
+using MassTransit;
+using SharedKernel.Messages;
 
 public static class AddOrder
 {
@@ -20,12 +22,18 @@ public static class AddOrder
         private readonly IOrderRepository _orderRepository;
         private readonly IUnitOfWork _unitOfWork;
         private readonly IHeimGuardClient _heimGuard;
+        private readonly IPublishEndpoint _publishEndpoint;
 
-        public Handler(IOrderRepository orderRepository, IUnitOfWork unitOfWork, IHeimGuardClient heimGuard)
+        public Handler(
+            IOrderRepository orderRepository, 
+            IUnitOfWork unitOfWork, 
+            IHeimGuardClient heimGuard,
+            IPublishEndpoint publishEndpoint)
         {
             _orderRepository = orderRepository;
             _unitOfWork = unitOfWork;
             _heimGuard = heimGuard;
+            _publishEndpoint = publishEndpoint;
         }
 
         public async Task<OrderDto> Handle(Command request, CancellationToken cancellationToken)
@@ -37,6 +45,16 @@ public static class AddOrder
 
             await _orderRepository.Add(order, cancellationToken);
             await _unitOfWork.CommitChanges(cancellationToken);
+
+            // ПАТЕРН EVENT-DRIVEN PUBLISHING (MassTransit / RabbitMQ):
+            // Сповіщаємо екосистему мікросервісів про створення нового замовлення на доставку
+            await _publishEndpoint.Publish<IOrderCreated>(new OrderCreatedMessage
+            {
+                OrderId = order.Id,
+                OrderNumber = order.OrderNumber,
+                CustomerName = order.CustomerName,
+                TotalAmount = order.TotalAmount
+            }, cancellationToken);
 
             return order.ToOrderDto();
         }

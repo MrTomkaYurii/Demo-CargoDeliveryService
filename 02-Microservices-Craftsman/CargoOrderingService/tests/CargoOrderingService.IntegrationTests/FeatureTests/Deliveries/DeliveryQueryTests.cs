@@ -52,8 +52,8 @@ public class DeliveryQueryTests : TestBase
         testingServiceScope.SetUserNotPermitted(Permissions.CanReadDelivery);
 
         // Act
-        var command = new GetDelivery.Query(Guid.NewGuid());
-        Func<Task> act = () => testingServiceScope.SendAsync(command);
+        var query = new GetDelivery.Query(Guid.NewGuid());
+        Func<Task> act = () => testingServiceScope.SendAsync(query);
 
         // Assert
         await act.Should().ThrowAsync<ForbiddenAccessException>();

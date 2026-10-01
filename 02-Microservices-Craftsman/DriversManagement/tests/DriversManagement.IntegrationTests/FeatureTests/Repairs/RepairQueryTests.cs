@@ -50,8 +50,8 @@ public class RepairQueryTests : TestBase
         testingServiceScope.SetUserNotPermitted(Permissions.CanReadRepair);
 
         // Act
-        var command = new GetRepair.Query(Guid.NewGuid());
-        Func<Task> act = () => testingServiceScope.SendAsync(command);
+        var query = new GetRepair.Query(Guid.NewGuid());
+        Func<Task> act = () => testingServiceScope.SendAsync(query);
 
         // Assert
         await act.Should().ThrowAsync<ForbiddenAccessException>();

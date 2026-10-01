@@ -37,8 +37,8 @@ public class InspectionListQueryTests : TestBase
         var queryParameters = new InspectionParametersDto();
 
         // Act
-        var command = new GetInspectionList.Query(queryParameters);
-        Func<Task> act = () => testingServiceScope.SendAsync(command);
+        var query = new GetInspectionList.Query(queryParameters);
+        Func<Task> act = () => testingServiceScope.SendAsync(query);
 
         // Assert
         await act.Should().ThrowAsync<ForbiddenAccessException>();

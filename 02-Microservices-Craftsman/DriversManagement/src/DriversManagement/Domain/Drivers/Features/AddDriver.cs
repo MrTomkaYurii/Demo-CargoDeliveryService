@@ -1,4 +1,4 @@
-namespace DriversManagement.Domain.Drivers.Features;
+﻿namespace DriversManagement.Domain.Drivers.Features;
 
 using DriversManagement.Domain.Drivers.Services;
 using DriversManagement.Domain.Drivers;
@@ -10,6 +10,8 @@ using DriversManagement.Domain;
 using HeimGuard;
 using Mappings;
 using MediatR;
+using MassTransit;
+using SharedKernel.Messages;
 
 public static class AddDriver
 {
@@ -20,12 +22,18 @@ public static class AddDriver
         private readonly IDriverRepository _driverRepository;
         private readonly IUnitOfWork _unitOfWork;
         private readonly IHeimGuardClient _heimGuard;
+        private readonly IPublishEndpoint _publishEndpoint;
 
-        public Handler(IDriverRepository driverRepository, IUnitOfWork unitOfWork, IHeimGuardClient heimGuard)
+        public Handler(
+            IDriverRepository driverRepository, 
+            IUnitOfWork unitOfWork, 
+            IHeimGuardClient heimGuard,
+            IPublishEndpoint publishEndpoint)
         {
             _driverRepository = driverRepository;
             _unitOfWork = unitOfWork;
             _heimGuard = heimGuard;
+            _publishEndpoint = publishEndpoint;
         }
 
         public async Task<DriverDto> Handle(Command request, CancellationToken cancellationToken)
@@ -37,6 +45,18 @@ public static class AddDriver
 
             await _driverRepository.Add(driver, cancellationToken);
             await _unitOfWork.CommitChanges(cancellationToken);
+
+            // ПАТЕРН EVENT-DRIVEN ARCHITECTURE (EDA / Pub-Sub через MassTransit):
+            // Публікуємо подію в брокер повідомлень (RabbitMQ fanout exchange) 
+            // для синхронізації з іншими мікросервісами (Ordering, Blog)
+            await _publishEndpoint.Publish<IDriverCreated>(new DriverCreated
+            {
+                DriverId = driver.Id,
+                FirstName = driver.FirstName,
+                LastName = driver.LastName,
+                DriverLicenseNumber = driver.DriverLicenseNumber,
+                Phone = driver.Phone
+            }, cancellationToken);
 
             return driver.ToDriverDto();
         }

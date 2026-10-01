@@ -38,7 +38,7 @@ public class GetAllLikesQueryTests : TestBase
 
         // Act
         var query = new GetAllLikes.Query();
-        Func<Task> act = () => testingServiceScope.SendAsync(command);
+        Func<Task> act = () => testingServiceScope.SendAsync(query);
 
         // Assert
         await act.Should().ThrowAsync<ForbiddenAccessException>();

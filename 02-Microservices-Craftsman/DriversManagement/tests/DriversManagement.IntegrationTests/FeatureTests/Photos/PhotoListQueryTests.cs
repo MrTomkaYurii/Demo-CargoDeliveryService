@@ -37,8 +37,8 @@ public class PhotoListQueryTests : TestBase
         var queryParameters = new PhotoParametersDto();
 
         // Act
-        var command = new GetPhotoList.Query(queryParameters);
-        Func<Task> act = () => testingServiceScope.SendAsync(command);
+        var query = new GetPhotoList.Query(queryParameters);
+        Func<Task> act = () => testingServiceScope.SendAsync(query);
 
         // Assert
         await act.Should().ThrowAsync<ForbiddenAccessException>();

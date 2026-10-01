@@ -37,8 +37,8 @@ public class LikeListQueryTests : TestBase
         var queryParameters = new LikeParametersDto();
 
         // Act
-        var command = new GetLikeList.Query(queryParameters);
-        Func<Task> act = () => testingServiceScope.SendAsync(command);
+        var query = new GetLikeList.Query(queryParameters);
+        Func<Task> act = () => testingServiceScope.SendAsync(query);
 
         // Assert
         await act.Should().ThrowAsync<ForbiddenAccessException>();

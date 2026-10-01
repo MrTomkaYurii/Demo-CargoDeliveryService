@@ -48,8 +48,8 @@ public class LikeQueryTests : TestBase
         testingServiceScope.SetUserNotPermitted(Permissions.CanReadLike);
 
         // Act
-        var command = new GetLike.Query(Guid.NewGuid());
-        Func<Task> act = () => testingServiceScope.SendAsync(command);
+        var query = new GetLike.Query(Guid.NewGuid());
+        Func<Task> act = () => testingServiceScope.SendAsync(query);
 
         // Assert
         await act.Should().ThrowAsync<ForbiddenAccessException>();

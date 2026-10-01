@@ -38,7 +38,7 @@ public class GetAllCompaniesQueryTests : TestBase
 
         // Act
         var query = new GetAllCompanies.Query();
-        Func<Task> act = () => testingServiceScope.SendAsync(command);
+        Func<Task> act = () => testingServiceScope.SendAsync(query);
 
         // Assert
         await act.Should().ThrowAsync<ForbiddenAccessException>();

@@ -26,6 +26,9 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "02-Documentation", "02-Docu
 	ProjectSection(SolutionItems) = preProject
 		02-Microservices-Craftsman\docs\CargoOrderingService-README.md = 02-Microservices-Craftsman\docs\CargoOrderingService-README.md
 		02-Microservices-Craftsman\docs\DriversBlogManagement-README.md = 02-Microservices-Craftsman\docs\DriversBlogManagement-README.md
+		02-Microservices-Craftsman\docs\Guides\01_Patterns_Microservices_Clean_Architecture.md = 02-Microservices-Craftsman\docs\Guides\01_Patterns_Microservices_Clean_Architecture.md
+		02-Microservices-Craftsman\docs\Guides\02_Patterns_Synchronous_gRPC_Communication.md = 02-Microservices-Craftsman\docs\Guides\02_Patterns_Synchronous_gRPC_Communication.md
+		02-Microservices-Craftsman\docs\Guides\03_Patterns_Asynchronous_Messaging_MassTransit_RabbitMQ.md = 02-Microservices-Craftsman\docs\Guides\03_Patterns_Asynchronous_Messaging_MassTransit_RabbitMQ.md
 		02-Microservices-Craftsman\README.md = 02-Microservices-Craftsman\README.md
 	EndProjectSection
 EndProject

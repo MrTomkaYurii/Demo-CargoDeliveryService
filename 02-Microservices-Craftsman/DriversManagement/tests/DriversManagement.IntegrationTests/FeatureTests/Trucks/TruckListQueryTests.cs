@@ -37,8 +37,8 @@ public class TruckListQueryTests : TestBase
         var queryParameters = new TruckParametersDto();
 
         // Act
-        var command = new GetTruckList.Query(queryParameters);
-        Func<Task> act = () => testingServiceScope.SendAsync(command);
+        var query = new GetTruckList.Query(queryParameters);
+        Func<Task> act = () => testingServiceScope.SendAsync(query);
 
         // Assert
         await act.Should().ThrowAsync<ForbiddenAccessException>();

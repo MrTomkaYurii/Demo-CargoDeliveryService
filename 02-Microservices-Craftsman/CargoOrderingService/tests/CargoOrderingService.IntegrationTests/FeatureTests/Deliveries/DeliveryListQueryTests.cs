@@ -37,8 +37,8 @@ public class DeliveryListQueryTests : TestBase
         var queryParameters = new DeliveryParametersDto();
 
         // Act
-        var command = new GetDeliveryList.Query(queryParameters);
-        Func<Task> act = () => testingServiceScope.SendAsync(command);
+        var query = new GetDeliveryList.Query(queryParameters);
+        Func<Task> act = () => testingServiceScope.SendAsync(query);
 
         // Assert
         await act.Should().ThrowAsync<ForbiddenAccessException>();

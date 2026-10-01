@@ -49,8 +49,8 @@ public class DriverQueryTests : TestBase
         testingServiceScope.SetUserNotPermitted(Permissions.CanReadDriver);
 
         // Act
-        var command = new GetDriver.Query(Guid.NewGuid());
-        Func<Task> act = () => testingServiceScope.SendAsync(command);
+        var query = new GetDriver.Query(Guid.NewGuid());
+        Func<Task> act = () => testingServiceScope.SendAsync(query);
 
         // Assert
         await act.Should().ThrowAsync<ForbiddenAccessException>();

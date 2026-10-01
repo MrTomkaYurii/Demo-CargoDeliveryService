@@ -6,7 +6,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 public abstract class BaseEntity
 {
     [Key]
-    public Guid Id { get; private set; } = Guid.NewGuid();
+    public Guid Id { get; protected set; } = Guid.NewGuid();
     
     public DateTimeOffset CreatedOn { get; private set; }
     
