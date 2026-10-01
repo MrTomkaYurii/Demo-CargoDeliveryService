@@ -22,9 +22,15 @@
 
 ## 📚 Документація та посібники блоку
 
-- 🎓 **[Презентація майстер-класу (22 слайди)](docs/Presentations/01-Ntier-3Tier-Architecture-Masterclass.md)** — повний інтерактивний конспект за стандартом "Аналогія ➔ Проблема ➔ Погано vs Добре ➔ Архітектура ➔ Код".
-- 📘 **[Посібник зі Specification & Generic Repository](docs/Guides/Specification-and-Repository-Guide.md)** — глибокий опис патернів Specification, Generic Repository, Unit of Work та динамічної побудови LINQ Expression Trees.
-- ⚡ **[Звіт EF Core vs Dapper](docs/Guides/EF-vs-Dapper-Architecture-Guide.md)** — порівняння швидкодії, захисту від Cartesian Explosion та бенчмаркінгу.
+### 🎓 Презентації:
+- **[Презентація майстер-класу (22 слайди)](docs/Presentations/01-Ntier-3Tier-Architecture-Masterclass.md)** — повний інтерактивний конспект за стандартом "Аналогія ➔ Проблема ➔ Погано vs Добре ➔ Архітектура ➔ Код".
+
+### 📘 Серія посібників з архітектурних патернів (Guides):
+- 📄 **[01. Патерн Пагінації](docs/Guides/01_Patterns_Pagination.md)** — наскрізний потік `QueryStringParameters` ➔ `PagedList<T>` ➔ SQL `OFFSET/FETCH` ➔ `PagedResponseDTO<T>`.
+- 🛡️ **[02. Патерн Валідації](docs/Guides/02_Patterns_Validation.md)** — порівняння Data Annotations / `ModelState` проти FluentValidation, крос-польова валідація, тести.
+- 🚨 **[03. Патерн Централізованої Обробки Помилок](docs/Guides/03_Patterns_Centralized_Exception_Handling.md)** — `ExceptionMiddleware`, стандарт RFC 7807, безпека від витоку SQL, трейсинг через `ErrorId`.
+- 📐 **[04. Specification, Repository & Unit of Work](docs/Guides/Specification-and-Repository-Guide.md)** — динамічна побудова LINQ Expression Trees через `SpecificationEvaluator`.
+- ⚡ **[05. Порівняння EF Core 10 vs Dapper](docs/Guides/EF-vs-Dapper-Architecture-Guide.md)** — аналіз швидкодії ORM vs Micro-ORM, бенчмаркінг, Dual-Engine Strategy.
 
 ---
 
