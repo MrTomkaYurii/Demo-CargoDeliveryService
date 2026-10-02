@@ -104,7 +104,7 @@ flowchart TD
 ---
 
 ### 3.2. Контракт `IEFUnitOfWork`
-👉 Код: [IEFUnitOfWork.cs](../../Drivers.DAL.EF/UOW/Contracts/IEFUnitOfWork.cs)
+👉 Код: [`IEFUnitOfWork.cs`](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/01-Ntier-Drivers/Drivers.DAL.EF/UOW/Contracts/IEFUnitOfWork.cs)
 
 Контракт об'єднує всі спеціалізовані репозиторії та надає методи контролю транзакцій:
 
@@ -133,7 +133,7 @@ public interface IEFUnitOfWork : IDisposable
 ---
 
 ### 3.3. Реалізація `EFUnitOfWork` (EF Core)
-👉 Код: [EFUnitOfWork.cs](../../Drivers.DAL.EF/UOW/EFUnitOfWork.cs)
+👉 Код: [`EFUnitOfWork.cs`](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/01-Ntier-Drivers/Drivers.DAL.EF/UOW/EFUnitOfWork.cs)
 
 Усі репозиторії отримують **один і той самий екземпляр `DriversManagementContext`** через Dependency Injection (Scoped Lifecycle):
 
@@ -212,7 +212,7 @@ public class EFUnitOfWork : IEFUnitOfWork
 * Лише при виклику `CompleteAsync()` EF Core відкриває транзакцію, генерує оптимальний batch із SQL `INSERT/UPDATE` команд, виконує їх і комітить транзакцію.
 
 ### 4.2. Механіка ADO.NET / Dapper: Явний `IDbTransaction` та `Rollback`
-👉 Код: [UnitOfWork.cs (ADO)](../../Drivers.DAL.ADO/UOW/UnitOfWork.cs)
+👉 Код: [`UnitOfWork.cs (ADO)`](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/01-Ntier-Drivers/Drivers.DAL.ADO/UOW/UnitOfWork.cs)
 
 У низькорівневому ADO.NET немає магічного Change Tracker. Тому Unit of Work бере під контроль явну транзакцію бази даних `IDbTransaction`:
 

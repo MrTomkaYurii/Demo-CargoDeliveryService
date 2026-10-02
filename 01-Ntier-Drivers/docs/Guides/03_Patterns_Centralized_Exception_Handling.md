@@ -1,82 +1,74 @@
-# 🚨 03. Патерн Централізованої Обробки Помилок (Centralized Exception Middleware & RFC 7807)
+# 🚨 03. Патерн Централізованої Обробки Помилок (Exception Middleware & RFC 7807)
 
 > **Модуль:** `01-Ntier-Drivers`  
-> **Рівні реалізації:** `Presentation (HTTP Pipeline Middleware)` ➔ `Business Logic (Domain Exceptions)` ➔ `Data Access (EF/ADO Exceptions)`
+> **Рівні реалізації:** `Presentation (API Pipeline Middleware)` ➔ `Business Logic (Domain Exceptions)` ➔ `Logging`  
+> **Ключові технології:** C# 13 • .NET 10 • `IMiddleware` • RFC 7807 Problem Details • Correlation `ErrorId` • `ILogger`
+
+---
+
+## 📑 Зміст посібника
+
+1. [Теоретична преамбула (Суть і «Навіщо це потрібно?»)](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/01-Ntier-Drivers/docs/Guides/03_Patterns_Centralized_Exception_Handling.md#1-теоретична-преамбула-суть-і-навіщо-це-потрібно)
+2. [Чому try-catch у кожному контролері — це катастрофа](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/01-Ntier-Drivers/docs/Guides/03_Patterns_Centralized_Exception_Handling.md#2-чому-try-catch-у-кожному-контролері--це-катастрофа)
+3. [Архітектурний потік перехоплення винятків (Sequence Diagram)](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/01-Ntier-Drivers/docs/Guides/03_Patterns_Centralized_Exception_Handling.md#3-архітектурний-потік-перехоплення-винятків-sequence-diagram)
+4. [Розбір коду проєкту по кроках](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/01-Ntier-Drivers/docs/Guides/03_Patterns_Centralized_Exception_Handling.md#4-розбір-коду-проєкту-по-кроках)
+5. [Реєстрація Middleware у конвеєрі ASP.NET Core](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/01-Ntier-Drivers/docs/Guides/03_Patterns_Centralized_Exception_Handling.md#5-реєстрація-middleware-у-конвеєрі-aspnet-core)
+6. [Підсумок](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/01-Ntier-Drivers/docs/Guides/03_Patterns_Centralized_Exception_Handling.md#6-підсумок)
+7. [Прямі посилання на файли коду проєкту](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/01-Ntier-Drivers/docs/Guides/03_Patterns_Centralized_Exception_Handling.md#7-прямі-посилання-на-файли-коду-проєкту)
 
 ---
 
 ## 1. Теоретична преамбула (Суть і «Навіщо це потрібно?»)
 
 ### 1.1. Що це таке простими словами (Життєва аналогія)
-Уявіть сучасну службу екстреного реагування (911) або диспетчерську аеропорту. 
-- Якщо в салоні літака виникне поломка датчика або пасажиру стане зле, пілотові не потрібно кидати штурвал і бігти в салон з аптечкою.
-- Замість цього система фіксує сигнал тривоги, присвоює йому **код інциденту (Incident ID)**, і передає інформацію спеціалізованій службі на землі, а пасажирам спокійно повідомляють: *«Рейс виконується за планом, деталі інциденту #INC-9482 передані диспетчеру»*.
-
-У веб-додатках такою «службою 911» є **Centralized Exception Handling Middleware**. Вона перехоплює будь-яку проблему в конвеєрі, захищає сервери від витоку даних і віддає клієнту зрозумілий, безпечний статус.
+Уявіть великий п'ятизірковий ресторан. Офіціанти (контролери) носять страви клієнтам (HTTP-запитам), а кухарі (BLL) готують їжу.
+- Якщо на кухні впала сковорідка чи згоріло м'ясо (виняток `Exception`):
+  - **Погано:** Офіціант біжить до гостя в сльозах і кричить: *"У нас тріснула газова труба, шеф порізав палець, дивіться на шматки м'яса!"* (витік стеку викликів бази даних клієнту).
+  - **Добре:** Офіціанти навіть не думають про аварії на кухні. У ресторані є **Адміністратор (Exception Middleware)**. Якщо на кухні щось пішло не так, адміністратор негайно підходить до клієнта, ввічливо вибачається, надає компенсаційний талон із номером інциденту: *"Вибачте, сталася затримка. Ось ваш номер інциденту #A83F-201, ми вже розбираємося"*, а на кухні фіксує деталі в журналі інцидентів (логи).
 
 ---
 
-### 1.2. Яку конкретну проблему це вирішує?
+## 2. Чому `try-catch` у кожному контролері — це катастрофа
 
-#### Наївний антипатерн (Try-Catch Spaghetti у контролерах):
+У наївних проєктах розробники обгортають кожен контролер:
 ```csharp
-// ПОГАНО: Дублювання коду в кожному екшені кожного контролера
+// ❌ АНТИПАТЕРН: Дублювання try-catch у кожному контролері
 [HttpGet("{id}")]
 public async Task<IActionResult> Get(int id)
 {
     try
     {
         var driver = await _manager.GetById(id);
-        if (driver == null) return NotFound("Водія не знайдено");
         return Ok(driver);
-    }
-    catch (SqlException ex)
-    {
-        // НЕБЕЗПЕЧНО: Витік SQL паролів, схеми таблиць та внутрішнього стек-трейсу клієнту!
-        return StatusCode(500, ex.ToString());
     }
     catch (Exception ex)
     {
-        return StatusCode(500, ex.Message);
+        return StatusCode(500, ex.Message); // Витік системних деталей або білий екран
     }
 }
 ```
-
-#### Наслідки наївного підходу:
-1. **Витік чутливих даних (CWE-209 / OWASP Information Disclosure):** Клієнт або зловмисник отримує імена SQL-серверів, користувачів бази, версії бібліотек та номери рядків коду.
-2. **Неможливість відстеження (No Correlation):** Користувач пише в техпідтримку: *«У мене видало помилку 500»*. Знайти конкретний лог серед мільйонів рядків сервера неможливо.
-3. **Засмічення коду:** 80% коду контролера — це бойлерплейт `try-catch`, а не бізнес-логіка.
-
----
-
-### 1.3. Порівняльна таблиця підходів
-
-| Критерій | Наївний `try-catch` у контролерах | Centralized Exception Middleware |
-| :--- | :--- | :--- |
-| **Код контролерів** | Перевантажений логікою ловлі помилок | Чистий «Happy Path» (тільки успішний хід виконання) |
-| **Безпека стек-трейсу** | Ризик витоку внутрішніх деталей у відповіді | Стек-трейс **ніколи** не віддається назовні (лише у безпечний лог) |
-| **Ідентифікація збою** | Неможливо знайти конкретний запит | Кожен збій отримує унікальний **`ErrorId` (GUID)** |
-| **Стандарт формату** | Довільний хаотичний текст або рядок | Стандартизована JSON-структура у стилі **RFC 7807** |
-| **Мапінг HTTP статусів** | Ручний у кожному методі | Автоматичний за типом C# винятку (404, 409, 400, 500) |
+**Наслідки:**
+1. **Дублювання коду (Boilerplate):** 100 ендпоінтів — це 100 однакових блоків `try-catch`.
+2. **Витік безпеки (Security Leak):** Повідомлення `ex.Message` часто містить назви таблиць SQL Server, IP-адреси серверів або паролі з'єднань.
+3. **Непослідовність відповідей:** Один розробник повертає `{ "err": "..." }`, інший — `{ "error_description": "..." }`, третій — просто рядок. Клієнтський додаток не знає, як парсити помилки.
 
 ---
 
-## 2. Наскрізний потік перехоплення помилок (Architectural Flow)
+## 3. Архітектурний потік перехоплення винятків (Sequence Diagram)
 
 ```mermaid
 sequenceDiagram
     autonumber
-    actor Client as Клієнт (WPF / Web)
-    participant Pipe as ExceptionMiddleware (Конвеєр)
-    participant Ctrl as CompanyController
-    participant BLL as CompanyManager
+    actor Client as Клієнт (WPF / Swagger)
+    participant Pipe as ExceptionMiddleware (Pipeline)
+    participant Ctrl as DriversController
+    participant BLL as DriversManager (BLL)
     participant Logger as ILogger<ExceptionMiddleware>
 
-    Client->>Pipe: POST /api/company (Створення дубліката компанії)
-    Pipe->>Ctrl: InvokeAsync(context, next)
+    Client->>Pipe: POST /api/companies (створення дубліката)
+    Pipe->>Ctrl: InvokeNext()
     Ctrl->>BLL: CreateCompanyAsync(dto)
     
-    Note over BLL: Перевірка: Компанія з таким ім'ям вже існує!
     BLL-->>BLL: throw new ConflictException("Компанія вже зареєстрована")
     
     Note over Ctrl: Виняток "пролітає" крізь контролер без перехоплення!
@@ -93,12 +85,10 @@ sequenceDiagram
 
 ---
 
-## 3. Розбір коду проєкту (з прямими посиланнями)
+## 4. Розбір коду проєкту по кроках
 
-Централізована обробка побудована на взаємодії трьох елементів:
-
-### 3.1. Ядро перехоплення: [ExceptionMiddleware.cs](../../DriversApi/Middleware/ExceptionMiddleware.cs)
-Клас реалізує інтерфейс `IMiddleware` і реєструється першим у конвеєрі `Program.cs`:
+### 4.1. Ядро перехоплення: [`ExceptionMiddleware.cs`](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/01-Ntier-Drivers/DriversApi/Middleware/ExceptionMiddleware.cs)
+Клас реалізує інтерфейс `IMiddleware` і реєструється першим у конвеєрі:
 ```csharp
 public class ExceptionMiddleware : IMiddleware
 {
@@ -149,7 +139,7 @@ public class ExceptionMiddleware : IMiddleware
 }
 ```
 
-### 3.2. Стандартизована відповідь клієнту: [ErrorResult.cs](../../Drivers.BLL/Exceptions/Models/ErrorResult.cs)
+### 4.2. Стандартизована відповідь клієнту: [`ErrorResult.cs`](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/01-Ntier-Drivers/Drivers.BLL/Exceptions/Models/ErrorResult.cs)
 Контракт помилки у форматі RFC 7807:
 ```csharp
 public class ErrorResult
@@ -163,18 +153,45 @@ public class ErrorResult
 }
 ```
 
-### 3.3. Ієрархія доменних винятків BLL:
-- Базовий виняток: [CustomException.cs](../../Drivers.BLL/Exceptions/CustomException.cs) (містить `HttpStatusCode`).
+### 4.3. Ієрархія доменних винятків BLL:
+- Базовий виняток: [`CustomException.cs`](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/01-Ntier-Drivers/Drivers.BLL/Exceptions/CustomException.cs) (містить `HttpStatusCode`).
 - Специфічні бізнес-винятки:
-  - [NotFoundException.cs](../../Drivers.BLL/Exceptions/NotFoundException.cs) — коли сутність не знайдена в системі (404).
-  - [ConflictException.cs](../../Drivers.BLL/Exceptions/ConflictException.cs) — порушення бізнес-унікальності або конфлікт стану (409).
-  - [InternalServerException.cs](../../Drivers.BLL/Exceptions/InternalServerException.cs) — критичні збої логіки (500).
-  - [EntityNotFoundException.cs](../../Drivers.DAL.EF/Exceptions/EntityNotFoundException.cs) — помилка вибірки в DAL (404).
+  - [`NotFoundException.cs`](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/01-Ntier-Drivers/Drivers.BLL/Exceptions/NotFoundException.cs) — коли сутність не знайдена в системі (HTTP 404).
+  - [`ConflictException.cs`](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/01-Ntier-Drivers/Drivers.BLL/Exceptions/ConflictException.cs) — порушення бізнес-унікальності або конфлікт стану (HTTP 409).
+  - [`InternalServerException.cs`](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/01-Ntier-Drivers/Drivers.BLL/Exceptions/InternalServerException.cs) — критичні збої логіки (HTTP 500).
+  - [`EntityNotFoundException.cs`](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/01-Ntier-Drivers/Drivers.DAL.EF/Exceptions/EntityNotFoundException.cs) — помилка вибірки в DAL (HTTP 404).
 
 ---
 
-## 4. Підсумок
+## 5. Реєстрація Middleware у конвеєрі ASP.NET Core
+
+У файлі [`Program.cs`](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/01-Ntier-Drivers/DriversApi/Program.cs):
+```csharp
+// Реєстрація у DI контейнері
+builder.Services.AddTransient<ExceptionMiddleware>();
+
+// Підключення на самому початку конвеєра HTTP запитів
+app.UseMiddleware<ExceptionMiddleware>();
+```
+
+---
+
+## 6. Підсумок
 Завдяки **Exception Middleware**:
-1. Контролери залишаються чистими і модульними.
+1. Контролери залишаються чистими і модульними (жодного зайвого `try-catch`).
 2. Клієнт отримує зрозумілі коди помилок (400, 404, 409, 500) замість білого екрану чи краху програми.
 3. Техпідтримка може за лічені секунди знайти у логах повний стек-трейс будь-якого збою за його `ErrorId`.
+
+---
+
+## 7. Прямі посилання на файли коду проєкту
+
+| Файл коду | Шар архітектури | Призначення |
+| :--- | :--- | :--- |
+| 📄 [`ExceptionMiddleware.cs`](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/01-Ntier-Drivers/DriversApi/Middleware/ExceptionMiddleware.cs) | Presentation (API) | Центральне middleware перехоплення всіх винятків та генерації `ErrorId` |
+| 📄 [`ErrorResult.cs`](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/01-Ntier-Drivers/Drivers.BLL/Exceptions/Models/ErrorResult.cs) | Business Logic (BLL) | Модель уніфікованої відповіді з описом помилки згідно з RFC 7807 |
+| 📄 [`CustomException.cs`](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/01-Ntier-Drivers/Drivers.BLL/Exceptions/CustomException.cs) | Business Logic (BLL) | Базовий клас доменних винятків з явним `HttpStatusCode` |
+| 📄 [`NotFoundException.cs`](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/01-Ntier-Drivers/Drivers.BLL/Exceptions/NotFoundException.cs) | Business Logic (BLL) | Специфічний виняток відсутності ресурсу (HTTP 404) |
+| 📄 [`ConflictException.cs`](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/01-Ntier-Drivers/Drivers.BLL/Exceptions/ConflictException.cs) | Business Logic (BLL) | Специфічний виняток конфлікту бізнес-стану (HTTP 409) |
+| 📄 [`EntityNotFoundException.cs`](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/01-Ntier-Drivers/Drivers.DAL.EF/Exceptions/EntityNotFoundException.cs) | Data Access (DAL) | Виняток відсутності сутності в базі даних |
+| 📄 [`Program.cs`](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/01-Ntier-Drivers/DriversApi/Program.cs) | Presentation (API) | Реєстрація `ExceptionMiddleware` у конвеєрі обробки запитів |

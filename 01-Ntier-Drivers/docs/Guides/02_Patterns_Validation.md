@@ -1,7 +1,20 @@
 # 🛡️ 02. Патерн Валідації (Data Annotations / ModelState проти FluentValidation)
 
 > **Модуль:** `01-Ntier-Drivers`  
-> **Рівні реалізації:** `Presentation (API Controller & ModelState)` ➔ `Business Logic (BLL Validators)`
+> **Рівні реалізації:** `Presentation (API Controller & ModelState)` ➔ `Business Logic (BLL Validators)` ➔ `Unit Tests`  
+> **Ключові технології:** C# 13 • .NET 10 • FluentValidation 11 • Data Annotations • `ModelStateDictionary` • RFC 7807 ValidationProblemDetails
+
+---
+
+## 📑 Зміст посібника
+
+1. [Теоретична преамбула (Суть і «Навіщо це потрібно?»)](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/01-Ntier-Drivers/docs/Guides/02_Patterns_Validation.md#1-теоретична-преамбула-суть-і-навіщо-це-потрібно)
+2. [Два світи валідації в .NET: Data Annotations vs FluentValidation](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/01-Ntier-Drivers/docs/Guides/02_Patterns_Validation.md#2-два-світи-валідації-в-net-data-annotations-vs-fluentvalidation)
+3. [Як FluentValidation інтегрується з ASP.NET Core ModelState](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/01-Ntier-Drivers/docs/Guides/02_Patterns_Validation.md#3-як-fluentvalidation-інтегрується-з-aspnet-core-modelstate)
+4. [Аналіз коду проєкту по кроках](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/01-Ntier-Drivers/docs/Guides/02_Patterns_Validation.md#4-аналіз-коду-проєкту-по-кроках)
+5. [Реєстрація валідаторів у Dependency Injection](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/01-Ntier-Drivers/docs/Guides/02_Patterns_Validation.md#5-реєстрація-валідаторів-у-dependency-injection)
+6. [Юніт-тестування валідаторів](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/01-Ntier-Drivers/docs/Guides/02_Patterns_Validation.md#6-юніт-тестування-валідаторів)
+7. [Прямі посилання на файли коду проєкту](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/01-Ntier-Drivers/docs/Guides/02_Patterns_Validation.md#7-прямі-посилання-на-файли-коду-проєкту)
 
 ---
 
@@ -14,11 +27,13 @@
   - Якщо пілот літака (контролер) особисто перевіряє візи кожного пасажира — він не встигає керувати літаком.
   - Правильний підхід: **окрема служба безпеки на вході (Валідатор)**, яка перевіряє всі документи за чіткими правилами ще до того, як пасажир дійде до пілота.
 
-### 1.2. Два світи валідації в .NET: Data Annotations vs FluentValidation
+---
+
+## 2. Два світи валідації в .NET: Data Annotations vs FluentValidation
 
 В екосистемі .NET існують два основних підходи до валідації вхідних даних:
 
-#### Підхід А: Вбудовані в .NET Data Annotations (`System.ComponentModel.DataAnnotations`)
+### Підхід А: Вбудовані в .NET Data Annotations (`System.ComponentModel.DataAnnotations`)
 Атрибути вішаються безпосередньо на властивості DTO-моделі:
 ```csharp
 public class CompanyReqDTO
@@ -33,12 +48,10 @@ public class CompanyReqDTO
 ```
 ASP.NET Core під час прив'язки моделі автоматично перевіряє ці атрибути та записує помилки у **`ModelState`**. Якщо контролер має атрибут `[ApiController]`, фреймворк автоматично повертає `400 Bad Request`, якщо `ModelState.IsValid == false`.
 
-#### Підхід Б: Декларативний FluentValidation (Використовується в нашому проєкті)
+### Підхід Б: Декларативний FluentValidation (Використовується в нашому проєкті)
 DTO залишається чистим класом POCO, а всі правила виносяться в окремий клас валідатора, який спадкується від `AbstractValidator<T>`.
 
----
-
-### 1.3. Порівняльна таблиця: Data Annotations проти FluentValidation
+### Порівняльна таблиця: Data Annotations проти FluentValidation
 
 | Критерій | Data Annotations (.NET Built-in) | FluentValidation (.NET Enterprise) |
 | :--- | :--- | :--- |
@@ -53,7 +66,7 @@ DTO залишається чистим класом POCO, а всі прави�
 
 ---
 
-## 2. Як FluentValidation інтегрується з ASP.NET Core `ModelState`
+## 3. Як FluentValidation інтегрується з ASP.NET Core `ModelState`
 
 Найкраще те, що FluentValidation **не замінює `ModelState`, а доповнює його**!
 
@@ -75,9 +88,9 @@ flowchart TD
 
 ---
 
-## 3. Аналіз коду проєкту (з прямими посиланнями)
+## 4. Аналіз коду проєкту по кроках
 
-### 3.1. Чистий DTO-контракт: [CompanyReqDTO.cs](../../Drivers.BLL/DTOs/Requests/CompanyReqDTO.cs)
+### 4.1. Чистий DTO-контракт: [`CompanyReqDTO.cs`](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/01-Ntier-Drivers/Drivers.BLL/DTOs/Requests/CompanyReqDTO.cs)
 DTO залишається абсолютно чистим від сторонніх атрибутів:
 ```csharp
 namespace Drivers.BLL.DTOs.Requests;
@@ -94,7 +107,7 @@ public class CompanyReqDTO
 }
 ```
 
-### 3.2. Ізольований валідатор: [CompanyReqDTO_Validator.cs](../../Drivers.BLL/DTOs/Validation/CompanyReqDTO_Validator.cs)
+### 4.2. Ізольований валідатор: [`CompanyReqDTO_Validator.cs`](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/01-Ntier-Drivers/Drivers.BLL/DTOs/Validation/CompanyReqDTO_Validator.cs)
 Правила чітко структуровані, підтримують умовну логіку:
 ```csharp
 public class CompanyReqDTO_Validator : AbstractValidator<CompanyReqDTO>
@@ -118,7 +131,7 @@ public class CompanyReqDTO_Validator : AbstractValidator<CompanyReqDTO>
 }
 ```
 
-### 3.3. Крос-польова валідація діапазонів: [DriverParametersValidator.cs](../../Drivers.BLL/DTOs/Validation/DriverParametersValidator.cs)
+### 4.3. Крос-польова валідація діапазонів: [`DriverParametersValidator.cs`](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/01-Ntier-Drivers/Drivers.BLL/DTOs/Validation/DriverParametersValidator.cs)
 Демонструє бізнес-правило, яке неможливо гарно записати стандартними Data Annotations:
 ```csharp
 public class DriverParametersValidator : AbstractValidator<DriverParameters>
@@ -137,8 +150,37 @@ public class DriverParametersValidator : AbstractValidator<DriverParameters>
 }
 ```
 
-### 3.4. Юніт-тестування правил: [ValidationTests.cs](../../NtierDrivers.UnitTests/ValidationTests.cs)
-Завдяки винесенню валідації в окремі класи, написання юніт-тестів перетворюється на елементарні тести без потреби створювати контролери чи HTTP-контекст:
+### 4.4. Валідація створення водія: [`MiniDriverReqDTO_Validator.cs`](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/01-Ntier-Drivers/Drivers.BLL/DTOs/Validation/MiniDriverReqDTO_Validator.cs)
+Перевіряє коректність персональних даних водія:
+```csharp
+public class MiniDriverReqDTO_Validator : AbstractValidator<MiniDriverReqDTO>
+{
+    public MiniDriverReqDTO_Validator()
+    {
+        RuleFor(d => d.FirstName).NotEmpty().MaximumLength(50);
+        RuleFor(d => d.LastName).NotEmpty().MaximumLength(50);
+        RuleFor(d => d.DriverLicenseNumber).NotEmpty().Length(6, 20);
+        RuleFor(d => d.Birthdate).LessThan(DateTime.Now.AddYears(-18))
+            .WithMessage("Водій повинен бути повнолітнім (вік від 18 років).");
+    }
+}
+```
+
+---
+
+## 5. Реєстрація валідаторів у Dependency Injection
+
+У файлі [`Program.cs`](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/01-Ntier-Drivers/DriversApi/Program.cs) FluentValidation автоматично сканує всю збірку BLL та реєструє валідатори:
+```csharp
+builder.Services.AddFluentValidationAutoValidation();
+builder.Services.AddValidatorsFromAssemblyContaining<CompanyReqDTO_Validator>();
+```
+
+---
+
+## 6. Юніт-тестування валідаторів
+
+Завдяки винесенню валідації в окремі класи, написання тестів у [`ValidationTests.cs`](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/01-Ntier-Drivers/NtierDrivers.UnitTests/ValidationTests.cs) не вимагає моків або підняття HTTP сервера:
 ```csharp
 [Fact]
 public void Should_Have_Error_When_Company_Name_Is_Empty()
@@ -154,6 +196,13 @@ public void Should_Have_Error_When_Company_Name_Is_Empty()
 
 ---
 
-## 4. Підсумок
-- **Data Annotations** підходять для простих демонстрацій або мікро-скриптів.
-- **FluentValidation** є де-факто стандартом корпоративної архітектури, забезпечуючи високу тестованість, чисті POCO-моделі та прозору передачу помилок у стандартний `ModelState` ASP.NET Core.
+## 7. Прямі посилання на файли коду проєкту
+
+| Файл коду | Шар архітектури | Призначення |
+| :--- | :--- | :--- |
+| 📄 [`CompanyReqDTO.cs`](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/01-Ntier-Drivers/Drivers.BLL/DTOs/Requests/CompanyReqDTO.cs) | Business Logic (BLL) | Чистий POCO контракт запиту компанії без залежностей |
+| 📄 [`CompanyReqDTO_Validator.cs`](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/01-Ntier-Drivers/Drivers.BLL/DTOs/Validation/CompanyReqDTO_Validator.cs) | Business Logic (BLL) | FluentValidation валідатор з перевіркою довжини та умовним email |
+| 📄 [`DriverParametersValidator.cs`](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/01-Ntier-Drivers/Drivers.BLL/DTOs/Validation/DriverParametersValidator.cs) | Business Logic (BLL) | Крос-польовий валідатор бізнес-діапазонів `MaxYear >= MinYear` |
+| 📄 [`MiniDriverReqDTO_Validator.cs`](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/01-Ntier-Drivers/Drivers.BLL/DTOs/Validation/MiniDriverReqDTO_Validator.cs) | Business Logic (BLL) | Валідатор повноліття та формату посвідчення водія |
+| 📄 [`Program.cs`](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/01-Ntier-Drivers/DriversApi/Program.cs) | Presentation (API) | Конфігурація автоматичної прив'язки FluentValidation до `ModelState` |
+| 📄 [`ValidationTests.cs`](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/01-Ntier-Drivers/NtierDrivers.UnitTests/ValidationTests.cs) | Unit Tests | Комплекс модульних тестів валідації бізнес-правил |

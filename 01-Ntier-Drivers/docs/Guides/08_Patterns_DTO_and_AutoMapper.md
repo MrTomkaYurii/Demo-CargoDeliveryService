@@ -113,7 +113,7 @@ flowchart LR
 ---
 
 ### 3.2. Request DTOs (Вхідні моделі запиту)
-👉 Код: [CompanyReqDTO.cs](../../Drivers.BLL/DTOs/Requests/CompanyReqDTO.cs)
+👉 Код: [`CompanyReqDTO.cs`](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/01-Ntier-Drivers/Drivers.BLL/DTOs/Requests/CompanyReqDTO.cs)
 
 Містить тільки ті властивості, які клієнт має право передавати:
 ```csharp
@@ -126,7 +126,7 @@ public class CompanyReqDTO
 ```
 
 ### 3.3. Response DTOs (Вихідні моделі відповіді)
-👉 Код: [TruckResponceDTO.cs](../../Drivers.BLL/DTOs/Responses/TruckResponceDTO.cs)
+👉 Код: [`TruckResponceDTO.cs`](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/01-Ntier-Drivers/Drivers.BLL/DTOs/Responses/TruckResponceDTO.cs)
 
 Містить пласкі (flattened) дані без важких реляційних циклів:
 ```csharp
@@ -147,7 +147,7 @@ public class TruckResponceDTO
 Щоб не писати сотні рядків ручного присвоєння `dto.Name = entity.Name; dto.Age = entity.Age;`, використовується бібліотека **AutoMapper**:
 
 ### 4.1. Профіль мапінгу `MappingProfile.cs`
-👉 Код: [MappingProfile.cs](../../DriversApi/AutomapperProfile/MappingProfile.cs)
+👉 Код: [`MappingProfile.cs`](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/01-Ntier-Drivers/DriversApi/AutomapperProfile/MappingProfile.cs)
 
 ```csharp
 public class MappingProfile : Profile
@@ -167,7 +167,7 @@ public class MappingProfile : Profile
 ```
 
 ### 4.2. Використання в бізнес-менеджерах BLL
-👉 Код: [DriversManager.cs](../../Drivers.BLL/Managers/DriversManager.cs)
+👉 Код: [`DriversManager.cs`](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/01-Ntier-Drivers/Drivers.BLL/Managers/DriversManager.cs)
 
 ```csharp
 public async Task<FullDriverResponceDTO> GetDriverByIdAsync(int id)

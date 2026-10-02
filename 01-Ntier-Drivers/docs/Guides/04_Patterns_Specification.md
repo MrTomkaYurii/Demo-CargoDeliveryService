@@ -287,7 +287,7 @@ classDiagram
 ---
 
 ### 4.2. Контракт `ISpecification<T>`
-👉 Код: [ISpecification.cs](../../Drivers.DAL.EF/Specifications/Contracts/ISpecification.cs)
+👉 Код: [`ISpecification.cs`](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/01-Ntier-Drivers/Drivers.DAL.EF/Specifications/Contracts/ISpecification.cs)
 
 Контракт визначає всі частини запиту, які специфікація може описати:
 
@@ -319,7 +319,7 @@ public interface ISpecification<T>
 ---
 
 ### 4.3. Базовий клас `BaseSpecification<T>` (Fluent API)
-👉 Код: [BaseSpecification.cs](../../Drivers.DAL.EF/Specifications/BaseSpecification.cs)
+👉 Код: [`BaseSpecification.cs`](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/01-Ntier-Drivers/Drivers.DAL.EF/Specifications/BaseSpecification.cs)
 
 Надає захищені (`protected`) методи для зручного конструювання запитів у класах-нащадках:
 
@@ -368,7 +368,7 @@ public abstract class BaseSpecification<T> : ISpecification<T>
 ---
 
 ### 4.4. Транслятор `SpecificationEvaluator<TEntity>`
-👉 Код: [SpecificationEvaluator.cs](../../Drivers.DAL.EF/Specifications/Evaluator/SpecificationEvaluator.cs)
+👉 Код: [`SpecificationEvaluator.cs`](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/01-Ntier-Drivers/Drivers.DAL.EF/Specifications/Evaluator/SpecificationEvaluator.cs)
 
 Це серце патерну. Він бере «сирий» `IQueryable<TEntity>` з бази даних (наприклад, `_context.Set<Driver>()`) і послідовно одягає на нього всі конфігурації специфікації:
 
@@ -423,7 +423,7 @@ public static class SpecificationEvaluator<TEntity> where TEntity : class
 ---
 
 ### 4.5. Універсальний Generic Repository
-👉 Код: [EFGenericRepository.cs](../../Drivers.DAL.EF/Repositories/EFGenericRepository.cs) 📍 (рядки 115–146)
+👉 Код: [`EFGenericRepository.cs`](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/01-Ntier-Drivers/Drivers.DAL.EF/Repositories/EFGenericRepository.cs#L115-L146) 📍 (рядки 115–146)
 
 Тепер репозиторію більше не потрібні десятки специфічних методів. Він має лише три універсальні методи на всі випадки життя:
 
@@ -475,7 +475,7 @@ protected IQueryable<TEntity> ApplySpecification(ISpecification<TEntity> specifi
 Ось як це реалізується за 3 простих кроки:
 
 ### Крок 1. Створюємо клас специфікації
-👉 Код у проєкті: [DriverFilterSpecification.cs](../../Drivers.DAL.EF/Specifications/DriverFilterSpecification.cs)
+👉 Код у проєкті: [`DriverFilterSpecification.cs`](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/01-Ntier-Drivers/Drivers.DAL.EF/Specifications/DriverFilterSpecification.cs)
 
 ```csharp
 using Drivers.DAL.EF.Entities;
@@ -580,7 +580,7 @@ OFFSET 0 ROWS FETCH NEXT 10 ROWS ONLY;
 
 ## 7. Модульне тестування специфікацій без БД
 
-👉 Код у проєкті: [SpecificationPatternTests.cs](../../NtierDrivers.UnitTests/SpecificationPatternTests.cs)
+👉 Код у проєкті: [`SpecificationPatternTests.cs`](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/01-Ntier-Drivers/NtierDrivers.UnitTests/SpecificationPatternTests.cs)
 
 Найбільша практична перевага специфікацій — **можливість тестувати найскладніші бізнес-фільтри за мілісекунди**, взагалі не підключаючись до бази даних чи In-Memory провайдера EF Core!
 

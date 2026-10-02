@@ -1,4 +1,4 @@
-﻿# 🎓 Архітектурний Майстер-Клас: Тришарова Архітектура (3-Tier) та Патерни Проєктування у .NET 10
+# 🎓 Архітектурний Майстер-Клас: Тришарова Архітектура (3-Tier) та Патерни Проєктування у .NET 10
 
 > **Проєкт:** `Demo-CargoDeliveryService` • **Модуль:** `NtierDriversModule`  
 > **Стек:** .NET 10 • C# 13 • Entity Framework Core • Dapper • FluentValidation • AutoMapper • WPF (MVVM) • xUnit
@@ -28,7 +28,7 @@
 - [Слайд 18. Динамічна пагінація та сортування великих масивів даних](#slide-18)
 - [Слайд 19. Presentation Layer Web API: RESTful маршрути, Swagger/OpenAPI та DX](#slide-19)
 - [Слайд 20. Presentation Layer WPF: Гібридний MVVM-клієнт та пряма інтеграція BLL](#slide-20)
-- [Слайд 21. Модульне тестування: Тестування за патерном AAA (49/49 тестів)](#slide-21)
+- [Слайд 21. Модульне тестування: Тестування за патерном AAA (54/54 тести)](#slide-21)
 - [Слайд 22. Підсумкова матриця рішень та архітектурні висновки](#slide-22)
 
 ---
@@ -97,9 +97,9 @@ flowchart TD
 ```
 
 #### 2. Посилання на реальний код у проєкті
-👉 Контролер: [DriversController.cs](../../DriversApi/Controllers/DriversController.cs) 📍 (дивіться рядки 20–45)  
-👉 Менеджер бізнес-логіки: [DriversManager.cs](../../Drivers.BLL/Managers/DriversManager.cs) 📍 (дивіться рядки 30–60)  
-👉 Репозиторій даних: [EFDriverRepository.cs](../../Drivers.DAL.EF/Repositories/EFDriverRepository.cs) 📍 (дивіться рядки 15–40)
+👉 Контролер: [`DriversController.cs`](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/01-Ntier-Drivers/DriversApi/Controllers/DriversController.cs#L20-L45) 📍 (дивіться рядки 20–45)  
+👉 Менеджер бізнес-логіки: [`DriversManager.cs`](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/01-Ntier-Drivers/Drivers.BLL/Managers/DriversManager.cs#L30-L60) 📍 (дивіться рядки 30–60)  
+👉 Репозиторій даних: [`EFDriverRepository.cs`](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/01-Ntier-Drivers/Drivers.DAL.EF/Repositories/EFDriverRepository.cs#L15-L40) 📍 (дивіться рядки 15–40)
 
 [⬅ Попередній слайд](#slide-1) • [⬆ До змісту](#toc) • [Наступний слайд ➡](#slide-3)
 
@@ -116,12 +116,12 @@ flowchart TD
 - **`Drivers.BLL` (.NET 10):** доменні моделі, бізнес-менеджери, розрахункові калькулятори, DTO та мапінг.
 - **`DriversApi` (.NET 10):** Web API з підтримкою Swagger, OAuth2 PKCE та маршрутизацією вибору провайдера.
 - **`WPFDrivers` (.NET 10 Windows):** десктопний клієнт на базі MVVM із підтримкою подвійного режиму (Direct BLL vs Web API).
-- **`NtierDrivers.UnitTests` (.NET 10):** 49 модульних тестів (xUnit, Moq, FluentAssertions).
+- **`NtierDrivers.UnitTests` (.NET 10):** 54 модульні тести (xUnit, Moq, FluentAssertions).
 
 #### 2. Посилання на конфігурацію рішень
-👉 Solution файл: [CargoDeliveryService.sln](../../CargoDeliveryService.sln)  
-👉 Проєкт API: [Drivers.Api.csproj](../../DriversApi/Drivers.Api.csproj)  
-👉 Проєкт BLL: [Drivers.BLL.csproj](../../Drivers.BLL/Drivers.BLL.csproj)
+👉 Solution файл: [`CargoDeliveryService.sln`](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/CargoDeliveryService.sln)  
+👉 Проєкт API: [`Drivers.Api.csproj`](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/01-Ntier-Drivers/DriversApi/Drivers.Api.csproj)  
+👉 Проєкт BLL: [`Drivers.BLL.csproj`](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/01-Ntier-Drivers/Drivers.BLL/Drivers.BLL.csproj)
 
 [⬅ Попередній слайд](#slide-2) • [⬆ До змісту](#toc) • [Наступний слайд ➡](#slide-4)
 
@@ -163,8 +163,8 @@ flowchart TD
 - Тестування: інтерфейс `IEFGenericRepository<T>` легко мокується через `Mock<IEFGenericRepository<EFDriver>>()`.
 
 #### 3. Посилання на код
-👉 Контракт: [IEFGenericRepository.cs](../../Drivers.DAL.EF/Repositories/Contracts/IEFGenericRepository.cs) 📍 (дивіться рядки 9–35)  
-👉 Базова реалізація: [EFGenericRepository.cs](../../Drivers.DAL.EF/Repositories/EFGenericRepository.cs) 📍 (дивіться рядки 14–65)
+👉 Контракт: [IEFGenericRepository.cs](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/01-Ntier-Drivers/Drivers.DAL.EF/Repositories/Contracts/IEFGenericRepository.cs) 📍 (дивіться рядки 9–35)  
+👉 Базова реалізація: [EFGenericRepository.cs](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/01-Ntier-Drivers/Drivers.DAL.EF/Repositories/EFGenericRepository.cs) 📍 (дивіться рядки 14–65)
 
 [⬅ Попередній слайд](#slide-4) • [⬆ До змісту](#toc) • [Наступний слайд ➡](#slide-6)
 
@@ -188,9 +188,9 @@ flowchart TD
 | **Зв'язок репозиторіїв** | Репозиторії не мають спільного контексту або з'єднання | Усі репозиторії мають спільний `DbContext` або `SqlTransaction` |
 
 #### 3. Посилання на код
-👉 Інтерфейс EF: [IEFUnitOfWork.cs](../../Drivers.DAL.EF/UOW/Contracts/IEFUnitOfWork.cs) 📍 (дивіться рядки 7–25)  
-👉 Реалізація EF: [EFUnitOfWork.cs](../../Drivers.DAL.EF/UOW/EFUnitOfWork.cs) 📍 (дивіться рядки 15–50)  
-👉 Реалізація Dapper з `IDbTransaction`: [UnitOfWork.cs](../../Drivers.DAL.ADO/UOW/UnitOfWork.cs) 📍 (дивіться рядки 20–60)
+👉 Інтерфейс EF: [IEFUnitOfWork.cs](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/01-Ntier-Drivers/Drivers.DAL.EF/UOW/Contracts/IEFUnitOfWork.cs) 📍 (дивіться рядки 7–25)  
+👉 Реалізація EF: [EFUnitOfWork.cs](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/01-Ntier-Drivers/Drivers.DAL.EF/UOW/EFUnitOfWork.cs) 📍 (дивіться рядки 15–50)  
+👉 Реалізація Dapper з `IDbTransaction`: [UnitOfWork.cs](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/01-Ntier-Drivers/Drivers.DAL.ADO/UOW/UnitOfWork.cs) 📍 (дивіться рядки 20–60)
 
 [⬅ Попередній слайд](#slide-5) • [⬆ До змісту](#toc) • [Наступний слайд ➡](#slide-7)
 
@@ -230,8 +230,8 @@ sequenceDiagram
 ```
 
 #### 2. Посилання на код
-👉 Enum провайдерів: [DataAccessProvider.cs](../../Drivers.BLL/Models/DataAccessProvider.cs)  
-👉 Маршрутизація в BLL: [DriversManager.cs](../../Drivers.BLL/Managers/DriversManager.cs) 📍 (дивіться рядки 65–110)
+👉 Enum провайдерів: [DataAccessProvider.cs](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/01-Ntier-Drivers/Drivers.BLL/Models/DataAccessProvider.cs)  
+👉 Маршрутизація в BLL: [DriversManager.cs](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/01-Ntier-Drivers/Drivers.BLL/Managers/DriversManager.cs) 📍 (дивіться рядки 65–110)
 
 [⬅ Попередній слайд](#slide-6) • [⬆ До змісту](#toc) • [Наступний слайд ➡](#slide-8)
 
@@ -248,10 +248,10 @@ sequenceDiagram
 
 1. **В Entity Framework Core:**
    Використання Eager Loading ланцюжка `.Include()` з вимкненим відстеженням `.AsNoTracking()`:
-   👉 [EFDriverRepository.cs](../../Drivers.DAL.EF/Repositories/EFDriverRepository.cs) 📍 (дивіться рядки 25–40)
+   👉 [EFDriverRepository.cs](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/01-Ntier-Drivers/Drivers.DAL.EF/Repositories/EFDriverRepository.cs) 📍 (дивіться рядки 25–40)
 2. **В ADO.NET + Dapper:**
    Використання **`QueryMultipleAsync`** для передачі єдиного SQL-пакета з двома незалежними `SELECT`, що усуває Cartesian Product:
-   👉 [DriverRepository.cs](../../Drivers.DAL.ADO/Repositories/DriverRepository.cs) 📍 (дивіться рядки 45–80)
+   👉 [DriverRepository.cs](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/01-Ntier-Drivers/Drivers.DAL.ADO/Repositories/DriverRepository.cs) 📍 (дивіться рядки 45–80)
 
 [⬅ Попередній слайд](#slide-7) • [⬆ До змісту](#toc) • [Наступний слайд ➡](#slide-9)
 
@@ -276,9 +276,9 @@ sequenceDiagram
 | Репозиторій містить 30+ вузькоспеціалізованих методів | Репозиторій містить 2–3 універсальні методи виконання специфікацій |
 
 #### 3. Посилання на код
-👉 Інтерфейс специфікації: [ISpecification.cs](../../Drivers.DAL.EF/Specifications/Contracts/ISpecification.cs) 📍 (дивіться рядки 10–40)  
-👉 Базовий клас специфікації: [BaseSpecification.cs](../../Drivers.DAL.EF/Specifications/BaseSpecification.cs) 📍 (дивіться рядки 10–55)  
-👉 Специфікація фільтра водіїв: [DriverFilterSpecification.cs](../../Drivers.DAL.EF/Specifications/DriverFilterSpecification.cs) 📍 (дивіться рядки 12–40)
+👉 Інтерфейс специфікації: [ISpecification.cs](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/01-Ntier-Drivers/Drivers.DAL.EF/Specifications/Contracts/ISpecification.cs) 📍 (дивіться рядки 10–40)  
+👉 Базовий клас специфікації: [BaseSpecification.cs](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/01-Ntier-Drivers/Drivers.DAL.EF/Specifications/BaseSpecification.cs) 📍 (дивіться рядки 10–55)  
+👉 Специфікація фільтра водіїв: [DriverFilterSpecification.cs](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/01-Ntier-Drivers/Drivers.DAL.EF/Specifications/DriverFilterSpecification.cs) 📍 (дивіться рядки 12–40)
 
 [⬅ Попередній слайд](#slide-8) • [⬆ До змісту](#toc) • [Наступний слайд ➡](#slide-10)
 
@@ -308,8 +308,8 @@ flowchart LR
 ```
 
 #### 2. Посилання на код
-👉 Оцінювач специфікації: [SpecificationEvaluator.cs](../../Drivers.DAL.EF/Specifications/Evaluator/SpecificationEvaluator.cs) 📍 (дивіться рядки 15–50)  
-👉 Застосування в репозиторії: [EFGenericRepository.cs](../../Drivers.DAL.EF/Repositories/EFGenericRepository.cs) 📍 (дивіться рядки 115–140)
+👉 Оцінювач специфікації: [SpecificationEvaluator.cs](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/01-Ntier-Drivers/Drivers.DAL.EF/Specifications/Evaluator/SpecificationEvaluator.cs) 📍 (дивіться рядки 15–50)  
+👉 Застосування в репозиторії: [EFGenericRepository.cs](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/01-Ntier-Drivers/Drivers.DAL.EF/Repositories/EFGenericRepository.cs) 📍 (дивіться рядки 115–140)
 
 [⬅ Попередній слайд](#slide-9) • [⬆ До змісту](#toc) • [Наступний слайд ➡](#slide-11)
 
@@ -356,8 +356,8 @@ flowchart LR
 ```
 
 #### 3. Посилання на код
-👉 Вхідний DTO водія: [MiniDriverReqDTO.cs](../../Drivers.BLL/DTOs/Requests/MiniDriverReqDTO.cs)  
-👉 Повний вихідний DTO: [FullDriverResponceDTO.cs](../../Drivers.BLL/DTOs/Responses/FullDriverResponceDTO.cs)
+👉 Вхідний DTO водія: [MiniDriverReqDTO.cs](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/01-Ntier-Drivers/Drivers.BLL/DTOs/Requests/MiniDriverReqDTO.cs)  
+👉 Повний вихідний DTO: [FullDriverResponceDTO.cs](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/01-Ntier-Drivers/Drivers.BLL/DTOs/Responses/FullDriverResponceDTO.cs)
 
 [⬅ Попередній слайд](#slide-11) • [⬆ До змісту](#toc) • [Наступний слайд ➡](#slide-13)
 
@@ -371,8 +371,8 @@ flowchart LR
 **AutoMapper** централізує правила перетворення типів у профіль конфігурації.
 
 #### 2. Посилання на код
-👉 Профіль мапінгу: [BLLMappingProfile.cs](../../Drivers.BLL/Mapping/BLLMappingProfile.cs) 📍 (дивіться рядки 15–70)  
-👉 Модульні тести мапінгу: [MappingTests.cs](../../NtierDrivers.UnitTests/MappingTests.cs) 📍 (дивіться рядки 20–50)
+👉 Профіль мапінгу: [BLLMappingProfile.cs](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/01-Ntier-Drivers/Drivers.BLL/Mapping/BLLMappingProfile.cs) 📍 (дивіться рядки 15–70)  
+👉 Модульні тести мапінгу: [MappingTests.cs](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/01-Ntier-Drivers/NtierDrivers.UnitTests/MappingTests.cs) 📍 (дивіться рядки 20–50)
 
 [⬅ Попередній слайд](#slide-12) • [⬆ До змісту](#toc) • [Наступний слайд ➡](#slide-14)
 
@@ -399,8 +399,8 @@ flowchart TD
 ```
 
 #### 2. Посилання на код
-👉 Реалізація методу: [DriversManager.cs](../../Drivers.BLL/Managers/DriversManager.cs) 📍 (дивіться рядки 492–780)  
-👉 Модульні тести процесу: [BusinessLogicDemonstrationTests.cs](../../NtierDrivers.UnitTests/BusinessLogicDemonstrationTests.cs) 📍 (дивіться рядки 50–210)
+👉 Реалізація методу: [DriversManager.cs](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/01-Ntier-Drivers/Drivers.BLL/Managers/DriversManager.cs) 📍 (дивіться рядки 492–780)  
+👉 Модульні тести процесу: [BusinessLogicDemonstrationTests.cs](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/01-Ntier-Drivers/NtierDrivers.UnitTests/BusinessLogicDemonstrationTests.cs) 📍 (дивіться рядки 50–210)
 
 [⬅ Попередній слайд](#slide-13) • [⬆ До змісту](#toc) • [Наступний слайд ➡](#slide-15)
 
@@ -425,8 +425,8 @@ flowchart TD
    - $< 50$ балів: **UnderReview (Переатестація)** $\to$ призупинення допуску.
 
 #### 2. Посилання на код
-👉 Реалізація в BLL: [DriversManager.cs](../../Drivers.BLL/Managers/DriversManager.cs) 📍 (дивіться рядки 798–1040)  
-👉 Модульні тести аудиту: [BusinessLogicDemonstrationTests.cs](../../NtierDrivers.UnitTests/BusinessLogicDemonstrationTests.cs) 📍 (дивіться рядки 215–300)
+👉 Реалізація в BLL: [DriversManager.cs](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/01-Ntier-Drivers/Drivers.BLL/Managers/DriversManager.cs) 📍 (дивіться рядки 798–1040)  
+👉 Модульні тести аудиту: [BusinessLogicDemonstrationTests.cs](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/01-Ntier-Drivers/NtierDrivers.UnitTests/BusinessLogicDemonstrationTests.cs) 📍 (дивіться рядки 215–300)
 
 [⬅ Попередній слайд](#slide-14) • [⬆ До змісту](#toc) • [Наступний слайд ➡](#slide-16)
 
@@ -444,10 +444,10 @@ flowchart TD
 - Автоматична інтеграція з ASP.NET Core ModelState.
 
 #### 3. Посилання на код
-👉 Валідатор водія: [MiniDriverReqDTO_Validator.cs](../../Drivers.BLL/DTOs/Validation/MiniDriverReqDTO_Validator.cs)  
-👉 Валідатор дат: [DateRangeValidator.cs](../../Drivers.BLL/DTOs/Validation/DateRangeValidator.cs)  
-👉 Валідатор параметрів: [DriverParametersValidator.cs](../../Drivers.BLL/DTOs/Validation/DriverParametersValidator.cs)  
-👉 Модульні тести: [ValidationTests.cs](../../NtierDrivers.UnitTests/ValidationTests.cs)
+👉 Валідатор водія: [MiniDriverReqDTO_Validator.cs](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/01-Ntier-Drivers/Drivers.BLL/DTOs/Validation/MiniDriverReqDTO_Validator.cs)  
+👉 Валідатор дат: [DateRangeValidator.cs](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/01-Ntier-Drivers/Drivers.BLL/DTOs/Validation/DateRangeValidator.cs)  
+👉 Валідатор параметрів: [DriverParametersValidator.cs](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/01-Ntier-Drivers/Drivers.BLL/DTOs/Validation/DriverParametersValidator.cs)  
+👉 Модульні тести: [ValidationTests.cs](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/01-Ntier-Drivers/NtierDrivers.UnitTests/ValidationTests.cs)
 
 [⬅ Попередній слайд](#slide-15) • [⬆ До змісту](#toc) • [Наступний слайд ➡](#slide-17)
 
@@ -464,8 +464,8 @@ flowchart TD
 3. Формує стандартизовану відповідь у форматі **RFC 7807 (ProblemDetails)**.
 
 #### 2. Посилання на код
-👉 Реалізація Middleware: [ExceptionMiddleware.cs](../../DriversApi/Middleware/ExceptionMiddleware.cs) 📍 (дивіться рядки 16–75)  
-👉 Реєстрація в конвеєрі: [Program.cs](../../DriversApi/Program.cs) 📍 (дивіться рядок 260)
+👉 Реалізація Middleware: [ExceptionMiddleware.cs](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/01-Ntier-Drivers/DriversApi/Middleware/ExceptionMiddleware.cs) 📍 (дивіться рядки 16–75)  
+👉 Реєстрація в конвеєрі: [Program.cs](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/01-Ntier-Drivers/DriversApi/Program.cs) 📍 (дивіться рядок 260)
 
 [⬅ Попередній слайд](#slide-16) • [⬆ До змісту](#toc) • [Наступний слайд ➡](#slide-18)
 
@@ -483,8 +483,8 @@ flowchart TD
 - **Метадані клієнту:** передаються як заголовок `X-Pagination` та тіло `PagedResponseDTO<T>`.
 
 #### 2. Посилання на код
-👉 Допоміжний клас сортування: [SortHelper.cs](../../Drivers.DAL.EF/Helpers/SortHelper.cs)  
-👉 Пагінований список: [PagedList.cs](../../Drivers.DAL.EF/Helpers/PagedList.cs)
+👉 Допоміжний клас сортування: [SortHelper.cs](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/01-Ntier-Drivers/Drivers.DAL.EF/Helpers/SortHelper.cs)  
+👉 Пагінований список: [PagedList.cs](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/01-Ntier-Drivers/Drivers.DAL.EF/Helpers/PagedList.cs)
 
 [⬅ Попередній слайд](#slide-17) • [⬆ До змісту](#toc) • [Наступний слайд ➡](#slide-19)
 
@@ -500,8 +500,8 @@ flowchart TD
 - **Авторизація:** Підтримка OAuth2 PKCE та Bearer токенів.
 
 #### 2. Посилання на код
-👉 Профіль запуску: [launchSettings.json](../../DriversApi/Properties/launchSettings.json) 📍 (дивіться рядки 12–25)  
-👉 Конфігурація Swagger: [Program.cs](../../DriversApi/Program.cs) 📍 (дивіться рядки 175–235)
+👉 Профіль запуску: [launchSettings.json](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/01-Ntier-Drivers/DriversApi/Properties/launchSettings.json) 📍 (дивіться рядки 12–25)  
+👉 Конфігурація Swagger: [Program.cs](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/01-Ntier-Drivers/DriversApi/Program.cs) 📍 (дивіться рядки 175–235)
 
 [⬅ Попередній слайд](#slide-18) • [⬆ До змісту](#toc) • [Наступний слайд ➡](#slide-20)
 
@@ -526,18 +526,18 @@ flowchart TD
 ```
 
 #### 2. Посилання на код
-👉 ViewModel: [DriversViewModel.cs](../../WPFDrivers/ViewModels/DriversViewModel.cs) 📍 (дивіться рядки 40–120)  
-👉 XAML Інтерфейс: [DriversView.xaml](../../WPFDrivers/Views/DriversView.xaml)
+👉 ViewModel: [DriversViewModel.cs](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/01-Ntier-Drivers/WPFDrivers/ViewModels/DriversViewModel.cs) 📍 (дивіться рядки 40–120)  
+👉 XAML Інтерфейс: [DriversView.xaml](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/01-Ntier-Drivers/WPFDrivers/Views/DriversView.xaml)
 
 [⬅ Попередній слайд](#slide-19) • [⬆ До змісту](#toc) • [Наступний слайд ➡](#slide-21)
 
 ---
 
 <a id="slide-21"></a>
-### 🧪 Слайд 21. Модульне тестування: Тестування за патерном AAA (49/49 тестів)
+### 🧪 Слайд 21. Модульне тестування: Тестування за патерном AAA (54/54 тести)
 
 #### 1. Патерн AAA (Arrange - Act - Assert)
-Усі 49 модульних тестів проєкту суворо дотримуються структури:
+Усі 54 модульні тести проєкту суворо дотримуються структури:
 1. **Arrange:** підготовка мок-об'єктів репозиторіїв та тестових даних.
 2. **Act:** виклик тестованого методу менеджера або контролера.
 3. **Assert:** перевірка стану через бібліотеку `FluentAssertions`.
@@ -554,11 +554,13 @@ flowchart TD
 | `ValidationTests` | 10 | Декларативні валідатори FluentValidation |
 | `MappingTests` | 7 | AutoMapper профілі перетворення сутностей у DTO |
 | `DriversControllerTests` | 7 | HTTP статус-коди 200, 400, ендпоінти бізнес-логіки, X-Pagination |
-| **Разом** | **49** | **100% тестів пройдено успішно (0 помилок)** |
+| `CancellationTokenTests` | 5 | Кооперативне скасування операцій (CancellationToken), викидання `OperationCanceledException` та коректне переривання довгих операцій |
+| **Разом** | **54** | **100% тестів пройдено успішно (0 помилок)** |
 
 #### 3. Посилання на код
-👉 Тести специфікацій: [SpecificationPatternTests.cs](../../NtierDrivers.UnitTests/SpecificationPatternTests.cs)  
-👉 Тести бізнес-логіки: [BusinessLogicDemonstrationTests.cs](../../NtierDrivers.UnitTests/BusinessLogicDemonstrationTests.cs)
+👉 Тести специфікацій: [SpecificationPatternTests.cs](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/01-Ntier-Drivers/NtierDrivers.UnitTests/SpecificationPatternTests.cs)  
+👉 Тести бізнес-логіки: [BusinessLogicDemonstrationTests.cs](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/01-Ntier-Drivers/NtierDrivers.UnitTests/BusinessLogicDemonstrationTests.cs)  
+👉 Тести скасування операцій: [CancellationTokenTests.cs](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/01-Ntier-Drivers/NtierDrivers.UnitTests/CancellationTokenTests.cs)
 
 [⬅ Попередній слайд](#slide-20) • [⬆ До змісту](#toc) • [Наступний слайд ➡](#slide-22)
 
@@ -571,15 +573,16 @@ flowchart TD
 
 | Патерн | Призначення в проєкті | Ключовий файл у проєкті |
 | :--- | :--- | :--- |
-| **3-Tier Architecture** | Розподіл відповідальності на Presentation, BLL, DAL | [Drivers.BLL](../../Drivers.BLL), [DriversApi](../../DriversApi) |
-| **Generic Repository** | Уніфікація типових CRUD операцій з даними | [EFGenericRepository.cs](../../Drivers.DAL.EF/Repositories/EFGenericRepository.cs) |
-| **Unit of Work** | Гарантія атомарності бізнес-транзакцій | [EFUnitOfWork.cs](../../Drivers.DAL.EF/UOW/EFUnitOfWork.cs) |
-| **Strategy (Dual DAL)** | Підтримка двох рушіїв (EF Core та Dapper) під одним контрактом | [DriversManager.cs](../../Drivers.BLL/Managers/DriversManager.cs) |
-| **Specification** | Інкапсуляція критеріїв фільтрації та зв'язків без засмічення репозиторіїв | [ISpecification.cs](../../Drivers.DAL.EF/Specifications/Contracts/ISpecification.cs) |
-| **DTO & AutoMapper** | Захист схеми бази даних, ізоляція від Over-Posting | [BLLMappingProfile.cs](../../Drivers.BLL/Mapping/BLLMappingProfile.cs) |
-| **FluentValidation** | Декларативна валідація вхідних бізнес-моделей | [MiniDriverReqDTO_Validator.cs](../../Drivers.BLL/DTOs/Validation/MiniDriverReqDTO_Validator.cs) |
-| **Exception Middleware** | Централізоване перехоплення винятків у форматі RFC 7807 | [ExceptionMiddleware.cs](../../DriversApi/Middleware/ExceptionMiddleware.cs) |
-| **MVVM** | Десктопний клієнт з підтримкою бенчмаркінгу та зміни архітектури | [DriversViewModel.cs](../../WPFDrivers/ViewModels/DriversViewModel.cs) |
+| **3-Tier Architecture** | Розподіл відповідальності на Presentation, BLL, DAL | [Drivers.BLL](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/01-Ntier-Drivers/Drivers.BLL), [DriversApi](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/01-Ntier-Drivers/DriversApi) |
+| **Generic Repository** | Уніфікація типових CRUD операцій з даними | [EFGenericRepository.cs](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/01-Ntier-Drivers/Drivers.DAL.EF/Repositories/EFGenericRepository.cs) |
+| **Unit of Work** | Гарантія атомарності бізнес-транзакцій | [EFUnitOfWork.cs](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/01-Ntier-Drivers/Drivers.DAL.EF/UOW/EFUnitOfWork.cs) |
+| **Strategy (Dual DAL)** | Підтримка двох рушіїв (EF Core та Dapper) під одним контрактом | [DriversManager.cs](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/01-Ntier-Drivers/Drivers.BLL/Managers/DriversManager.cs) |
+| **Specification** | Інкапсуляція критеріїв фільтрації та зв'язків без засмічення репозиторіїв | [ISpecification.cs](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/01-Ntier-Drivers/Drivers.DAL.EF/Specifications/Contracts/ISpecification.cs) |
+| **DTO & AutoMapper** | Захист схеми бази даних, ізоляція від Over-Posting | [BLLMappingProfile.cs](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/01-Ntier-Drivers/Drivers.BLL/Mapping/BLLMappingProfile.cs) |
+| **FluentValidation** | Декларативна валідація вхідних бізнес-моделей | [MiniDriverReqDTO_Validator.cs](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/01-Ntier-Drivers/Drivers.BLL/DTOs/Validation/MiniDriverReqDTO_Validator.cs) |
+| **Exception Middleware** | Централізоване перехоплення винятків у форматі RFC 7807 | [ExceptionMiddleware.cs](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/01-Ntier-Drivers/DriversApi/Middleware/ExceptionMiddleware.cs) |
+| **MVVM** | Десктопний клієнт з підтримкою бенчмаркінгу та зміни архітектури | [DriversViewModel.cs](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/01-Ntier-Drivers/WPFDrivers/ViewModels/DriversViewModel.cs) |
+| **Cooperative Cancellation** | Запобігання витокам ресурсів та переривання важких операцій через `CancellationToken` | [DriversManager.cs](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/01-Ntier-Drivers/Drivers.BLL/Managers/DriversManager.cs), [DriversViewModel.cs](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/01-Ntier-Drivers/WPFDrivers/ViewModels/DriversViewModel.cs) |
 
 #### 2. Фінальне резюме
 Модернізований модуль **`NtierDriversModule`** демонструє, як класична тришарова архітектура у поєднанні з сучасними патернами (.NET 10, Specification, Dual-DAL, Rich BLL) перетворює звичайний моноліт на гнучку, високопродуктивну, надійно протестовану корпоративну систему.

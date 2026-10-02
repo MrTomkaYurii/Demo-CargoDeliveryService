@@ -99,7 +99,7 @@ flowchart TD
 Повертає водія разом із компанією, фотографією та історією витрат з деталями вантажівки.
 
 #### Варіант 1: Entity Framework Core
-👉 Код: [EFDriverRepository.cs](../../Drivers.DAL.EF/Repositories/EFDriverRepository.cs)
+👉 Код: [`EFDriverRepository.cs`](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/01-Ntier-Drivers/Drivers.DAL.EF/Repositories/EFDriverRepository.cs)
 
 ```csharp
 public override async Task<EFDriver?> GetCompleteEntityAsync(int id)
@@ -115,7 +115,7 @@ public override async Task<EFDriver?> GetCompleteEntityAsync(int id)
 ```
 
 #### Варіант 2: Dapper з Multi-Mapping
-👉 Код: [DriverRepository.cs (ADO)](../../Drivers.DAL.ADO/Repositories/DriverRepository.cs)
+👉 Код: [`DriverRepository.cs (ADO)`](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/01-Ntier-Drivers/Drivers.DAL.ADO/Repositories/DriverRepository.cs)
 
 У Dapper ми пишемо рукописний JOIN та використовуємо лямбду мульти-мапінгу зі словником для збирання графа об'єктів:
 

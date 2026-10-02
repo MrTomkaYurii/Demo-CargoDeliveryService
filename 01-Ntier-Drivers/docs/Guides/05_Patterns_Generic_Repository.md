@@ -156,7 +156,7 @@ classDiagram
 ---
 
 ### 3.2. Контракт `IEFGenericRepository<TEntity>`
-👉 Код: [IEFGenericRepository.cs](../../Drivers.DAL.EF/Repositories/Contracts/IEFGenericRepository.cs)
+👉 Код: [`IEFGenericRepository.cs`](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/01-Ntier-Drivers/Drivers.DAL.EF/Repositories/Contracts/IEFGenericRepository.cs)
 
 ```csharp
 public interface IEFGenericRepository<TEntity> where TEntity : class
@@ -186,7 +186,7 @@ public interface IEFGenericRepository<TEntity> where TEntity : class
 ---
 
 ### 3.3. Базова реалізація `EFGenericRepository<TEntity>`
-👉 Код: [EFGenericRepository.cs](../../Drivers.DAL.EF/Repositories/EFGenericRepository.cs)
+👉 Код: [`EFGenericRepository.cs`](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/01-Ntier-Drivers/Drivers.DAL.EF/Repositories/EFGenericRepository.cs)
 
 Універсальний клас інкапсулює роботу з `DbSet<TEntity>` через `databaseContext.Set<TEntity>()`:
 
@@ -238,7 +238,7 @@ public abstract class EFGenericRepository<TEntity> : IEFGenericRepository<TEntit
 ---
 
 ### 3.4. Спеціалізовані репозиторії (`EFDriverRepository`)
-👉 Код: [EFDriverRepository.cs](../../Drivers.DAL.EF/Repositories/EFDriverRepository.cs)
+👉 Код: [`EFDriverRepository.cs`](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/01-Ntier-Drivers/Drivers.DAL.EF/Repositories/EFDriverRepository.cs)
 
 Завдяки Generic Repository спеціалізований клас не пише CRUD з нуля. Він лише реалізує унікальні доменні методи:
 
