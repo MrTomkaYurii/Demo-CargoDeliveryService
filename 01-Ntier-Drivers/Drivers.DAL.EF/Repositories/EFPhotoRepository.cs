@@ -17,11 +17,11 @@ public class EFPhotoRepository : EFGenericRepository<EFPhoto>, IEFPhotoRepositor
     /// <summary>
     /// Отримання фотографії разом із закріпленим водієм
     /// </summary>
-    public override async Task<EFPhoto?> GetCompleteEntityAsync(int id)
+    public override async Task<EFPhoto?> GetCompleteEntityAsync(int id, CancellationToken cancellationToken = default)
     {
         return await table
             .AsNoTracking()
             .Include(p => p.Driver)
-            .FirstOrDefaultAsync(p => p.Id == id);
+            .FirstOrDefaultAsync(p => p.Id == id, cancellationToken);
     }
 }

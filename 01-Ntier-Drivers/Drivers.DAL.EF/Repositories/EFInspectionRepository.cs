@@ -17,12 +17,12 @@ public class EFInspectionRepository : EFGenericRepository<EFInspection>, IEFInsp
     /// <summary>
     /// Отримання повної інформації про техогляд разом із вантажівкою
     /// </summary>
-    public override async Task<EFInspection?> GetCompleteEntityAsync(int id)
+    public override async Task<EFInspection?> GetCompleteEntityAsync(int id, CancellationToken cancellationToken = default)
     {
         return await table
             .AsNoTracking()
             .Include(i => i.Truck)
-            .FirstOrDefaultAsync(i => i.Id == id);
+            .FirstOrDefaultAsync(i => i.Id == id, cancellationToken);
     }
 
     /// <summary>
@@ -33,6 +33,7 @@ public class EFInspectionRepository : EFGenericRepository<EFInspection>, IEFInsp
         return await table
             .AsNoTracking()
             .Where(i => i.TruckId == truckId)
+            .OrderByDescending(i => i.InspectionDate)
             .ToListAsync();
     }
 }

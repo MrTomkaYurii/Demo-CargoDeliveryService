@@ -17,13 +17,13 @@ public class EFExpenseRepository : EFGenericRepository<EFExpense>, IEFExpenseRep
     /// <summary>
     /// Отримання повної інформації про запис витрат разом із водієм та закріпленою вантажівкою
     /// </summary>
-    public override async Task<EFExpense?> GetCompleteEntityAsync(int id)
+    public override async Task<EFExpense?> GetCompleteEntityAsync(int id, CancellationToken cancellationToken = default)
     {
         return await table
             .AsNoTracking()
             .Include(e => e.Driver)
             .Include(e => e.Truck)
-            .FirstOrDefaultAsync(e => e.Id == id);
+            .FirstOrDefaultAsync(e => e.Id == id, cancellationToken);
     }
 
     /// <summary>

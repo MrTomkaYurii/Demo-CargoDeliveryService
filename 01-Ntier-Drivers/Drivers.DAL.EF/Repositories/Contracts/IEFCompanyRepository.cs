@@ -9,6 +9,6 @@ namespace Drivers.DAL.EF.Repositories.Contracts
 {
     public interface IEFCompanyRepository : IEFGenericRepository<EFCompany>
     {
-        Task<EFCompany?> GetCompanyWithDriversAsync(int companyId);
+        Task<EFCompany?> GetCompanyWithDriversAsync(int companyId, CancellationToken cancellationToken = default);
     }
 }

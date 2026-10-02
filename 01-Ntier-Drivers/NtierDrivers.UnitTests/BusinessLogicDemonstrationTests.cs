@@ -215,8 +215,8 @@ public class BusinessLogicDemonstrationTests
                 new() { Id = 10, TruckId = truckId, Result = true, InspectionDate = DateTime.UtcNow.AddDays(-20) }
             });
 
-        _efExpenseRepoMock.Setup(r => r.AddAsync(It.IsAny<EFExpense>()))
-            .ReturnsAsync((EFExpense exp) =>
+        _efExpenseRepoMock.Setup(r => r.AddAsync(It.IsAny<EFExpense>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((EFExpense exp, CancellationToken _) =>
             {
                 exp.Id = 777;
                 return exp;
@@ -343,8 +343,8 @@ public class BusinessLogicDemonstrationTests
         _efDriverRepoMock.Setup(r => r.GetByIdAsync(driverId)).ReturnsAsync(driver);
         _efExpenseRepoMock.Setup(r => r.GetExpensesByDriverIdAsync(driverId)).ReturnsAsync(expensesList);
 
-        _efExpenseRepoMock.Setup(r => r.AddAsync(It.IsAny<EFExpense>()))
-            .ReturnsAsync((EFExpense e) => { e.Id = 888; return e; });
+        _efExpenseRepoMock.Setup(r => r.AddAsync(It.IsAny<EFExpense>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((EFExpense e, CancellationToken _) => { e.Id = 888; return e; });
         _efUowMock.Setup(u => u.CompleteAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(1);
 

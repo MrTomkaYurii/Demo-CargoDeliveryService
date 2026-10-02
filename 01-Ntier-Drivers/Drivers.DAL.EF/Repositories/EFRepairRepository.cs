@@ -17,12 +17,12 @@ public class EFRepairRepository : EFGenericRepository<EFRepair>, IEFRepairReposi
     /// <summary>
     /// Отримання повної інформації про ремонт разом із вантажівкою
     /// </summary>
-    public override async Task<EFRepair?> GetCompleteEntityAsync(int id)
+    public override async Task<EFRepair?> GetCompleteEntityAsync(int id, CancellationToken cancellationToken = default)
     {
         return await table
             .AsNoTracking()
             .Include(r => r.Truck)
-            .FirstOrDefaultAsync(r => r.Id == id);
+            .FirstOrDefaultAsync(r => r.Id == id, cancellationToken);
     }
 
     /// <summary>
@@ -33,6 +33,7 @@ public class EFRepairRepository : EFGenericRepository<EFRepair>, IEFRepairReposi
         return await table
             .AsNoTracking()
             .Where(r => r.TruckId == truckId)
+            .OrderByDescending(r => r.RepairDate)
             .ToListAsync();
     }
 }

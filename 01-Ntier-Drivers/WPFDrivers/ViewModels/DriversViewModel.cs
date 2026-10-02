@@ -36,6 +36,7 @@ public class DriversViewModel : ViewModelBase
     private QueryComparisonResultDTO<FullDriverResponceDTO>? _benchmarkResult;
     private DriverExpenseSummaryResponseDTO? _expenseSummary;
     private ObservableCollection<DriverLicenseAlertResponseDTO> _expiringLicenses = new();
+    private CancellationTokenSource? _currentCts;
 
     public DriversViewModel(IServiceProvider serviceProvider)
     {
@@ -45,6 +46,7 @@ public class DriversViewModel : ViewModelBase
         RunBenchmarkCommand = new AsyncRelayCommand(async () => await RunBenchmarkAsync(), () => !IsLoading);
         GetExpenseSummaryCommand = new AsyncRelayCommand(async () => await LoadExpenseSummaryAsync(), () => !IsLoading);
         GetExpiringLicensesCommand = new AsyncRelayCommand(async () => await LoadExpiringLicensesAsync(), () => !IsLoading);
+        CancelCommand = new RelayCommand(CancelCurrentOperation, () => IsLoading);
     }
 
     #region Properties
@@ -163,17 +165,44 @@ public class DriversViewModel : ViewModelBase
     public ICommand RunBenchmarkCommand { get; }
     public ICommand GetExpenseSummaryCommand { get; }
     public ICommand GetExpiringLicensesCommand { get; }
+    public ICommand CancelCommand { get; }
 
     #endregion
 
     #region Action Methods
 
     /// <summary>
+    /// Ініціалізація нового CancellationTokenSource перед виконанням асинхронної операції.
+    /// Автоматично скасовує попередню незавершену дію (якщо була).
+    /// </summary>
+    private CancellationToken BeginOperation()
+    {
+        _currentCts?.Cancel();
+        _currentCts?.Dispose();
+        _currentCts = new CancellationTokenSource();
+        IsLoading = true;
+        CommandManager.InvalidateRequerySuggested();
+        return _currentCts.Token;
+    }
+
+    /// <summary>
+    /// Скасування поточної асинхронної операції за допомогою CancellationTokenSource
+    /// </summary>
+    public void CancelCurrentOperation()
+    {
+        if (_currentCts != null && !_currentCts.IsCancellationRequested)
+        {
+            _currentCts.Cancel();
+            StatusMessage = "⏳ Надсилання сигналу скасування операції (CancellationToken)...";
+        }
+    }
+
+    /// <summary>
     /// Завантаження даних водія відповідно до обраного режиму (Direct BLL або Web API) та провайдера
     /// </summary>
     public async Task LoadDriverAsync()
     {
-        IsLoading = true;
+        var ct = BeginOperation();
         StatusMessage = $"Запит даних водія #{DriverId} через {GetModeDescription()}...";
         var sw = Stopwatch.StartNew();
 
@@ -183,19 +212,25 @@ public class DriversViewModel : ViewModelBase
             {
                 using var scope = _serviceProvider.CreateScope();
                 var manager = scope.ServiceProvider.GetRequiredService<IDriversManager>();
-                DriverInfo = await manager.GetFullInfoAboutDriver(DriverId, SelectedProvider, CancellationToken.None);
+                DriverInfo = await manager.GetFullInfoAboutDriver(DriverId, SelectedProvider, ct);
             }
             else
             {
                 using var scope = _serviceProvider.CreateScope();
                 var apiClient = scope.ServiceProvider.GetRequiredService<IDriversApiClient>();
-                DriverInfo = await apiClient.GetFullDriverInfoAsync(DriverId, SelectedProvider, CancellationToken.None);
+                DriverInfo = await apiClient.GetFullDriverInfoAsync(DriverId, SelectedProvider, ct);
             }
 
             sw.Stop();
             LastExecutionTimeMs = sw.Elapsed.TotalMilliseconds;
             StatusMessage = $"Успішно завантажено водія #{DriverId}: {DriverInfo.FirstName} {DriverInfo.LastName} за {LastExecutionTimeMs:F1} мс ({SelectedArchitecture}, {SelectedProvider})";
             SelectedTabIndex = 0; // Перемикаємося на вкладку профілю
+        }
+        catch (OperationCanceledException)
+        {
+            sw.Stop();
+            LastExecutionTimeMs = sw.Elapsed.TotalMilliseconds;
+            StatusMessage = $"🛑 Запит водія #{DriverId} успішно скасовано користувачем (CancellationToken) після {LastExecutionTimeMs:F1} мс!";
         }
         catch (Exception ex)
         {
@@ -206,6 +241,7 @@ public class DriversViewModel : ViewModelBase
         finally
         {
             IsLoading = false;
+            CommandManager.InvalidateRequerySuggested();
         }
     }
 
@@ -214,7 +250,7 @@ public class DriversViewModel : ViewModelBase
     /// </summary>
     public async Task RunBenchmarkAsync()
     {
-        IsLoading = true;
+        var ct = BeginOperation();
         StatusMessage = $"Запуск бенчмаркінгу EF Core vs Dapper для водія #{DriverId} через {GetModeDescription()}...";
         var sw = Stopwatch.StartNew();
 
@@ -224,13 +260,13 @@ public class DriversViewModel : ViewModelBase
             {
                 using var scope = _serviceProvider.CreateScope();
                 var manager = scope.ServiceProvider.GetRequiredService<IDriversManager>();
-                BenchmarkResult = await manager.CompareDriverQueryPerformanceAsync(DriverId, CancellationToken.None);
+                BenchmarkResult = await manager.CompareDriverQueryPerformanceAsync(DriverId, ct);
             }
             else
             {
                 using var scope = _serviceProvider.CreateScope();
                 var apiClient = scope.ServiceProvider.GetRequiredService<IDriversApiClient>();
-                BenchmarkResult = await apiClient.CompareDriverProvidersAsync(DriverId, CancellationToken.None);
+                BenchmarkResult = await apiClient.CompareDriverProvidersAsync(DriverId, ct);
             }
 
             sw.Stop();
@@ -243,6 +279,12 @@ public class DriversViewModel : ViewModelBase
             StatusMessage = $"Бенчмарк завершено! EF: {BenchmarkResult?.EntityFrameworkExecutionTimeMs:F2} мс | Dapper: {BenchmarkResult?.DapperExecutionTimeMs:F2} мс. Переможець: {BenchmarkResult?.FasterProvider} ({BenchmarkResult?.SpeedupFactor:F1}x)";
             SelectedTabIndex = 1; // Перемикаємося на вкладку бенчмаркінгу
         }
+        catch (OperationCanceledException)
+        {
+            sw.Stop();
+            LastExecutionTimeMs = sw.Elapsed.TotalMilliseconds;
+            StatusMessage = $"🛑 Бенчмаркінг перервано користувачем (CancellationToken) після {LastExecutionTimeMs:F1} мс!";
+        }
         catch (Exception ex)
         {
             sw.Stop();
@@ -252,6 +294,7 @@ public class DriversViewModel : ViewModelBase
         finally
         {
             IsLoading = false;
+            CommandManager.InvalidateRequerySuggested();
         }
     }
 
@@ -260,7 +303,7 @@ public class DriversViewModel : ViewModelBase
     /// </summary>
     public async Task LoadExpenseSummaryAsync()
     {
-        IsLoading = true;
+        var ct = BeginOperation();
         StatusMessage = $"Завантаження аналітики витрат водія #{DriverId} через {GetModeDescription()}...";
         var sw = Stopwatch.StartNew();
 
@@ -270,19 +313,25 @@ public class DriversViewModel : ViewModelBase
             {
                 using var scope = _serviceProvider.CreateScope();
                 var manager = scope.ServiceProvider.GetRequiredService<IDriversManager>();
-                ExpenseSummary = await manager.GetDriverExpenseSummaryAsync(DriverId, null, null, SelectedProvider, CancellationToken.None);
+                ExpenseSummary = await manager.GetDriverExpenseSummaryAsync(DriverId, null, null, SelectedProvider, ct);
             }
             else
             {
                 using var scope = _serviceProvider.CreateScope();
                 var apiClient = scope.ServiceProvider.GetRequiredService<IDriversApiClient>();
-                ExpenseSummary = await apiClient.GetDriverExpenseSummaryAsync(DriverId, null, null, SelectedProvider, CancellationToken.None);
+                ExpenseSummary = await apiClient.GetDriverExpenseSummaryAsync(DriverId, null, null, SelectedProvider, ct);
             }
 
             sw.Stop();
             LastExecutionTimeMs = sw.Elapsed.TotalMilliseconds;
             StatusMessage = $"Звіт витрат завантажено за {LastExecutionTimeMs:F1} мс ({SelectedProvider}). Всього: ${ExpenseSummary.GrandTotal:N2}";
             SelectedTabIndex = 2; // Перемикаємося на вкладку аналітики
+        }
+        catch (OperationCanceledException)
+        {
+            sw.Stop();
+            LastExecutionTimeMs = sw.Elapsed.TotalMilliseconds;
+            StatusMessage = $"🛑 Завантаження звіту витрат скасовано користувачем (CancellationToken) після {LastExecutionTimeMs:F1} мс!";
         }
         catch (Exception ex)
         {
@@ -293,6 +342,7 @@ public class DriversViewModel : ViewModelBase
         finally
         {
             IsLoading = false;
+            CommandManager.InvalidateRequerySuggested();
         }
     }
 
@@ -301,7 +351,7 @@ public class DriversViewModel : ViewModelBase
     /// </summary>
     public async Task LoadExpiringLicensesAsync()
     {
-        IsLoading = true;
+        var ct = BeginOperation();
         StatusMessage = $"Перевірка закінчення терміну дії посвідчень через {GetModeDescription()}...";
         var sw = Stopwatch.StartNew();
 
@@ -312,13 +362,13 @@ public class DriversViewModel : ViewModelBase
             {
                 using var scope = _serviceProvider.CreateScope();
                 var manager = scope.ServiceProvider.GetRequiredService<IDriversManager>();
-                items = await manager.GetDriversWithExpiringLicenseAsync(30, SelectedProvider, CancellationToken.None);
+                items = await manager.GetDriversWithExpiringLicenseAsync(30, SelectedProvider, ct);
             }
             else
             {
                 using var scope = _serviceProvider.CreateScope();
                 var apiClient = scope.ServiceProvider.GetRequiredService<IDriversApiClient>();
-                items = await apiClient.GetExpiringLicensesAsync(30, SelectedProvider, CancellationToken.None);
+                items = await apiClient.GetExpiringLicensesAsync(30, SelectedProvider, ct);
             }
 
             sw.Stop();
@@ -326,6 +376,12 @@ public class DriversViewModel : ViewModelBase
             ExpiringLicenses = new ObservableCollection<DriverLicenseAlertResponseDTO>(items);
             StatusMessage = $"Знайдено водіїв з терміном дії ліцензії що завершується: {ExpiringLicenses.Count} за {LastExecutionTimeMs:F1} мс";
             SelectedTabIndex = 2; // Перемикаємося на вкладку аналітики
+        }
+        catch (OperationCanceledException)
+        {
+            sw.Stop();
+            LastExecutionTimeMs = sw.Elapsed.TotalMilliseconds;
+            StatusMessage = $"🛑 Перевірку ліцензій скасовано користувачем (CancellationToken) після {LastExecutionTimeMs:F1} мс!";
         }
         catch (Exception ex)
         {
@@ -336,6 +392,7 @@ public class DriversViewModel : ViewModelBase
         finally
         {
             IsLoading = false;
+            CommandManager.InvalidateRequerySuggested();
         }
     }
 

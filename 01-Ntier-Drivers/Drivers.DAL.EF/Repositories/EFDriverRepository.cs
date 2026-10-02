@@ -9,8 +9,8 @@ namespace Drivers.DAL.EF.Repositories;
 
 /// <summary>
 /// Репозиторій водіїв на базі Entity Framework Core.
-/// Реалізує LINQ-запити з оптимізованим AsNoTracking, Eager Loading (Include)
-/// та агрегацією даних, логічно ідентичною до Dapper-реалізації.
+/// Реалізує LINQ-запити з оптимізованим AsNoTracking, Eager Loading (Include),
+/// агрегацією даних та повною наскрізною підтримкою CancellationToken для негайного скасування запитів на рівні БД.
 /// </summary>
 public class EFDriverRepository : EFGenericRepository<EFDriver>, IEFDriverRepository
 {
@@ -27,16 +27,16 @@ public class EFDriverRepository : EFGenericRepository<EFDriver>, IEFDriverReposi
     /// <summary>
     /// Отримання сутності водія за Id без відстеження контекстом змін (No-Tracking)
     /// </summary>
-    public async Task<EFDriver?> GetByIdAsNoTrackingAsync(int id)
+    public async Task<EFDriver?> GetByIdAsNoTrackingAsync(int id, CancellationToken cancellationToken = default)
     {
-        return await table.AsNoTracking().FirstOrDefaultAsync(drv => drv.Id == id);
+        return await table.AsNoTracking().FirstOrDefaultAsync(drv => drv.Id == id, cancellationToken);
     }
 
     /// <summary>
     /// Отримання повної інформації про водія разом із компанією, фотографією та списком витрат (з деталями вантажівки).
-    /// Використовує Eager Loading через Include/ThenInclude.
+    /// Використовує Eager Loading через Include/ThenInclude та підтримує скасування через CancellationToken.
     /// </summary>
-    public override async Task<EFDriver?> GetCompleteEntityAsync(int id)
+    public override async Task<EFDriver?> GetCompleteEntityAsync(int id, CancellationToken cancellationToken = default)
     {
         return await databaseContext.Drivers
             .AsNoTracking()
@@ -44,14 +44,16 @@ public class EFDriverRepository : EFGenericRepository<EFDriver>, IEFDriverReposi
             .Include(driver => driver.Photo)
             .Include(driver => driver.Expenses.OrderByDescending(e => e.Date))
                 .ThenInclude(expense => expense.Truck)
-            .FirstOrDefaultAsync(driver => driver.Id == id);
+            .FirstOrDefaultAsync(driver => driver.Id == id, cancellationToken);
     }
 
     /// <summary>
     /// Отримання списку водіїв із пагінацією, фільтрацією за роками народження та прізвищем,
-    /// а також динамічним сортуванням за допомогою ISortHelper.
+    /// динамічним сортуванням та асинхронним скасуванням запиту через CancellationToken.
     /// </summary>
-    public async Task<PagedList<EFDriver>> GetPaginatedDriversAsync(DriverParameters driverParameters)
+    public async Task<PagedList<EFDriver>> GetPaginatedDriversAsync(
+        DriverParameters driverParameters, 
+        CancellationToken cancellationToken = default)
     {
         var query = table.AsNoTracking().AsQueryable();
 
@@ -73,20 +75,22 @@ public class EFDriverRepository : EFGenericRepository<EFDriver>, IEFDriverReposi
 
         var sortedQuery = _sortHelper.ApplySort(query, driverParameters.OrderBy);
 
-        var totalCount = await sortedQuery.CountAsync();
-        var items = await sortedQuery
-            .Skip((driverParameters.PageNumber - 1) * driverParameters.PageSize)
-            .Take(driverParameters.PageSize)
-            .ToListAsync();
-
-        return new PagedList<EFDriver>(items, totalCount, driverParameters.PageNumber, driverParameters.PageSize);
+        return await PagedList<EFDriver>.ToPagedListAsync(
+            sortedQuery, 
+            driverParameters.PageNumber, 
+            driverParameters.PageSize, 
+            cancellationToken);
     }
 
     /// <summary>
-    /// Агрегований звіт витрат водія за обраний проміжок часу.
+    /// Агрегований звіт витрат водія за обраний проміжок часу з підтримкою CancellationToken.
     /// Рахує суми виплат, пального, обслуговування та середні значення.
     /// </summary>
-    public async Task<DriverExpenseSummary> GetDriverExpenseSummaryAsync(int driverId, DateTime? fromDate, DateTime? toDate)
+    public async Task<DriverExpenseSummary> GetDriverExpenseSummaryAsync(
+        int driverId, 
+        DateTime? fromDate, 
+        DateTime? toDate, 
+        CancellationToken cancellationToken = default)
     {
         var query = databaseContext.Expenses
             .AsNoTracking()
@@ -102,7 +106,7 @@ public class EFDriverRepository : EFGenericRepository<EFDriver>, IEFDriverReposi
             query = query.Where(e => e.Date <= toDate.Value);
         }
 
-        var expenses = await query.ToListAsync();
+        var expenses = await query.ToListAsync(cancellationToken);
 
         if (expenses.Count == 0)
         {
@@ -129,9 +133,11 @@ public class EFDriverRepository : EFGenericRepository<EFDriver>, IEFDriverReposi
     }
 
     /// <summary>
-    /// Отримання Топ-N водіїв з найбільшими загальними витратами для компанії через GroupBy в LINQ
+    /// Отримання Топ-N водіїв з найбільшими загальними витратами для компанії через GroupBy в LINQ з CancellationToken.
     /// </summary>
-    public async Task<IEnumerable<TopDriverExpense>> GetTopDriversByExpensesAsync(int topCount)
+    public async Task<IEnumerable<TopDriverExpense>> GetTopDriversByExpensesAsync(
+        int topCount, 
+        CancellationToken cancellationToken = default)
     {
         var query = databaseContext.Expenses
             .AsNoTracking()
@@ -154,13 +160,15 @@ public class EFDriverRepository : EFGenericRepository<EFDriver>, IEFDriverReposi
             .OrderByDescending(x => x.TotalExpenses)
             .Take(topCount);
 
-        return await query.ToListAsync();
+        return await query.ToListAsync(cancellationToken);
     }
 
     /// <summary>
-    /// Отримання водіїв, термін дії посвідчення яких закінчується протягом заданої кількості днів
+    /// Отримання водіїв, термін дії посвідчення яких закінчується протягом заданої кількості днів з CancellationToken.
     /// </summary>
-    public async Task<IEnumerable<DriverLicenseAlert>> GetDriversWithExpiringLicenseAsync(int daysThreshold)
+    public async Task<IEnumerable<DriverLicenseAlert>> GetDriversWithExpiringLicenseAsync(
+        int daysThreshold, 
+        CancellationToken cancellationToken = default)
     {
         var today = DateTime.UtcNow.Date;
         var thresholdDate = today.AddDays(daysThreshold);
@@ -169,7 +177,7 @@ public class EFDriverRepository : EFGenericRepository<EFDriver>, IEFDriverReposi
             .AsNoTracking()
             .Where(d => d.DriverLicenseExpirationDate >= today && d.DriverLicenseExpirationDate <= thresholdDate)
             .OrderBy(d => d.DriverLicenseExpirationDate)
-            .ToListAsync();
+            .ToListAsync(cancellationToken);
 
         return drivers.Select(d => new DriverLicenseAlert
         {

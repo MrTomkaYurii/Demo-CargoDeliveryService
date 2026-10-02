@@ -96,7 +96,8 @@ public class AuxiliaryManagersTests
         var loggerMock = new Mock<ILogger<CompanyManager>>();
 
         efUowMock.Setup(u => u.EFCompanyRepository).Returns(efRepoMock.Object);
-        efRepoMock.Setup(r => r.AddAsync(It.IsAny<EFCompany>())).ReturnsAsync((EFCompany c) => { c.Id = 77; return c; });
+        efRepoMock.Setup(r => r.AddAsync(It.IsAny<EFCompany>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((EFCompany c, CancellationToken _) => { c.Id = 77; return c; });
 
         var manager = new CompanyManager(loggerMock.Object, _mapper, adoUowMock.Object, efUowMock.Object);
         var req = new CompanyReqDTO { CompanyName = "Нова Компанія" };

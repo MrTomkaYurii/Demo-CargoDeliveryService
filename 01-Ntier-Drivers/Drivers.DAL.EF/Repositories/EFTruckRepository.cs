@@ -8,7 +8,7 @@ namespace Drivers.DAL.EF.Repositories;
 
 /// <summary>
 /// Репозиторій вантажівок для Entity Framework Core.
-/// Забезпечує Eager Loading пов'язаних сутностей та аналітику стану автопарку.
+/// Забезпечує Eager Loading пов'язаних сутностей, аналітику стану автопарку та наскрізне скасування через CancellationToken.
 /// </summary>
 public class EFTruckRepository : EFGenericRepository<EFTruck>, IEFTruckRepository
 {
@@ -19,14 +19,14 @@ public class EFTruckRepository : EFGenericRepository<EFTruck>, IEFTruckRepositor
     /// <summary>
     /// Отримання повної інформації про вантажівку разом із пов'язаними витратами, ремонтами та інспекціями
     /// </summary>
-    public override async Task<EFTruck?> GetCompleteEntityAsync(int id)
+    public override async Task<EFTruck?> GetCompleteEntityAsync(int id, CancellationToken cancellationToken = default)
     {
         return await table
             .AsNoTracking()
             .Include(t => t.Expenses.OrderByDescending(e => e.Date))
             .Include(t => t.Repairs.OrderByDescending(r => r.RepairDate))
             .Include(t => t.Inspections.OrderByDescending(i => i.InspectionDate))
-            .FirstOrDefaultAsync(t => t.Id == id);
+            .FirstOrDefaultAsync(t => t.Id == id, cancellationToken);
     }
 
     /// <summary>

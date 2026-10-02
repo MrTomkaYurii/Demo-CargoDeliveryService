@@ -17,22 +17,22 @@ public class EFCompanyRepository : EFGenericRepository<EFCompany>, IEFCompanyRep
     /// <summary>
     /// Отримання повної інформації про компанію разом із закріпленим водієм
     /// </summary>
-    public override async Task<EFCompany?> GetCompleteEntityAsync(int id)
+    public override async Task<EFCompany?> GetCompleteEntityAsync(int id, CancellationToken cancellationToken = default)
     {
         return await table
             .AsNoTracking()
             .Include(c => c.Driver)
-            .FirstOrDefaultAsync(c => c.Id == id);
+            .FirstOrDefaultAsync(c => c.Id == id, cancellationToken);
     }
 
     /// <summary>
     /// Отримання компанії з інформацією про водіїв
     /// </summary>
-    public async Task<EFCompany?> GetCompanyWithDriversAsync(int companyId)
+    public async Task<EFCompany?> GetCompanyWithDriversAsync(int companyId, CancellationToken cancellationToken = default)
     {
         return await table
             .AsNoTracking()
             .Include(c => c.Driver)
-            .FirstOrDefaultAsync(c => c.Id == companyId);
+            .FirstOrDefaultAsync(c => c.Id == companyId, cancellationToken);
     }
 }

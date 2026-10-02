@@ -1,3 +1,5 @@
+using Microsoft.EntityFrameworkCore;
+
 namespace Drivers.DAL.EF.Helpers;
 
 /// <summary>
@@ -8,6 +10,7 @@ namespace Drivers.DAL.EF.Helpers;
 /// 💡 Архітектурна перевага:
 /// 1. Захист від OutOfMemory: Запити в БД обмежуються через SQL OFFSET / FETCH, сервер не тягне всі рядки.
 /// 2. Відокремлення обчислення сторінок від контролера (SRP).
+/// 3. Підтримка CancellationToken для скасування важких запитів підрахунку та вибірки.
 /// </summary>
 /// <typeparam name="T">Тип доменної сутності або DTO</typeparam>
 public class PagedList<T> : List<T>
@@ -42,20 +45,27 @@ public class PagedList<T> : List<T>
     }
 
     /// <summary>
-    /// Фабричний метод для пагінації IQueryable-вибірки (відкладене виконання в БД).
+    /// Фабричний метод для пагінації IQueryable-вибірки (відкладене синхронне виконання в БД).
     /// </summary>
-    /// <param name="source">IQueryable джерело (LINQ до Entity Framework)</param>
-    /// <param name="pageNumber">Номер запитуваної сторінки</param>
-    /// <param name="pageSize">Бажаний розмір сторінки</param>
-    /// <returns>Ініціалізований PagedList з метаданими та завантаженими сутностями</returns>
     public static PagedList<T> ToPagedList(IQueryable<T> source, int pageNumber, int pageSize)
     {
-        // 1. Перший SQL-запит: SELECT COUNT(*) - рахуємо загальну кількість
         var count = source.Count();
-
-        // 2. Другий SQL-запит: SELECT ... OFFSET (pageNumber - 1) * pageSize ROWS FETCH NEXT pageSize ROWS ONLY
         var items = source.Skip((pageNumber - 1) * pageSize).Take(pageSize).ToList();
+        return new PagedList<T>(items, count, pageNumber, pageSize);
+    }
 
+    /// <summary>
+    /// Асинхронний фабричний метод для пагінації з обов'язковою підтримкою CancellationToken.
+    /// Перериває запити COUNT(*) та OFFSET/FETCH на рівні SQL Server при скасуванні токена.
+    /// </summary>
+    public static async Task<PagedList<T>> ToPagedListAsync(
+        IQueryable<T> source, 
+        int pageNumber, 
+        int pageSize, 
+        CancellationToken cancellationToken = default)
+    {
+        var count = await source.CountAsync(cancellationToken);
+        var items = await source.Skip((pageNumber - 1) * pageSize).Take(pageSize).ToListAsync(cancellationToken);
         return new PagedList<T>(items, count, pageNumber, pageSize);
     }
 }

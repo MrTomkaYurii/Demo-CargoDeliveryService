@@ -59,7 +59,7 @@ public class DriversManager : IDriversManager
         }
         else
         {
-            var driver = await _efUow.EFDriverRepository.GetCompleteEntityAsync(id);
+            var driver = await _efUow.EFDriverRepository.GetCompleteEntityAsync(id, cancellationToken);
             if (driver == null)
             {
                 throw new NotFoundException($"Водія з Id {id} не знайдено в базі даних (EF Core).");
@@ -84,7 +84,7 @@ public class DriversManager : IDriversManager
         }
         else
         {
-            var drivers = await _efUow.EFDriverRepository.GetAllAsync();
+            var drivers = await _efUow.EFDriverRepository.GetAllAsync(cancellationToken);
             return _mapper.Map<IEnumerable<ShortDriverResponceDTO>>(drivers);
         }
     }
@@ -128,7 +128,7 @@ public class DriversManager : IDriversManager
         }
         else
         {
-            var pagedResult = await _efUow.EFDriverRepository.GetPaginatedDriversAsync(driverParameters);
+            var pagedResult = await _efUow.EFDriverRepository.GetPaginatedDriversAsync(driverParameters, cancellationToken);
             var dtos = _mapper.Map<List<ShortDriverResponceDTO>>(pagedResult);
 
             return new PagedResponseDTO<ShortDriverResponceDTO>
@@ -163,7 +163,7 @@ public class DriversManager : IDriversManager
         }
         else
         {
-            var summary = await _efUow.EFDriverRepository.GetDriverExpenseSummaryAsync(driverId, fromDate, toDate);
+            var summary = await _efUow.EFDriverRepository.GetDriverExpenseSummaryAsync(driverId, fromDate, toDate, cancellationToken);
             return _mapper.Map<DriverExpenseSummaryResponseDTO>(summary);
         }
     }
@@ -185,7 +185,7 @@ public class DriversManager : IDriversManager
         }
         else
         {
-            var topDrivers = await _efUow.EFDriverRepository.GetTopDriversByExpensesAsync(topCount);
+            var topDrivers = await _efUow.EFDriverRepository.GetTopDriversByExpensesAsync(topCount, cancellationToken);
             return _mapper.Map<IEnumerable<TopDriverExpenseResponseDTO>>(topDrivers);
         }
     }
@@ -207,7 +207,7 @@ public class DriversManager : IDriversManager
         }
         else
         {
-            var alerts = await _efUow.EFDriverRepository.GetDriversWithExpiringLicenseAsync(daysThreshold);
+            var alerts = await _efUow.EFDriverRepository.GetDriversWithExpiringLicenseAsync(daysThreshold, cancellationToken);
             return _mapper.Map<IEnumerable<DriverLicenseAlertResponseDTO>>(alerts);
         }
     }
@@ -223,7 +223,7 @@ public class DriversManager : IDriversManager
 
         // 1. Замір EF Core
         var swEf = Stopwatch.StartNew();
-        var efDriver = await _efUow.EFDriverRepository.GetCompleteEntityAsync(id);
+        var efDriver = await _efUow.EFDriverRepository.GetCompleteEntityAsync(id, cancellationToken);
         swEf.Stop();
         var efTime = swEf.Elapsed.TotalMilliseconds;
 
@@ -277,7 +277,7 @@ public class DriversManager : IDriversManager
 
         // 1. Замір EF Core
         var swEf = Stopwatch.StartNew();
-        var efSummary = await _efUow.EFDriverRepository.GetDriverExpenseSummaryAsync(driverId, fromDate, toDate);
+        var efSummary = await _efUow.EFDriverRepository.GetDriverExpenseSummaryAsync(driverId, fromDate, toDate, cancellationToken);
         swEf.Stop();
         var efTime = swEf.Elapsed.TotalMilliseconds;
 
@@ -340,16 +340,21 @@ public class DriversManager : IDriversManager
                 await _efUow.BeginTransactionAsync(cancellationToken);
                 var entity = _mapper.Map<EFDriver>(driverDTO);
                 entity.CreatedAt = DateTime.UtcNow;
-                var added = await _efUow.EFDriverRepository.AddAsync(entity);
+                var added = await _efUow.EFDriverRepository.AddAsync(entity, cancellationToken);
                 await _efUow.CompleteAsync(cancellationToken);
                 await _efUow.CommitTransactionAsync(cancellationToken);
 
-                var created = await _efUow.EFDriverRepository.GetCompleteEntityAsync(added.Id);
+                var created = await _efUow.EFDriverRepository.GetCompleteEntityAsync(added.Id, cancellationToken);
                 return _mapper.Map<FullDriverResponceDTO>(created);
+            }
+            catch (OperationCanceledException)
+            {
+                await _efUow.RollbackTransactionAsync(CancellationToken.None);
+                throw;
             }
             catch (Exception ex)
             {
-                await _efUow.RollbackTransactionAsync(cancellationToken);
+                await _efUow.RollbackTransactionAsync(CancellationToken.None);
                 _logger.LogError(ex, "Помилка додавання водія через EF Core");
                 throw new ApplicationException("Error in transaction while adding driver", ex);
             }
@@ -390,7 +395,7 @@ public class DriversManager : IDriversManager
         }
         else
         {
-            var existing = await _efUow.EFDriverRepository.GetByIdAsNoTrackingAsync(id);
+            var existing = await _efUow.EFDriverRepository.GetByIdAsNoTrackingAsync(id, cancellationToken);
             if (existing == null)
             {
                 throw new NotFoundException($"Водія з Id {id} не знайдено для оновлення.");
@@ -407,12 +412,17 @@ public class DriversManager : IDriversManager
                 await _efUow.CompleteAsync(cancellationToken);
                 await _efUow.CommitTransactionAsync(cancellationToken);
 
-                var updated = await _efUow.EFDriverRepository.GetCompleteEntityAsync(id);
+                var updated = await _efUow.EFDriverRepository.GetCompleteEntityAsync(id, cancellationToken);
                 return _mapper.Map<FullDriverResponceDTO>(updated);
+            }
+            catch (OperationCanceledException)
+            {
+                await _efUow.RollbackTransactionAsync(CancellationToken.None);
+                throw;
             }
             catch (Exception ex)
             {
-                await _efUow.RollbackTransactionAsync(cancellationToken);
+                await _efUow.RollbackTransactionAsync(CancellationToken.None);
                 _logger.LogError(ex, "Помилка оновлення водія через EF Core");
                 throw new ApplicationException("Error in transaction while updating driver", ex);
             }
@@ -441,7 +451,7 @@ public class DriversManager : IDriversManager
         }
         else
         {
-            var existing = await _efUow.EFDriverRepository.GetByIdAsNoTrackingAsync(id);
+            var existing = await _efUow.EFDriverRepository.GetByIdAsNoTrackingAsync(id, cancellationToken);
             if (existing == null)
             {
                 throw new NotFoundException($"Водія з Id {id} не знайдено для видалення.");
@@ -450,13 +460,18 @@ public class DriversManager : IDriversManager
             try
             {
                 await _efUow.BeginTransactionAsync(cancellationToken);
-                await _efUow.EFDriverRepository.DeleteByIdAsync(id);
+                await _efUow.EFDriverRepository.DeleteByIdAsync(id, cancellationToken);
                 await _efUow.CompleteAsync(cancellationToken);
                 await _efUow.CommitTransactionAsync(cancellationToken);
             }
+            catch (OperationCanceledException)
+            {
+                await _efUow.RollbackTransactionAsync(CancellationToken.None);
+                throw;
+            }
             catch (Exception ex)
             {
-                await _efUow.RollbackTransactionAsync(cancellationToken);
+                await _efUow.RollbackTransactionAsync(CancellationToken.None);
                 _logger.LogError(ex, "Помилка видалення водія через EF Core");
                 throw new ApplicationException("Error in transaction while deleting driver", ex);
             }
@@ -545,7 +560,7 @@ public class DriversManager : IDriversManager
         }
         else
         {
-            var driver = await _efUow.EFDriverRepository.GetByIdAsync(request.DriverId);
+            var driver = await _efUow.EFDriverRepository.GetByIdAsync(request.DriverId, cancellationToken);
             if (driver == null)
             {
                 throw new NotFoundException($"Водія з Id {request.DriverId} не знайдено в системі (EF Core).");
@@ -835,7 +850,7 @@ public class DriversManager : IDriversManager
         }
         else
         {
-            var driver = await _efUow.EFDriverRepository.GetByIdAsync(driverId);
+            var driver = await _efUow.EFDriverRepository.GetByIdAsync(driverId, cancellationToken);
             if (driver == null)
             {
                 throw new NotFoundException($"Водія з Id {driverId} не знайдено для проведення аудиту.");

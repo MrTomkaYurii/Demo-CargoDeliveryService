@@ -137,6 +137,13 @@
                     <Button Command="{Binding GetExpiringLicensesCommand}" Content="⚠️ Ліцензії (30 днів)" 
                             Height="34" Padding="14,0" Background="#3B0764" Foreground="White" 
                             FontWeight="SemiBold" BorderThickness="0" Cursor="Hand" Margin="0,0,10,4"/>
+
+                    <!-- Кнопка: Скасування операції (CancellationToken) -->
+                    <Button Command="{Binding CancelCommand}" Content="🛑 Скасувати" 
+                            Height="34" Padding="14,0" Background="#DC2626" Foreground="White" 
+                            FontWeight="Bold" BorderThickness="0" Cursor="Hand" Margin="0,0,10,4"
+                            ToolTip="Скасувати поточну асинхронну операцію через CancellationToken"
+                            IsEnabled="{Binding IsLoading}"/>
                 </WrapPanel>
             </Grid>
         </Border>

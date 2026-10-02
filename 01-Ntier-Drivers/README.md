@@ -16,7 +16,7 @@
 | **`Drivers.Db`** | Database Schema | SQL Server Database Project (`.sqlproj`) зі схемами таблиць та обмежень |
 | **`Drivers.JWT`** | Security Helpers | SQL Server Database Project для автентифікації водіїв |
 | **`FakeDataDbGenerator`** | Data Seeder | Генератор тестових даних на базі бібліотеки Bogus |
-| **`NtierDrivers.UnitTests`** | Quality Assurance | Комплекс юніт-тестів (49 тестів), що покривають специфікації, валідацію та бізнес-логіку |
+| **`NtierDrivers.UnitTests`** | Quality Assurance | Комплекс юніт-тестів (54 тести), що покривають специфікації, валідацію, бізнес-логіку та CancellationToken |
 
 ---
 
@@ -34,6 +34,7 @@
 - 💼 **[06. Патерн Unit of Work](docs/Guides/06_Patterns_Unit_Of_Work.md)** — атомарні бізнес-транзакції (ACID), координація множинних репозиторіїв, порівняння EF Core UoW проти ADO.NET `IDbTransaction`.
 - ⚡ **[07. Патерн Dual-Engine DAL (EF Core vs Dapper)](docs/Guides/07_Patterns_Dual_Engine_ORM_vs_Dapper.md)** — гібридна стратегія доступу до даних: ORM для транзакцій проти Micro-ORM для важких аналітичних вибірок, бенчмаркінг.
 - 🔄 **[08. Патерн DTO та AutoMapper](docs/Guides/08_Patterns_DTO_and_AutoMapper.md)** — ізоляція моделі БД від зовнішнього REST API, захист від Over-Posting, подолання циклічних посилань у JSON.
+- 🛑 **[09. Патерн Cooperative Cancellation (CancellationToken)](docs/Guides/09_Patterns_Cancellation_Token.md)** — наскрізне скасування операцій: WPF UI кнопка «🛑 Скасувати», Web API `RequestAborted`, BLL, EF Core, відміна запитів на рівні SQL Server TDS Attention.
 
 ---
 
@@ -43,7 +44,7 @@
 ```powershell
 dotnet test 01-Ntier-Drivers/NtierDrivers.UnitTests/NtierDrivers.UnitTests.csproj
 ```
-*(Всі 49 тестів проходять успішно).*
+*(Всі 54 тести проходять успішно).*
 
 ### 2. Запуск DriversApi
 ```powershell

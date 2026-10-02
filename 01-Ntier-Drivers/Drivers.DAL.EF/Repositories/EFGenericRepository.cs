@@ -10,7 +10,7 @@ namespace Drivers.DAL.EF.Repositories;
 
 /// <summary>
 /// Базовий узагальнений репозиторій для Entity Framework Core.
-/// Забезпечує стандартні CRUD-операції з DbContext.
+/// Забезпечує стандартні CRUD-операції з DbContext із повною підтримкою наскрізного CancellationToken.
 /// </summary>
 /// <typeparam name="TEntity">Тип сутності</typeparam>
 public abstract class EFGenericRepository<TEntity> : IEFGenericRepository<TEntity> where TEntity : class
@@ -25,33 +25,33 @@ public abstract class EFGenericRepository<TEntity> : IEFGenericRepository<TEntit
     }
 
     /// <summary>
-    /// Отримання сутності за Id
+    /// Отримання сутності за Id з підтримкою CancellationToken
     /// </summary>
-    public virtual async Task<TEntity> GetByIdAsync(int id)
+    public virtual async Task<TEntity> GetByIdAsync(int id, CancellationToken cancellationToken = default)
     {
-        return await table.FindAsync(id)
+        return await table.FindAsync(new object[] { id }, cancellationToken)
             ?? throw new EntityNotFoundException($"{typeof(TEntity).Name} з id {id} не знайдено.");
     }
 
     /// <summary>
-    /// Отримання всіх сутностей
+    /// Отримання всіх сутностей з підтримкою CancellationToken
     /// </summary>
-    public virtual async Task<IEnumerable<TEntity>> GetAllAsync()
+    public virtual async Task<IEnumerable<TEntity>> GetAllAsync(CancellationToken cancellationToken = default)
     {
-        return await table.ToListAsync();
+        return await table.AsNoTracking().ToListAsync(cancellationToken);
     }
 
     /// <summary>
-    /// Додавання нової сутності
+    /// Додавання нової сутності з підтримкою CancellationToken
     /// </summary>
-    public virtual async Task<TEntity> AddAsync(TEntity entity)
+    public virtual async Task<TEntity> AddAsync(TEntity entity, CancellationToken cancellationToken = default)
     {
         if (entity == null)
         {
             throw new ArgumentNullException(nameof(entity), $"{typeof(TEntity).Name} entity не може бути null");
         }
 
-        var addedEntity = await table.AddAsync(entity);
+        var addedEntity = await table.AddAsync(entity, cancellationToken);
         return addedEntity.Entity;
     }
 
@@ -68,13 +68,13 @@ public abstract class EFGenericRepository<TEntity> : IEFGenericRepository<TEntit
     }
 
     /// <summary>
-    /// Видалення сутності за Id
+    /// Видалення сутності за Id з підтримкою CancellationToken
     /// </summary>
-    public virtual async Task DeleteByIdAsync(int id)
+    public virtual async Task DeleteByIdAsync(int id, CancellationToken cancellationToken = default)
     {
-        var entity = await table.FindAsync(id)
+        var entity = await table.FindAsync(new object[] { id }, cancellationToken)
             ?? throw new EntityNotFoundException($"{typeof(TEntity).Name} з id {id} не знайдено. Неможливо видалити.");
-        await Task.Run(() => table.Remove(entity));
+        await Task.Run(() => table.Remove(entity), cancellationToken);
     }
 
     /// <summary>
@@ -110,10 +110,10 @@ public abstract class EFGenericRepository<TEntity> : IEFGenericRepository<TEntit
     /// <summary>
     /// Отримання повної сутності разом із пов'язаними навігаційними властивостями
     /// </summary>
-    public abstract Task<TEntity?> GetCompleteEntityAsync(int id);
+    public abstract Task<TEntity?> GetCompleteEntityAsync(int id, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Вибірка списку сутностей за об'єктом специфікації (WHERE, Includes, OrderBy, Paging)
+    /// Вибірка списку сутностей за об'єктом специфікації (WHERE, Includes, OrderBy, Paging) з CancellationToken
     /// </summary>
     public virtual async Task<IReadOnlyList<TEntity>> GetWithSpecAsync(ISpecification<TEntity> specification, CancellationToken cancellationToken = default)
     {
@@ -121,7 +121,7 @@ public abstract class EFGenericRepository<TEntity> : IEFGenericRepository<TEntit
     }
 
     /// <summary>
-    /// Отримання одиничної сутності за об'єктом специфікації
+    /// Отримання одиничної сутності за об'єктом специфікації з CancellationToken
     /// </summary>
     public virtual async Task<TEntity?> GetEntityWithSpecAsync(ISpecification<TEntity> specification, CancellationToken cancellationToken = default)
     {
@@ -129,7 +129,7 @@ public abstract class EFGenericRepository<TEntity> : IEFGenericRepository<TEntit
     }
 
     /// <summary>
-    /// Підрахунок кількості сутностей, що відповідають критеріям специфікації
+    /// Підрахунок кількості сутностей, що відповідають критеріям специфікації з CancellationToken
     /// </summary>
     public virtual async Task<int> CountAsync(ISpecification<TEntity> specification, CancellationToken cancellationToken = default)
     {
