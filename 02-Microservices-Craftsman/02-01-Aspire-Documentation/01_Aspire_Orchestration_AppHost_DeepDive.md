@@ -1,130 +1,219 @@
-# 🎯 01. Оркестрація розподіленої системи: .NET 10 Aspire AppHost Deep Dive
+# 🎯 01. Фундаментальна Оркестрація Розподілених Систем: .NET 10 Aspire AppHost Deep Dive
 
 > **Розділ:** `02-Microservices-Craftsman` • **Модуль:** `02-01-Aspire-Documentation`  
-> **Стек:** .NET 10, .NET Aspire 13, `Aspire.Hosting.RabbitMQ`, `Aspire.Hosting.SqlServer`, Docker Desktop / Podman.  
-> **Офіційна документація Microsoft:** [.NET Aspire AppHost and Orchestration Overview](https://learn.microsoft.com/dotnet/aspire/fundamentals/app-host)
+> **Роль матеріалу:** Поглиблений академічно-інженерний посібник з архітектури оркестрації, топології та життєвого циклу розподілених вузлів.  
+> **Стек:** .NET 10, C# 13, .NET Aspire 13, `Aspire.Hosting.RabbitMQ`, `Aspire.Hosting.SqlServer`, Docker Desktop / Podman.  
+> **Офіційна специфікація Microsoft:** [.NET Aspire AppHost and Orchestration Deep Dive](https://learn.microsoft.com/dotnet/aspire/fundamentals/app-host)
 
 ---
 
-## 📑 Зміст модуля
+## 📑 Зміст Архітектурного Модуля
 
-- [Слайд 1. Концепція AppHost: C# як мова інфраструктури замість YAML-конфігів](#slide-1)
-- [Слайд 2. Архітектурна топологія системи: Контейнери, БД та 4 мікросервіси](#slide-2)
-- [Слайд 3. Анатомія проєкту CargoDelivery.AppHost: Розбір коду Program.cs](#slide-3)
-- [Слайд 4. Декларативне керування контейнерами: RabbitMQ та MS SQL Server 2022](#slide-4)
-- [Слайд 5. Патерн .WaitFor(): Усунення Race Conditions при старті розподіленої системи](#slide-5)
-- [Слайд 6. Інтеграція нового Gateway Aggregator (CargoDelivery.HttpAggregator)](#slide-6)
-- [Слайд 7. Інжекція Connection Strings та Service Discovery з AppHost](#slide-7)
-- [Слайд 8. Чек-лист та практичні команди запуску](#slide-8)
-
----
-
-<a id="slide-1"></a>
-### 🎬 Слайд 1. Концепція AppHost: C# як мова інфраструктури замість YAML-конфігів
-
-#### 1. Проблема: Крихкість традиційного Docker Compose
-У класичному підході до розробки мікросервісів розробники змушені писати великі файли `docker-compose.yaml`:
-* **Відсутність типізації:** Помилка в одній літері змінної оточення (`ConnecitonStrings__db`) виявляється лише під час виконання у вигляді `NullReferenceException`.
-* **Жорсткі порти (Port Collisions):** Якщо сервіс A займає порт 5001, а розробник локально вже запустив інший застосунок, запуск падає з `Address already in use`.
-* **Відсутність рефакторингу:** При перейменуванні проєкту в рішенні Docker Compose не оновлюється автоматично.
-
-#### 2. Рішення: .NET Aspire AppHost
-`CargoDelivery.AppHost` — це звичайний консольний проєкт C# (`net10.0`), який використовує `Aspire.AppHost.Sdk`. Він описує топологію всієї розподіленої системи типізованим кодом:
-* **Compile-Time перевірка:** Будь-яка помилка в назвах проєктів чи залежностей виявляється компілятором Roslyn ще до запуску.
-* **Динамічний вибір портів:** Aspire автоматично виділяє вільні порти для сервісів та прокидає їх через Service Discovery.
-* **Єдина точка F5:** Одне натискання `F5` у Visual Studio або `dotnet run --project CargoDelivery.AppHost` піднімає Docker-контейнери, створює бази даних, застосовує змінні оточення та відкриває Aspire Dashboard.
+- [1. Теоретичний базис: Омана розподілених обчислень та еволюція інфраструктури](#section-1)
+- [2. Порівняльний аналіз: Чому Docker Compose вичерпав себе в Enterprise-системах](#section-2)
+- [3. Архітектурна топологія системи: Повний граф вузлів та зв'язків](#section-3)
+- [4. Анатомія проєкту CargoDelivery.AppHost: Деконструкція Program.cs / AppHost.cs](#section-4)
+- [5. Керування контейнеризованими ресурсами: RabbitMQ 3.13 та MS SQL Server 2022](#section-5)
+- [6. Математика узгодженості старту: Патерн .WaitFor() та Directed Acyclic Graph (DAG)](#section-6)
+- [7. Інтеграція виділеного диспетчерського хабу CargoDelivery.HttpAggregator](#section-7)
+- [8. Механізм Dynamic Configuration Injection: Connection Strings та Service Discovery](#section-8)
+- [9. Покроковий практичний чек-лист запуску та діагностики для інженера](#section-9)
 
 ---
 
-<a id="slide-2"></a>
-### 🗺️ Слайд 2. Архітектурна топологія системи: Контейнери, БД та 4 мікросервіси
+<a id="section-1"></a>
+## 1. Теоретичний базис: Омана розподілених обчислень та еволюція інфраструктури
 
-Топологія оркестрації `Demo-CargoDeliveryService` об'єднує інфраструктурні ресурси та чотири незалежні .NET 10 мікросервіси:
+Під час переходу від монолітного ядра до розподіленої мікросервісної архітектури інженери стикаються з фундаментальними викликами, сформульованими Пітером Дойчем (Peter Deutsch) як **«8 Оман розподілених обчислень» (The 8 Fallacies of Distributed Computing)**:
+
+1. **Мережа надійна (The network is reliable):** У розподіленій системі пакети губляться, сокети обриваються, маршрутизатори перезавантажуються.
+2. **Затримка дорівнює нулю (Latency is zero):** Міжпроцесна взаємодія через пам'ять (In-Memory call) займає наносекунди ($\approx 10-50\text{ ns}$), тоді як мережевий HTTP/TCP виклик у локальному кластері займає одиниці мілісекунд ($\approx 2-15\text{ ms}$) — тобто в сотні тисяч разів повільніше.
+3. **Пропускна здатність нескінченна (Bandwidth is infinite):** Канали зв'язку мають фізичні ліміти, а серіалізація/десеріалізація JSON навантажує CPU.
+4. **Мережа безпечна (The network is secure):** Внутрішній контур вимагає автентифікації (mTLS, JWT, Secret Management).
+5. **Топологія не змінюється (Topology doesn't change):** Контейнери масштабуються, перезапускаються та отримують динамічні IP-адреси.
+6. **Існує один системний адміністратор (There is one administrator):** Різні сервіси мають різні версії, залежності та вимоги до оточення.
+7. **Вартість транспортування дорівнює нулю (Transport cost is zero):** Маршрутизація, проксі-шари та серіалізація споживають відчутні обчислювальні ресурси.
+8. **Мережа однорідна (The network is homogeneous):** Вузли можуть працювати на різних ОС, протоколах та версіях рантаймів.
+
+```mermaid
+flowchart TD
+    subgraph Monolith ["🏛️ Монолітна архітектура (In-Memory Call)"]
+        M_UI["UI Контролер"] -->|Call by reference: ~30 ns| M_BLL["Бізнес-логіка"]
+        M_BLL -->|In-Process: ~50 ns| M_DAL["Шар доступу до даних"]
+    end
+
+    subgraph Distributed ["⚡ Розподілена система (Distributed Network)"]
+        D_UI["HttpAggregator"] -->|TCP Handshake + TLS + Serialization: ~5-25 ms| D_DM["DriversManagement"]
+        D_UI -->|DNS Resolve + Network Latency: ~10-40 ms| D_CO["CargoOrderingService"]
+        D_UI -->|Socket Allocation + HTTP Transfer: ~8-30 ms| D_DB["DriversBlogManagement"]
+    end
+```
+
+### Наслідок для оркестрації:
+Якщо в моноліті всі класи гарантовано завантажуються в пам'ять одночасно завантажувачем класів CLR, то в мікросервісній системі кожен вузол — це окремий незалежний процес операційної системи. Якщо сервіс замовлень спробує надіслати запит до сервісу водіїв до того, як останній підніме свій HTTP-слухач, уся система зазнає каскадного збою (**Cascading Failure**).
+
+---
+
+<a id="section-2"></a>
+## 2. Порівняльний аналіз: Чому Docker Compose вичерпав себе в Enterprise-системах
+
+Протягом останнього десятиліття стандартом локального запуску був інструмент **Docker Compose** (`docker-compose.yaml`). Проте на етапі активної розробки складних систем він створює серйозні інженерні перешкоди:
+
+| Критерій | Традиційний підхід (Docker Compose YAML) | .NET 10 Aspire Orchestration (C# AppHost) |
+| :--- | :--- | :--- |
+| **Парадигма опису** | Декларативний, нетипізований текст YAML | Строго типізований об'єктно-орієнтований C# код |
+| **Виявлення помилок (Feedback Loop)** | Лише у Runtime: помилка в назві змінної призводить до `NullReferenceException` | **Compile-Time:** Компілятор Roslyn валідує всі типи, посилання та проєкти до запуску |
+| **Рефакторинг коду** | Зміна імені проєкту ламає YAML; пошук і заміна вручну | Повна підтримка IDE (Visual Studio / Rider): F2 перейменовує проєкт скрізь |
+| **Управління портами** | Жорсткий хардкод (`ports: "5001:5001"`). Конфлікт портів зупиняє роботу розробника | **Динамічний порт-пул:** Aspire автоматично підбирає вільні порти ОС та прокидає їх |
+| **Контроль готовності залежностей** | Примітивний `depends_on`, який перевіряє лише запуск процесу, а не готовність порту | Інтелектуальний `.WaitFor(resource)`, що спирається на Health Probes |
+| **Діагностика та налагодження (Debugging)** | Складне підключення віддаленого відладчика через Docker сокети | Звичайний запуск натисканням однієї клавіші **F5** з повноцінним покроковим дебагом |
+| **Централізована телеметрія** | Необхідність окремо розгортати та конфігурувати Jaeger, Prometheus, Grafana | Вбудований повнофункціональний **Aspire Dashboard** з підтримкою OTLP "з коробки" |
+
+---
+
+<a id="section-3"></a>
+## 3. Архітектурна топологія системи: Повний граф вузлів та зв'язків
+
+В інженерному рішенні `Demo-CargoDeliveryService` модуль оркестрації `CargoDelivery.AppHost` керує шістьма основними ресурсами: 2 контейнерами інфраструктури, 3 ізольованими базами даних та 4 мікросервісними веб-додатками:
 
 ```mermaid
 flowchart TB
-    subgraph Dashboard ["📊 .NET Aspire Dashboard"]
-        UI["Logs • Metrics • Distributed Tracing • Resources • Health"]
+    subgraph Dashboard ["📊 .NET Aspire Dashboard (OTLP 18889)"]
+        D_UI["Telemetry Engine: Traces • Logs • Metrics • Health Matrix"]
     end
 
-    subgraph AppHost ["🎯 CargoDelivery.AppHost (Orchestrator)"]
+    subgraph AppHostContainer ["🎯 CargoDelivery.AppHost (Orchestrator Process)"]
         direction TB
 
-        subgraph Infra ["🐳 Docker Containers"]
-            RMQ[("🐰 RabbitMQ 3.13<br/>(amqp:5672, mgmt:15672)")]
-            SQL[("💾 MS SQL Server 2022")]
-            DB1[("dev_driversmanagement")]
-            DB2[("dev_driversblogmanagement")]
-            DB3[("dev_cargoorderingservice")]
-            SQL --> DB1 & DB2 & DB3
+        subgraph Infra ["🐳 Docker / Podman Engine (Managed Containers)"]
+            RMQ[("🐰 RabbitMQ 3.13-management<br/>Port: 5672 (AMQP) | Port: 15672 (UI)")]
+            SQL[("💾 MS SQL Server 2022 Developer<br/>Default Port: 1433")]
+            
+            DB_DM[("dev_driversmanagement")]
+            DB_DB[("dev_driversblogmanagement")]
+            DB_CO[("dev_cargoorderingservice")]
+            
+            SQL --> DB_DM
+            SQL --> DB_DB
+            SQL --> DB_CO
         end
 
-        subgraph CoreServices ["⚡ Business Microservices (.NET 10)"]
-            DM["🚚 DriversManagement<br/>(Core Driver Entity & CRUD)"]
-            CO["📦 CargoOrderingService<br/>(Logistics & Active Orders)"]
-            DB["📝 DriversBlogManagement<br/>(Blog Posts & gRPC Server)"]
+        subgraph CoreAPIs ["⚡ Business Microservice Nodes (.NET 10)"]
+            DM["🚚 DriversManagement<br/>(Core Aggregate Root & gRPC Client)"]
+            DB["📝 DriversBlogManagement<br/>(Social Domain & gRPC Server)"]
+            CO["📦 CargoOrderingService<br/>(Logistics Delivery & Orders API)"]
         end
 
-        subgraph Gateway ["🛡️ Aggregator Layer"]
-            AGG["🌐 CargoDelivery.HttpAggregator<br/>(Logistics Dispatcher Hub)"]
+        subgraph DispatcherHub ["🛡️ Resilient Gateway Layer"]
+            AGG["🌐 CargoDelivery.HttpAggregator<br/>(Logistics Dispatcher Hub • Scatter-Gather)"]
         end
     end
 
-    AGG ==>|1. HTTP /api/drivers| DM
-    AGG ==>|2. HTTP /api/deliveries| CO
-    AGG ==>|3. HTTP /api/postaboutdrivers| DB
+    %% Interservice HTTP Communications
+    AGG ==>|1. HTTP GET /api/drivers| DM
+    AGG ==>|2. HTTP GET /api/deliveries| CO
+    AGG ==>|3. HTTP GET /api/postaboutdrivers| DB
 
-    DM -.->|gRPC Protobuf HTTP/2| DB
-    DM ==>|IDriverCreated Event| RMQ
-    RMQ ==>|Consume IDriverCreated| DB & CO
-    CO ==>|IOrderCreated Event| RMQ
+    %% gRPC Direct Point-to-Point
+    DM -.->|"gRPC Protobuf (HTTP/2)"| DB
+
+    %% Asynchronous Event Broker
+    DM ==>|Publish IDriverCreated| RMQ
+    CO ==>|Publish IOrderCreated| RMQ
+    RMQ ==>|Consume IDriverCreated| DB
+    RMQ ==>|Consume IDriverCreated| CO
     RMQ ==>|Consume IOrderCreated| DM
 
-    DM --> DB1
-    DB --> DB2
-    CO --> DB3
+    %% Database Attachments
+    DM --> DB_DM
+    DB --> DB_DB
+    CO --> DB_CO
 
-    AppHost -.->|OTLP Telemetry| UI
+    %% Telemetry Exporters
+    AppHostContainer -.->|OTLP Protocol gRPC/Protobuf| D_UI
 ```
 
 ---
 
-<a id="slide-3"></a>
-### 🔍 Слайд 3. Анатомія проєкту CargoDelivery.AppHost: Розбір коду Program.cs
+<a id="section-4"></a>
+## 4. Анатомія проєкту CargoDelivery.AppHost: Деконструкція Program.cs / AppHost.cs
 
-> 📍 **Вихідний файл у рішенні:**  
-> [AppHost.cs](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/02-Microservices-Craftsman/Aspire/CargoDelivery.AppHost/AppHost.cs)
+> 📍 **Вихідні файли в кодовій базі проєкту:**  
+> • [AppHost.cs](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/02-Microservices-Craftsman/Aspire/CargoDelivery.AppHost/AppHost.cs)  
+> • [CargoDelivery.AppHost.csproj](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/02-Microservices-Craftsman/Aspire/CargoDelivery.AppHost/CargoDelivery.AppHost.csproj)
 
-Код оркестратора лаконічний, типізований та повністю декларативний:
+### 4.1. Конфігурація файлу проєкту (.csproj)
+Файл проєкту використовує спеціалізований SDK `Aspire.AppHost.Sdk/13.0.1`:
+
+```xml
+<Project Sdk="Aspire.AppHost.Sdk/13.0.1">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <UserSecretsId>35b821b1-2c90-4e9e-b406-d23105cc07d2</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Aspire.Hosting.RabbitMQ" Version="13.6.1" />
+    <PackageReference Include="Aspire.Hosting.SqlServer" Version="13.6.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\CargoOrderingService\src\CargoOrderingService\CargoOrderingService.csproj" />
+    <ProjectReference Include="..\..\DriversBlogManagement\src\DriversBlogManagement\DriversBlogManagement.csproj" />
+    <ProjectReference Include="..\..\DriversManagement\src\DriversManagement\DriversManagement.csproj" />
+    <ProjectReference Include="..\..\CargoDelivery.HttpAggregator\CargoDelivery.HttpAggregator.csproj" />
+  </ItemGroup>
+</Project>
+```
+
+#### Ключові аспекти конфігурації:
+1. `Aspire.AppHost.Sdk`: Генератор коду компілятора Roslyn автоматично створює статичний типізований клас `Projects.*`, який містить строго типізовані посилання на кожен підключений проєкт C#.
+2. `ProjectReference`: Усі 4 мікросервіси є прямими посиланнями на збірки. Якщо ви випадково зламаєте компіляцію одного з сервісів, AppHost не запуститься і одразу повідомить про помилку.
+
+### 4.2. Порядковий розбір виконуваного коду AppHost.cs
+Уся оркестрація системи займає менше 100 рядків чистого, самодокументованого C# коду:
 
 ```csharp
 var builder = DistributedApplication.CreateBuilder(args);
 
-// 1. Інфраструктура черг повідомлень RabbitMQ
+// ====================================================================================
+// 🐰 1. ІНФРАСТРУКТУРА: BROKER RABBITMQ (AMQP 0-9-1)
+// ====================================================================================
 var rabbitmq = builder.AddRabbitMQ("rabbitmq")
     .WithManagementPlugin();
 
-// 2. Інфраструктура баз даних MS SQL Server 2022
+// ====================================================================================
+// 💾 2. ІНФРАСТРУКТУРА: РЕЛЯЦІЙНА БАЗА ДАНИХ MS SQL SERVER 2022
+// ====================================================================================
 var sqlserver = builder.AddSqlServer("sqlserver");
 var driversDb = sqlserver.AddDatabase("DriversManagement", "dev_driversmanagement");
 var blogDb = sqlserver.AddDatabase("DriversBlogManagement", "dev_driversblogmanagement");
 var cargoDb = sqlserver.AddDatabase("CargoOrderingService", "dev_cargoorderingservice");
 
-// 3. Сервіс замовлень
+// ====================================================================================
+// 📦 3. МІКРОСЕРВІС ЗАМОВЛЕНЬ ТА ДОСТАВОК: CargoOrderingService
+// ====================================================================================
 var cargoApi = builder.AddProject<Projects.CargoOrderingService>("cargoorderingservice")
     .WithReference(cargoDb)
     .WithReference(rabbitmq)
     .WaitFor(cargoDb)
     .WaitFor(rabbitmq);
 
-// 4. Сервіс блогу водіїв
+// ====================================================================================
+// 📝 4. МІКРОСЕРВІС БЛОГУ ВОДІЇВ: DriversBlogManagement
+// ====================================================================================
 var blogApi = builder.AddProject<Projects.DriversBlogManagement>("driversblogmanagement")
     .WithReference(blogDb)
     .WithReference(rabbitmq)
     .WaitFor(blogDb)
     .WaitFor(rabbitmq);
 
-// 5. Сервіс управління водіями
+// ====================================================================================
+// 🚚 5. ГОЛОВНИЙ СЕРВІС ВОДІЇВ: DriversManagement
+// ====================================================================================
 var driversApi = builder.AddProject<Projects.DriversManagement>("driversmanagement")
     .WithReference(driversDb)
     .WithReference(rabbitmq)
@@ -135,7 +224,9 @@ var driversApi = builder.AddProject<Projects.DriversManagement>("driversmanageme
     .WaitFor(blogApi)
     .WaitFor(cargoApi);
 
-// 6. Новий виділений Gateway Aggregator
+// ====================================================================================
+// 🛡️ 6. GATEWAY AGGREGATOR ДИСПЕТЧЕРА: CargoDelivery.HttpAggregator
+// ====================================================================================
 var httpAggregator = builder.AddProject<Projects.CargoDelivery_HttpAggregator>("httpaggregator")
     .WithReference(driversApi)
     .WithReference(cargoApi)
@@ -149,78 +240,94 @@ builder.Build().Run();
 
 ---
 
-<a id="slide-4"></a>
-### 🐰 Слайд 4. Декларативне керування контейнерами: RabbitMQ та MS SQL Server 2022
+<a id="section-5"></a>
+## 5. Керування контейнеризованими ресурсами: RabbitMQ 3.13 та MS SQL Server 2022
 
-#### 1. RabbitMQ з Management UI
-```csharp
-var rabbitmq = builder.AddRabbitMQ("rabbitmq")
-    .WithManagementPlugin();
-```
-* **Що робить Aspire:** Завантажує офіційний Docker-образ `rabbitmq:3-management`.
-* **Мережеві порти:**
-  * Порт `5672` (AMQP 0-9-1) — для передачі бінарних фреймів MassTransit.
-  * Порт `15672` (HTTP) — вебінтерфейс черг RabbitMQ Management.
-* **Автоматична змінна:** Усім залежним сервісам передається змінна `ConnectionStrings__rabbitmq`.
+### 5.1. Контейнер RabbitMQ
+Метод `builder.AddRabbitMQ("rabbitmq").WithManagementPlugin()` виконує такі дії:
+1. Завантажує офіційний контейнер `rabbitmq:3-management`.
+2. Конфігурує два мережеві порти:
+   * **5672 (AMQP):** Для протоколу обміну бінарними фреймами повідомлень бібліотеки MassTransit.
+   * **15672 (HTTP):** Веб-панель керування чергами та обмінниками (Exchanges), доступна за прямим посиланням з Aspire Dashboard.
+3. Генерує випадковий або фіксований обліковий запис (`guest/guest`) та автоматично формує рядок підключення:
+   `amqp://guest:guest@localhost:{random_port}`.
 
-#### 2. MS SQL Server та Database-per-Microservice
-```csharp
-var sqlserver = builder.AddSqlServer("sqlserver");
-var driversDb = sqlserver.AddDatabase("DriversManagement", "dev_driversmanagement");
-var blogDb = sqlserver.AddDatabase("DriversBlogManagement", "dev_driversblogmanagement");
-var cargoDb = sqlserver.AddDatabase("CargoOrderingService", "dev_cargoorderingservice");
-```
-* **Ізоляція доменів:** Кожен Bounded Context володіє власною базою даних (`dev_driversmanagement`, `dev_driversblogmanagement`, `dev_cargoorderingservice`).
-* **Безпека:** Мікросервіси фізично не мають спільного доступу до чужих таблиць, унеможливлюючи несанкціоновані прямі SQL JOIN.
+### 5.2. Контейнер MS SQL Server 2022 та Database-per-Microservice
+Команда `builder.AddSqlServer("sqlserver")` створює один спільний інстанс СУБД MS SQL Server 2022 Developer Edition, але за допомогою викликів `.AddDatabase(...)` система строго реалізує архітектурний патерн **Database-per-Microservice**:
+* `dev_driversmanagement`: Схема досьє водія, фото, техогляди, закріплені вантажівки.
+* `dev_driversblogmanagement`: Схема соціального блогу, публікації, лайки, коментарі.
+* `dev_cargoorderingservice`: Схема логістичних рейсів, вантажів, статусів доставок.
+
+> 🔒 **Архітектурна перевага:**  
+> Кожен мікросервіс отримує рядок підключення **тільки до своєї бази даних**. Прямі крос-базові запити (`SELECT * FROM dev_driversmanagement.dbo.Drivers`) на рівні коду суворо унеможливлені. Будь-який обмін даними здійснюється виключно через контракти API або шину подій!
 
 ---
 
-<a id="slide-5"></a>
-### ⏳ Слайд 5. Патерн .WaitFor(): Усунення Race Conditions при старті розподіленої системи
+<a id="section-6"></a>
+## 6. Математика узгодженості старту: Патерн .WaitFor() та Directed Acyclic Graph (DAG)
 
-#### Проблема класичного старту ("Connection Refused")
-Коли Docker запускає контейнер SQL Server або RabbitMQ, процес ОС стартує за 1 секунду, але сам SQL Server ініціалізує системні файли та транзакційні журнали ще 10-15 секунд. У цей час .NET-сервіс, стартувавши паралельно, виконує `DbContext.Database.Migrate()` і негайно падає з фатальною помилкою:
-> `Microsoft.Data.SqlClient.SqlException: Cannot open database requested by the login.`
+У розподіленій системі послідовність ініціалізації вузлів описується математичною структурою **Орієнтованого Ациклічного Графа (DAG — Directed Acyclic Graph)**:
 
 ```mermaid
-sequenceDiagram
-    autonumber
-    participant Host as 🎯 Aspire AppHost
-    participant DB as 💾 SQL Server Container
-    participant Service as 🚚 Microservice API
+graph TD
+    subgraph Layer0 ["Рівень 0: Фізична Інфраструктура (Docker)"]
+        SQL["💾 MS SQL Server"]
+        RMQ["🐰 RabbitMQ Broker"]
+    end
 
-    Note over Host: Традиційний запуск БЕЗ .WaitFor()
-    Host->>DB: Запуск контейнера
-    Host->>Service: Одночасний запуск .NET процесу
-    Service->>DB: EF Core Migrate()
-    DB-->>Service: ❌ 500 Connection Refused / Login Failed!
-    Note over Service: Аварійна зупинка (Crash Loop)
+    subgraph Layer1 ["Рівень 1: Логічні Бази Даних"]
+        DB1["🗄️ dev_driversmanagement"]
+        DB2["🗄️ dev_driversblogmanagement"]
+        DB3["🗄️ dev_cargoorderingservice"]
+    end
 
-    Note over Host: Надійний запуск З .WaitFor(db)
-    Host->>DB: Запуск контейнера
-    Host->>DB: Опитування Health Probe порту 1433
-    DB-->>Host: 🟢 Порт готовий, БД ініціалізована!
-    Host->>Service: Старт .NET процесу (Блокування знято)
-    Service->>DB: EF Core Migrate()
-    DB-->>Service: 🟢 200 OK Міграції застосовано успішно!
+    subgraph Layer2 ["Рівень 2: Автономні Бізнес-Сервіси"]
+        CO["📦 CargoOrderingService"]
+        DB["📝 DriversBlogManagement"]
+    end
+
+    subgraph Layer3 ["Рівень 3: Сервіси зі Зв'язками"]
+        DM["🚚 DriversManagement"]
+    end
+
+    subgraph Layer4 ["Рівень 4: Агрегатори Верхнього Рівня"]
+        AGG["🛡️ CargoDelivery.HttpAggregator"]
+    end
+
+    SQL --> DB1 & DB2 & DB3
+    DB3 --> CO
+    RMQ --> CO
+    DB2 --> DB
+    RMQ --> DB
+
+    DB1 --> DM
+    RMQ --> DM
+    CO -.->|WaitFor| DM
+    DB -.->|WaitFor| DM
+
+    DM -.->|WaitFor| AGG
+    CO -.->|WaitFor| AGG
+    DB -.->|WaitFor| AGG
 ```
 
-#### Як працює `.WaitFor()` у коді AppHost
-Метод `.WaitFor(resource)` блокує старт залежного проєкту на рівні планувальника Aspire:
-1. Aspire чекає, поки цільовий ресурс перейде в стан `Running` і його зонди готовності (Health Checks) повернуть статус `Healthy`.
-2. Лише після цього запускається процес `.NET API`.
-3. У результаті старт системи стає 100% передбачуваним та стабільним.
+### Чому без `.WaitFor()` система падає? (The Race Condition Problem)
+Коли Docker створює контейнер SQL Server, процес процесора стартує за $0.8\text{ секунди}$. Але внутрішній механізм бази даних ініціалізує буферний пул (Buffer Pool), створює системні таблиці `master` та відновлює журнал транзакцій ще $10-15\text{ секунд}$.
+* **Без `.WaitFor()`:** .NET додаток стартує одночасно, миттєво викликає `DbContext.Database.Migrate()` і отримує фатальний виняток:
+  ```text
+  Microsoft.Data.SqlClient.SqlException (0x80131904): 
+  A network-related or instance-specific error occurred while establishing a connection to SQL Server.
+  ```
+* **З `.WaitFor(cargoDb)`:** Aspire переводить проєкт `CargoOrderingService` у статус `Waiting for dependencies`. Внутрішній оркестратор періодично пінгує порт 1433 та виконує команду перевірки готовності. Тільки коли SQL Server сигналізує про повну готовність приймати запити, знімається блокування запуску .NET-процесу!
 
 ---
 
-<a id="slide-6"></a>
-### 🛡️ Слайд 6. Інтеграція нового Gateway Aggregator (CargoDelivery.HttpAggregator)
+<a id="section-7"></a>
+## 7. Інтеграція виділеного диспетчерського хабу CargoDelivery.HttpAggregator
 
-Для чистої та ізольованої демонстрації HTTP-агрегації та можливостей Aspire створено окремий мікросервіс:
-> 📍 **Проєкт агрегатора:**  
-> [CargoDelivery.HttpAggregator.csproj](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/02-Microservices-Craftsman/CargoDelivery.HttpAggregator/CargoDelivery.HttpAggregator.csproj)
+Для забезпечення чистої, ненавантаженої зайвими залежностями демонстрації синхронної HTTP-комунікації ми зареєстрували окремий мікросервіс:
+> 📍 [CargoDelivery.HttpAggregator.csproj](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/02-Microservices-Craftsman/CargoDelivery.HttpAggregator/CargoDelivery.HttpAggregator.csproj)
 
-В `AppHost.cs` агрегатор підключається як фінальна ланка в ланцюгу залежностей:
+В `AppHost.cs` реєстрація має такий вигляд:
 
 ```csharp
 var httpAggregator = builder.AddProject<Projects.CargoDelivery_HttpAggregator>("httpaggregator")
@@ -232,43 +339,72 @@ var httpAggregator = builder.AddProject<Projects.CargoDelivery_HttpAggregator>("
     .WaitFor(blogApi);
 ```
 
-#### Що дає `WithReference()`:
-1. Додає посилання в граф Aspire Dashboard: видно, що агрегатор залежить від 3 API.
-2. Автоматично впроваджує в агрегатор конфігураційні змінні Service Discovery:
-   * `services__driversmanagement__http__0`
-   * `services__cargoorderingservice__http__0`
-   * `services__driversblogmanagement__http__0`
-3. Дозволяє клієнтам `HttpClient` в агрегаторі використовувати прості імена `http://driversmanagement` без хардкоду портів!
+### Що відбувається під капотом під час виклику `.WithReference(...)`:
+1. **Реєстрація у топологічному графі:** Aspire Dashboard фіксує зв'язки між агрегатором та трьома суміжними API.
+2. **Динамічна генерація Service Discovery змінних:**
+   У процес `httpaggregator` автоматично інжектуються змінні середовища:
+   * `services__driversmanagement__http__0 = http://localhost:{port_dm}`
+   * `services__cargoorderingservice__http__0 = http://localhost:{port_co}`
+   * `services__driversblogmanagement__http__0 = http://localhost:{port_db}`
+3. **Захист життєвого циклу:** Агрегатор не запускається до тих пір, поки всі три мікросервіси не піднімуть власні HTTP-слухачі та успішно не дадуть відповідь на зонд `/health`.
 
 ---
 
-<a id="slide-7"></a>
-### 🔌 Слайд 7. Інжекція Connection Strings та Service Discovery з AppHost
+<a id="section-8"></a>
+## 8. Механізм Dynamic Configuration Injection: Connection Strings та Service Discovery
 
-Коли `AppHost` стартує ваші проєкти, він формує віртуальне середовище оточення:
+Aspire усуває людський фактор конфігурації. Таблиця нижче демонструє, як виклики AppHost транслюються у конкретні змінні процесу:
 
-| Конфігураційний ключ у сервісі | Звідки генерується в AppHost | Призначення |
+| Код у AppHost.cs | Що інжектується у залежний сервіс (Environment Variable) | Як це зчитує мікросервіс у C# |
 | :--- | :--- | :--- |
-| `ConnectionStrings__rabbitmq` | `builder.AddRabbitMQ("rabbitmq")` | Рядок підключення до брокера для MassTransit |
-| `ConnectionStrings__DriversManagement` | `sqlserver.AddDatabase("DriversManagement")` | Рядок підключення EF Core до БД водіїв |
-| `services__cargoorderingservice__http__0` | `builder.AddProject<CargoOrderingService>()` | URL ендпоінту для Service Discovery |
-| `OTEL_EXPORTER_OTLP_ENDPOINT` | Вбудований OTLP Receiver у Dashboard | Адреса експорту трейсів, логів та метрик |
+| `builder.AddRabbitMQ("rabbitmq")` | `ConnectionStrings__rabbitmq` | `builder.Configuration.GetConnectionString("rabbitmq")` |
+| `sqlserver.AddDatabase("DriversManagement")` | `ConnectionStrings__DriversManagement` | `builder.Configuration.GetConnectionString("DriversManagement")` |
+| `.WithReference(cargoApi)` | `services__cargoorderingservice__http__0` | `builder.Services.AddHttpClient(c => c.BaseAddress = new Uri("http://cargoorderingservice"))` |
+| Автоматично для всіх сервісів | `OTEL_EXPORTER_OTLP_ENDPOINT` | Зчитується методом `AddOpenTelemetryExporters()` у `ServiceDefaults` |
+| Автоматично для кожного проєкту | `OTEL_SERVICE_NAME` | Встановлює унікальне ім'я вузла в трасуванні (`driversmanagement`, тощо) |
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant Host as 🎯 Aspire AppHost
+    participant Engine as 🐳 Docker Engine
+    participant Service as 🚚 DriversManagement (.NET)
+    participant Dash as 📊 Aspire Dashboard
+
+    Host->>Engine: Запуск контейнерів SQL Server та RabbitMQ
+    Engine-->>Host: Контейнери піднято, порти призначено динамічно
+    Note over Host: Формування змінних оточення (Port Mapping)
+    Host->>Service: Старт процесу з ConnectionStrings__* та services__*
+    Service->>Service: builder.AddServiceDefaults()
+    Service->>Dash: OTLP Handshake (Трансляція логів, метрик, трейсів)
+    Service-->>Host: Зонд /health повертає 200 OK
+    Note over Host: Розблокування наступних вузлів у графі DAG
+```
 
 ---
 
-<a id="slide-8"></a>
-### 🚀 Слайд 8. Чек-лист та практичні команди запуску
+<a id="section-9"></a>
+## 9. Покроковий практичний чек-лист запуску та діагностики для інженера
 
-1. **Запуск через Visual Studio:**
-   * Встановіть `CargoDelivery.AppHost` як стартовий проєкт (*Set as Startup Project*).
-   * Натисніть **F5** або **Ctrl+F5**.
-   * Автоматично відкриється браузер з **Aspire Dashboard**.
+### Крок 1. Перевірка вимог оточення
+Перед запуском переконайтеся, що на робочій станції запущено Docker-демон:
+```powershell
+docker info
+```
+*(У виводі повинен відображатися активний статус контейнерного рушія).*
 
-2. **Запуск через консоль:**
-   ```powershell
-   dotnet run --project 02-Microservices-Craftsman/Aspire/CargoDelivery.AppHost/CargoDelivery.AppHost.csproj
-   ```
+### Крок 2. Запуск всієї системи однією командою
+У терміналі виконайте команду запуску оркестратора:
+```powershell
+dotnet run --project "02-Microservices-Craftsman\Aspire\CargoDelivery.AppHost\CargoDelivery.AppHost.csproj"
+```
 
-3. **Що перевірити в Aspire Dashboard:**
-   * Вкладка **Resources**: Всі 6 ресурсів (`sqlserver`, `rabbitmq`, `driversmanagement`, `cargoorderingservice`, `driversblogmanagement`, `httpaggregator`) мають статус **Running**.
-   * Натисніть на посилання ендпоінту `httpaggregator` та відкрийте `api/v1/shipment-summary/{id}` або `health`.
+### Крок 3. Що спостерігати в інтерфейсі .NET Aspire Dashboard
+1. Після запуску автоматично відкриється вкладка браузера з адресою `http://localhost:18888` (або випадковим захищеним портом з токеном).
+2. Перейдіть у розділ **Resources**:
+   * Перевірте, що всі 6 вузлів системи світяться зеленим індикатором `Running`.
+   * Зверніть увагу на колонку **Source**: для сервісів там вказано шлях до `.csproj`, для баз даних — назва Docker-образу.
+   * Зверніть увагу на колонку **Endpoints**: кожен мікросервіс має клікабельне посилання, натискання на яке відкриває Swagger або цільовий API.
+3. Перейдіть до розділу **Console Logs**:
+   * Оберіть ресурс `httpaggregator`.
+   * Переконайтеся, що під час старту немає жодного повідомлення `SocketException` чи `Connection Refused`.
