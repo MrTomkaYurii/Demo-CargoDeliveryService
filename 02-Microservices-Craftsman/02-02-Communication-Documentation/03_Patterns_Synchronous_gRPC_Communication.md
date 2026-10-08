@@ -1,4 +1,4 @@
-# ⚡ 02. Патерни синхронної міжсервісної взаємодії: gRPC та Protocol Buffers
+# ⚡ 03. Патерни синхронної міжсервісної взаємодії: gRPC та Protocol Buffers
 
 > **Блок 2:** `02-Microservices-Craftsman`  
 > **Технологічний стек:** gRPC (`Grpc.AspNetCore`, `Grpc.Net.Client`), Protocol Buffers (`Google.Protobuf`), HTTP/2, C# Code Generation.
