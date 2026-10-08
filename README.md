@@ -80,7 +80,9 @@ Demo-CargoDeliveryService/
 │   ├── DriversBlogManagement/         (Сервіс блогу водіїв)
 │   ├── DriversManagement/             (Сервіс обліку водіїв і автопарку)
 │   ├── SharedKernel/                  (Спільні контракти та доменні події)
-│   ├── docs/                          (Документація мікросервісів та ендпоінтів)
+│   ├── Aspire/                        (Оркестрація AppHost та ServiceDefaults .NET Aspire)
+│   ├── 02-01-Aspire-Documentation/    (Майстер-клас та посібник з .NET Aspire)
+│   ├── 02-02-Communication-Documentation/ (Посібники gRPC, MassTransit, Clean Architecture)
 │   └── README.md                      (Детальний опис мікросервісного блоку)
 │
 ├── 📂 03-Identity-Security/           <-- Блок 3: Безпека, OIDC та авторизація

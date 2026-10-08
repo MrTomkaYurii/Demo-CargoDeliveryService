@@ -1,4 +1,4 @@
-﻿
+
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 18
 VisualStudioVersion = 18.10.12201.205
@@ -25,14 +25,21 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Databases", "Databases", "{
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "02-Microservices-Craftsman", "02-Microservices-Craftsman", "{A0020002-0000-0000-0000-000000000002}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "02-Documentation", "02-Documentation", "{D4E5F6A1-B2C3-4D4E-BF5A-6B7C8D9E0F1A}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "02-01-Aspire-Documentation", "02-01-Aspire-Documentation", "{B1A2C3D4-E5F6-4A1B-8C2D-020102010201}"
 	ProjectSection(SolutionItems) = preProject
-		02-Microservices-Craftsman\docs\CargoOrderingService-README.md = 02-Microservices-Craftsman\docs\CargoOrderingService-README.md
-		02-Microservices-Craftsman\docs\DriversBlogManagement-README.md = 02-Microservices-Craftsman\docs\DriversBlogManagement-README.md
-		02-Microservices-Craftsman\docs\Guides\01_Patterns_Microservices_Clean_Architecture.md = 02-Microservices-Craftsman\docs\Guides\01_Patterns_Microservices_Clean_Architecture.md
-		02-Microservices-Craftsman\docs\Guides\02_Patterns_Synchronous_gRPC_Communication.md = 02-Microservices-Craftsman\docs\Guides\02_Patterns_Synchronous_gRPC_Communication.md
-		02-Microservices-Craftsman\docs\Guides\03_Patterns_Asynchronous_Messaging_MassTransit_RabbitMQ.md = 02-Microservices-Craftsman\docs\Guides\03_Patterns_Asynchronous_Messaging_MassTransit_RabbitMQ.md
+		02-Microservices-Craftsman\02-01-Aspire-Documentation\02-01-Aspire-MasterClass.md = 02-Microservices-Craftsman\02-01-Aspire-Documentation\02-01-Aspire-MasterClass.md
+		02-Microservices-Craftsman\02-01-Aspire-Documentation\README.md = 02-Microservices-Craftsman\02-01-Aspire-Documentation\README.md
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "02-02-Communication-Documentation", "02-02-Communication-Documentation", "{D4E5F6A1-B2C3-4D4E-BF5A-6B7C8D9E0F1A}"
+	ProjectSection(SolutionItems) = preProject
 		02-Microservices-Craftsman\README.md = 02-Microservices-Craftsman\README.md
+		02-Microservices-Craftsman\02-02-Communication-Documentation\01_Patterns_Microservices_Clean_Architecture.md = 02-Microservices-Craftsman\02-02-Communication-Documentation\01_Patterns_Microservices_Clean_Architecture.md
+		02-Microservices-Craftsman\02-02-Communication-Documentation\02_Patterns_Synchronous_gRPC_Communication.md = 02-Microservices-Craftsman\02-02-Communication-Documentation\02_Patterns_Synchronous_gRPC_Communication.md
+		02-Microservices-Craftsman\02-02-Communication-Documentation\03_Patterns_Asynchronous_Messaging_MassTransit_RabbitMQ.md = 02-Microservices-Craftsman\02-02-Communication-Documentation\03_Patterns_Asynchronous_Messaging_MassTransit_RabbitMQ.md
+		02-Microservices-Craftsman\02-02-Communication-Documentation\CargoOrderingService-README.md = 02-Microservices-Craftsman\02-02-Communication-Documentation\CargoOrderingService-README.md
+		02-Microservices-Craftsman\02-02-Communication-Documentation\DriversBlogManagement-README.md = 02-Microservices-Craftsman\02-02-Communication-Documentation\DriversBlogManagement-README.md
+		02-Microservices-Craftsman\02-02-Communication-Documentation\README.md = 02-Microservices-Craftsman\02-02-Communication-Documentation\README.md
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "CargoOrderingService", "CargoOrderingService", "{ABD51DD9-E7E1-4738-9CF4-B7C4015D9297}"
@@ -497,6 +504,7 @@ Global
 	GlobalSection(NestedProjects) = preSolution
 		{A1B2C3D4-E5F6-4A1B-8C2D-3E4F5A6B7C8D} = {7776DB05-F413-4EEB-912D-3B04E039DD8D}
 		{31D6E6E2-5D25-4065-923A-4BE227ABF405} = {7776DB05-F413-4EEB-912D-3B04E039DD8D}
+		{B1A2C3D4-E5F6-4A1B-8C2D-020102010201} = {A0020002-0000-0000-0000-000000000002}
 		{D4E5F6A1-B2C3-4D4E-BF5A-6B7C8D9E0F1A} = {A0020002-0000-0000-0000-000000000002}
 		{ABD51DD9-E7E1-4738-9CF4-B7C4015D9297} = {A0020002-0000-0000-0000-000000000002}
 		{E73125F0-98E8-4F46-8172-F9F099052D7B} = {ABD51DD9-E7E1-4738-9CF4-B7C4015D9297}

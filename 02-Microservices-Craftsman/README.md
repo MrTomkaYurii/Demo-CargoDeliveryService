@@ -19,19 +19,22 @@
 
 ## 🚀 Оркестрація та Розподілена Телеметрія (.NET Aspire)
 
-👉 **[docs/02-01-Aspire-Documentation/02-01-Aspire-MasterClass.md](docs/02-01-Aspire-Documentation/02-01-Aspire-MasterClass.md)** — **Повний інтерактивний Майстер-Клас (15 слайдів)** з деталізованим розбором для чайників, архітектурою `AppHost`, відмовою від Jaeger на користь нативного OTLP, gRPC discovery, сквозним трейсингом MassTransit та практичним гайдом запуску.
+👉 **[02-01-Aspire-Documentation/02-01-Aspire-MasterClass.md](02-01-Aspire-Documentation/02-01-Aspire-MasterClass.md)** — **Повний інтерактивний Майстер-Клас (15 слайдів)** з деталізованим розбором для чайників, архітектурою `AppHost`, відмовою від Jaeger на користь нативного OTLP, gRPC discovery, сквозним трейсингом MassTransit та практичним гайдом запуску.  
+*(Детальний індекс: [02-01-Aspire-Documentation/README.md](02-01-Aspire-Documentation/README.md))*
 
 ---
 
 ## 📚 Навчально-технічні посібники (Numbered Pattern Guides)
 
-1. 🏛️ **[01_Patterns_Microservices_Clean_Architecture.md](docs/Guides/01_Patterns_Microservices_Clean_Architecture.md)**  
+*(Повний індекс та специфікації сервісів: [02-02-Communication-Documentation/README.md](02-02-Communication-Documentation/README.md))*
+
+1. 🏛️ **[01_Patterns_Microservices_Clean_Architecture.md](02-02-Communication-Documentation/01_Patterns_Microservices_Clean_Architecture.md)**  
    *Концепція Bounded Contexts у DDD, Vertical Slice Architecture з MediatR (CQRS), відокремлені сутності Driver у різних мікросервісах та порівняння з монолітом Блоку 1.*
 
-2. ⚡ **[02_Patterns_Synchronous_gRPC_Communication.md](docs/Guides/02_Patterns_Synchronous_gRPC_Communication.md)**  
+2. ⚡ **[02_Patterns_Synchronous_gRPC_Communication.md](02-02-Communication-Documentation/02_Patterns_Synchronous_gRPC_Communication.md)**  
    *Високопродуктивний міжсервісний зв'язок через gRPC (HTTP/2 + Protobuf), контракт `Driver.proto`, сервер `DriverRpcService`, клієнт `DriverRpcClient` та патерн стійкості Graceful Degradation.*
 
-3. 📬 **[03_Patterns_Asynchronous_Messaging_MassTransit_RabbitMQ.md](docs/Guides/03_Patterns_Asynchronous_Messaging_MassTransit_RabbitMQ.md)**  
+3. 📬 **[03_Patterns_Asynchronous_Messaging_MassTransit_RabbitMQ.md](02-02-Communication-Documentation/03_Patterns_Asynchronous_Messaging_MassTransit_RabbitMQ.md)**  
    *Подієво-орієнтована архітектура (EDA), Pub/Sub шина MassTransit з RabbitMQ Fanout Exchanges, асинхронна реплікація даних та Fallback до InMemory Bus.*
 
 ---
