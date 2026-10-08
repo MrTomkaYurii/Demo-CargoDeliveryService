@@ -1,4 +1,4 @@
-﻿
+
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 18
 VisualStudioVersion = 18.10.12201.205
@@ -30,7 +30,13 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "02-Microservices-Craftsman"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "02-01-Aspire-Documentation", "02-01-Aspire-Documentation", "{B1A2C3D4-E5F6-4A1B-8C2D-020102010201}"
 	ProjectSection(SolutionItems) = preProject
+		02-Microservices-Craftsman\02-01-Aspire-Documentation\01_Aspire_Orchestration_AppHost_DeepDive.md = 02-Microservices-Craftsman\02-01-Aspire-Documentation\01_Aspire_Orchestration_AppHost_DeepDive.md
 		02-Microservices-Craftsman\02-01-Aspire-Documentation\02-01-Aspire-MasterClass.md = 02-Microservices-Craftsman\02-01-Aspire-Documentation\02-01-Aspire-MasterClass.md
+		02-Microservices-Craftsman\02-01-Aspire-Documentation\02_ServiceDefaults_Architecture_And_Parameters.md = 02-Microservices-Craftsman\02-01-Aspire-Documentation\02_ServiceDefaults_Architecture_And_Parameters.md
+		02-Microservices-Craftsman\02-01-Aspire-Documentation\03_HttpAggregator_Gateway_Architecture_And_Design.md = 02-Microservices-Craftsman\02-01-Aspire-Documentation\03_HttpAggregator_Gateway_Architecture_And_Design.md
+		02-Microservices-Craftsman\02-01-Aspire-Documentation\04_Distributed_Tracing_OpenTelemetry_Guide.md = 02-Microservices-Craftsman\02-01-Aspire-Documentation\04_Distributed_Tracing_OpenTelemetry_Guide.md
+		02-Microservices-Craftsman\02-01-Aspire-Documentation\05_HealthChecks_Probes_Liveness_Readiness.md = 02-Microservices-Craftsman\02-01-Aspire-Documentation\05_HealthChecks_Probes_Liveness_Readiness.md
+		02-Microservices-Craftsman\02-01-Aspire-Documentation\06_ServiceDiscovery_Resilience_Polly_HttpClient.md = 02-Microservices-Craftsman\02-01-Aspire-Documentation\06_ServiceDiscovery_Resilience_Polly_HttpClient.md
 		02-Microservices-Craftsman\02-01-Aspire-Documentation\README.md = 02-Microservices-Craftsman\02-01-Aspire-Documentation\README.md
 	EndProjectSection
 EndProject
