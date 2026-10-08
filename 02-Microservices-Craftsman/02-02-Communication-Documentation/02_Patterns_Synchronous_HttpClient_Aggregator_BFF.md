@@ -116,9 +116,10 @@ flowchart TD
 
 Замість використання `new HttpClient()` (що викликає вичерпання сокетів OS), клієнт інжектується через `IHttpClientFactory`.
 
-> 🔘 **[👉 Відкрити файл у проєкті: `CargoOrderingApiClient.cs`](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/02-Microservices-Craftsman/DriversManagement/src/DriversManagement/Domain/Drivers/Services/Http/CargoOrderingApiClient.cs)**  
-> 🔗 *Шлях: `DriversManagement/Domain/Drivers/Services/Http/CargoOrderingApiClient.cs`*  
+> 📍 **Шлях до файлу:** `DriversManagement/src/DriversManagement/Domain/Drivers/Services/Http/CargoOrderingApiClient.cs`  
 > 📝 *У файлі наведено докладні покрокові коментарі українською мовою.*
+
+[👉 **Перейти до файлу (клікніть тут)**](../DriversManagement/src/DriversManagement/Domain/Drivers/Services/Http/CargoOrderingApiClient.cs#L20-L50)
 
 Фрагмент коду клієнта:
 ```csharp
@@ -145,11 +146,12 @@ public sealed class CargoOrderingApiClient : ICargoOrderingApiClient
 
 ---
 
-### 5.2. Типізований клієнт до блогу (`DriversBlogApiClient`)
+### 5.2. Типізований клієнт до блогу (DriversBlogApiClient)
 
-> 🔘 **[👉 Відкрити файл у проєкті: `DriversBlogApiClient.cs`](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/02-Microservices-Craftsman/DriversManagement/src/DriversManagement/Domain/Drivers/Services/Http/DriversBlogApiClient.cs)**  
-> 🔗 *Шлях: `DriversManagement/Domain/Drivers/Services/Http/DriversBlogApiClient.cs`*  
+> 📍 **Шлях до файлу:** `DriversManagement/src/DriversManagement/Domain/Drivers/Services/Http/DriversBlogApiClient.cs`  
 > 📝 *У файлі наведено докладні покрокові коментарі українською мовою.*
+
+[👉 **Перейти до файлу (клікніть тут)**](../DriversManagement/src/DriversManagement/Domain/Drivers/Services/Http/DriversBlogApiClient.cs#L15-L45)
 
 Фрагмент коду інтерфейсу:
 ```csharp
@@ -161,12 +163,13 @@ public interface IDriversBlogApiClient
 
 ---
 
-### 5.3. Реєстрація у Dependency Injection з Aspire Service Discovery та Polly
+### 5.3. Реєстрація у Dependency Injection з Aspire Service Discovery
 
 Реєстрація клієнтів здійснюється у файлі конфігурації сервісів:
 
-> 🔘 **[👉 Відкрити файл у проєкті: `WebAppServiceConfiguration.cs` (Рядки 50–70)](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/02-Microservices-Craftsman/DriversManagement/src/DriversManagement/Extensions/Services/WebAppServiceConfiguration.cs#L50-L70)**  
-> 🔗 *Шлях: `DriversManagement/Extensions/Services/WebAppServiceConfiguration.cs`*
+> 📍 **Шлях до файлу:** `DriversManagement/src/DriversManagement/Extensions/Services/WebAppServiceConfiguration.cs`
+
+[👉 **Перейти до файлу (клікніть тут)**](../DriversManagement/src/DriversManagement/Extensions/Services/WebAppServiceConfiguration.cs#L50-L70)
 
 ```csharp
 // Реєстрація типізованого клієнта з резолвінгом імені сервісу
@@ -177,7 +180,7 @@ builder.Services.AddHttpClient<ICargoOrderingApiClient, CargoOrderingApiClient>(
         ?? "http://cargoorderingservice";
     client.BaseAddress = new Uri(baseUrl);
 })
-.AddStandardResilienceHandler(); // Polly: Retry + Circuit Breaker + Timeout!
+.AddStandardResilienceHandler();
 
 builder.Services.AddHttpClient<IDriversBlogApiClient, DriversBlogApiClient>(client =>
 {
@@ -190,13 +193,14 @@ builder.Services.AddHttpClient<IDriversBlogApiClient, DriversBlogApiClient>(clie
 
 ---
 
-### 5.4. Оркестратор CQRS Handler з паралельним Fan-Out (`Task.WhenAll`)
+### 5.4. Оркестратор CQRS Handler з паралельним Fan-Out (Task.WhenAll)
 
 Серце патерну Агрегатора — обробник запиту MediatR:
 
-> 🔘 **[👉 Відкрити файл у проєкті: `GetDriverDashboard.cs`](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/02-Microservices-Craftsman/DriversManagement/src/DriversManagement/Domain/Drivers/Features/GetDriverDashboard.cs)**  
-> 🔗 *Шлях: `DriversManagement/Domain/Drivers/Features/GetDriverDashboard.cs`*  
+> 📍 **Шлях до файлу:** `DriversManagement/src/DriversManagement/Domain/Drivers/Features/GetDriverDashboard.cs`  
 > 📝 *У файлі наведено вичерпні коментарі українською мовою до кожного кроку виконання.*
+
+[👉 **Перейти до файлу (клікніть тут)**](../DriversManagement/src/DriversManagement/Domain/Drivers/Features/GetDriverDashboard.cs#L45-L95)
 
 Ключова логіка паралельного запуску:
 ```csharp
@@ -231,8 +235,10 @@ return new AggregatedDriverDashboardDto
 
 ### 5.5. API Контролер Агрегатора (BFF Endpoint)
 
-> 🔘 **[👉 Відкрити файл у проєкті: `DriverDashboardController.cs`](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/02-Microservices-Craftsman/DriversManagement/src/DriversManagement/Controllers/v1/DriverDashboardController.cs)**  
-> 🔗 *Шлях: `DriversManagement/Controllers/v1/DriverDashboardController.cs`*
+> 📍 **Шлях до файлу:** `DriversManagement/src/DriversManagement/Controllers/v1/DriverDashboardController.cs`  
+> 📝 *У файлі наведено докладні коментарі українською мовою.*
+
+[👉 **Перейти до файлу (клікніть тут)**](../DriversManagement/src/DriversManagement/Controllers/v1/DriverDashboardController.cs#L25-L60)
 
 Контролер надає маршрут `GET /api/v1/driver-dashboard/{id}` та повертає статус 200 OK з повною або частково деградованою моделлю.
 
@@ -261,6 +267,21 @@ return new AggregatedDriverDashboardDto
 - [x] **Завжди використовуйте `IHttpClientFactory`:** категорично уникайте створення `new HttpClient()`.
 - [x] **Паралельте запити через `Task.WhenAll`:** не робіть послідовних `await` для незалежних викликів.
 - [x] **Впроваджуйте Graceful Degradation:** помилка в другорядному блозі не повинна блокувати перегляд профілю водія.
-- [x] **Підключайте Polly Resilience:** захищайте сервіс через `AddStandardResilienceHandler()`.
 - [x] **Використовуйте Aspire Service Discovery:** звертайтеся за логічними іменами сервісів (`http://cargoorderingservice`).
 - [x] **Прокидайте `CancellationToken`:** скасовуйте внутрішні HTTP-виклики, якщо клієнт закрив браузер чи вкладку.
+
+---
+
+## 8. Швидка навігація по вихідному коду
+
+* 🌐 **Типізовані HTTP-клієнти:**
+  * [👉 **Перейти до CargoOrderingApiClient.cs**](../DriversManagement/src/DriversManagement/Domain/Drivers/Services/Http/CargoOrderingApiClient.cs#L20-L50)
+  * [👉 **Перейти до DriversBlogApiClient.cs**](../DriversManagement/src/DriversManagement/Domain/Drivers/Services/Http/DriversBlogApiClient.cs#L15-L45)
+* ⚙️ **Реєстрація та Service Discovery:**
+  * [👉 **Перейти до WebAppServiceConfiguration.cs**](../DriversManagement/src/DriversManagement/Extensions/Services/WebAppServiceConfiguration.cs#L50-L70)
+* 🛡️ **Оркестратор Агрегатора (Fan-Out/Fan-In):**
+  * [👉 **Перейти до GetDriverDashboard.cs**](../DriversManagement/src/DriversManagement/Domain/Drivers/Features/GetDriverDashboard.cs#L45-L95)
+  * [👉 **Перейти до AggregatedDriverDashboardDto.cs**](../DriversManagement/src/DriversManagement/Domain/Drivers/Dtos/AggregatedDriverDashboardDto.cs#L10-L40)
+* 📱 **BFF Контролер:**
+  * [👉 **Перейти до DriverDashboardController.cs**](../DriversManagement/src/DriversManagement/Controllers/v1/DriverDashboardController.cs#L25-L60)
+

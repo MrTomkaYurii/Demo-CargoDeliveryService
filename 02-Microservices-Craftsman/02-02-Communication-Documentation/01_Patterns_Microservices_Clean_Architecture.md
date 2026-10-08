@@ -144,24 +144,34 @@ flowchart LR
 Кожен файл у проєкті містить докладні коментарі українською мовою з детальним поясненням принципів Clean Architecture:
 
 1. **Базовий агрегат водія:**
-   > 🔘 **[👉 Відкрити файл: `Driver.cs`](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/02-Microservices-Craftsman/DriversManagement/src/DriversManagement/Domain/Drivers/Driver.cs)**  
+   > 📍 **Шлях до файлу:** `DriversManagement/src/DriversManagement/Domain/Drivers/Driver.cs`  
    *Інкапсуляція бізнес-правил, закриті сеттери, фабричний метод `Driver.Create()`, валідація віку та посвідчення.*
 
+   [👉 **Перейти до файлу (клікніть тут)**](../DriversManagement/src/DriversManagement/Domain/Drivers/Driver.cs#L20-L80)
+
 2. **Команда додавання водія з публікацією в шину:**
-   > 🔘 **[👉 Відкрити файл: `AddDriver.cs`](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/02-Microservices-Craftsman/DriversManagement/src/DriversManagement/Domain/Drivers/Features/AddDriver.cs)**  
+   > 📍 **Шлях до файлу:** `DriversManagement/src/DriversManagement/Domain/Drivers/Features/AddDriver.cs`  
    *Поєднання транзакційного збереження в EF Core з публікацією події `IDriverCreated` через MassTransit.*
 
+   [👉 **Перейти до файлу (клікніть тут)**](../DriversManagement/src/DriversManagement/Domain/Drivers/Features/AddDriver.cs#L45-L65)
+
 3. **Запит водія із синхронним gRPC клієнтом:**
-   > 🔘 **[👉 Відкрити файл: `GetDriver.cs`](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/02-Microservices-Craftsman/DriversManagement/src/DriversManagement/Domain/Drivers/Features/GetDriver.cs)**  
+   > 📍 **Шлях до файлу:** `DriversManagement/src/DriversManagement/Domain/Drivers/Features/GetDriver.cs`  
    *Виклик локальної БД та швидкий віддалений RPC-дзвінок до блогу з обробкою часткової відмови.*
 
+   [👉 **Перейти до файлу (клікніть тут)**](../DriversManagement/src/DriversManagement/Domain/Drivers/Features/GetDriver.cs#L55-L105)
+
 4. **Агрегатор аналітичної панелі водія (BFF):**
-   > 🔘 **[👉 Відкрити файл: `GetDriverDashboard.cs`](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/02-Microservices-Craftsman/DriversManagement/src/DriversManagement/Domain/Drivers/Features/GetDriverDashboard.cs)**  
+   > 📍 **Шлях до файлу:** `DriversManagement/src/DriversManagement/Domain/Drivers/Features/GetDriverDashboard.cs`  
    *Паралельне опитування мікросервісів через `Task.WhenAll` з використанням типізованих HTTP-клієнтів.*
 
+   [👉 **Перейти до файлу (клікніть тут)**](../DriversManagement/src/DriversManagement/Domain/Drivers/Features/GetDriverDashboard.cs#L45-L95)
+
 5. **Головний API-контролер водіїв:**
-   > 🔘 **[👉 Відкрити файл: `DriversController.cs`](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/02-Microservices-Craftsman/DriversManagement/src/DriversManagement/Controllers/v1/DriversController.cs)**  
+   > 📍 **Шлях до файлу:** `DriversManagement/src/DriversManagement/Controllers/v1/DriversController.cs`  
    *REST-ендпоінти, пагінація, передача команд через MediatR `_mediator.Send()`.*
+
+   [👉 **Перейти до файлу (клікніть тут)**](../DriversManagement/src/DriversManagement/Controllers/v1/DriversController.cs#L40-L90)
 
 ---
 

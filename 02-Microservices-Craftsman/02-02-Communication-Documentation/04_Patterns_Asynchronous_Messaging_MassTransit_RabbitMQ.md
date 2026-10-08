@@ -231,13 +231,14 @@ await _publishEndpoint.Publish<IDriverCreated>(message, cancellationToken);
 
 ## 7. Детальний розбір реалізації в коді проєкту
 
-### 7.1. Спільні контракти повідомлень (`SharedKernel`)
+### 7.1. Спільні контракти повідомлень (SharedKernel)
 
 Контракти повідомлень містяться у легкому проєкті `SharedKernel` без залежностей від баз даних:
 
-> 🔘 **[👉 Відкрити файл у проєкті: `DriverCreated.cs`](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/02-Microservices-Craftsman/SharedKernel/DriverCreated.cs)**  
-> 🔗 *Шлях: `SharedKernel/DriverCreated.cs`*  
+> 📍 **Шлях до файлу:** `SharedKernel/DriverCreated.cs`  
 > 📝 *У файлі наведено докладні покрокові коментарі українською мовою.*
+
+[👉 **Перейти до файлу (клікніть тут)**](../SharedKernel/DriverCreated.cs#L26-L52)
 
 ```csharp
 public interface IDriverCreated
@@ -250,8 +251,10 @@ public interface IDriverCreated
 }
 ```
 
-> 🔘 **[👉 Відкрити файл у проєкті: `DriverUpdated.cs`](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/02-Microservices-Craftsman/SharedKernel/DriverUpdated.cs)**  
-> 🔗 *Шлях: `SharedKernel/DriverUpdated.cs`*
+> 📍 **Шлях до файлу:** `SharedKernel/DriverUpdated.cs`  
+> 📝 *У файлі наведено докладні покрокові коментарі українською мовою.*
+
+[👉 **Перейти до файлу (клікніть тут)**](../SharedKernel/DriverUpdated.cs#L20-L36)
 
 ```csharp
 public interface IDriverUpdated
@@ -262,18 +265,21 @@ public interface IDriverUpdated
 }
 ```
 
-> 🔘 **[👉 Відкрити файл у проєкті: `OrderMessages.cs`](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/02-Microservices-Craftsman/SharedKernel/OrderMessages.cs)**  
-> 🔗 *Шлях: `SharedKernel/OrderMessages.cs`*
+> 📍 **Шлях до файлу:** `SharedKernel/OrderMessages.cs`  
+> 📝 *У файлі наведено докладні покрокові коментарі українською мовою.*
+
+[👉 **Перейти до файлу (клікніть тут)**](../SharedKernel/OrderMessages.cs#L20-L40)
 
 ---
 
-### 7.2. Продюсер подій: сервіс `DriversManagement`
+### 7.2. Продюсер подій: сервіс DriversManagement
 
 Коли створюється водій, після збереження агрегату в базі викликається `IPublishEndpoint.Publish`:
 
-> 🔘 **[👉 Відкрити файл у проєкті: `AddDriver.cs`](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/02-Microservices-Craftsman/DriversManagement/src/DriversManagement/Domain/Drivers/Features/AddDriver.cs)**  
-> 🔗 *Шлях: `DriversManagement/Domain/Drivers/Features/AddDriver.cs`*  
+> 📍 **Шлях до файлу:** `DriversManagement/src/DriversManagement/Domain/Drivers/Features/AddDriver.cs`  
 > 📝 *У файлі наведено докладні покрокові коментарі українською мовою.*
+
+[👉 **Перейти до файлу (клікніть тут)**](../DriversManagement/src/DriversManagement/Domain/Drivers/Features/AddDriver.cs#L45-L65)
 
 ```csharp
 // Зберігаємо водія в локальній базі даних
@@ -293,8 +299,10 @@ await _publishEndpoint.Publish<IDriverCreated>(new DriverCreated
 
 При оновленні даних водія аналогічно публікується подія `IDriverUpdated`:
 
-> 🔘 **[👉 Відкрити файл у проєкті: `UpdateDriver.cs`](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/02-Microservices-Craftsman/DriversManagement/src/DriversManagement/Domain/Drivers/Features/UpdateDriver.cs)**  
-> 🔗 *Шлях: `DriversManagement/Domain/Drivers/Features/UpdateDriver.cs`*
+> 📍 **Шлях до файлу:** `DriversManagement/src/DriversManagement/Domain/Drivers/Features/UpdateDriver.cs`  
+> 📝 *У файлі наведено докладні покрокові коментарі українською мовою.*
+
+[👉 **Перейти до файлу (клікніть тут)**](../DriversManagement/src/DriversManagement/Domain/Drivers/Features/UpdateDriver.cs#L45-L65)
 
 ---
 
@@ -302,8 +310,10 @@ await _publishEndpoint.Publish<IDriverCreated>(new DriverCreated
 
 У конфігурації шини ми явно прив'язуємо інтерфейси до імен обмінників типу `Fanout`:
 
-> 🔘 **[👉 Відкрити файл у проєкті: `DriverCreatedEndpointRegistration.cs`](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/02-Microservices-Craftsman/DriversManagement/src/DriversManagement/Extensions/Services/ProducerRegistrations/DriverCreatedEndpointRegistration.cs)**  
-> 🔗 *Шлях: `DriversManagement/Extensions/Services/ProducerRegistrations/DriverCreatedEndpointRegistration.cs`*
+> 📍 **Шлях до файлу:** `DriversManagement/src/DriversManagement/Extensions/Services/ProducerRegistrations/DriverCreatedEndpointRegistration.cs`  
+> 📝 *У файлі наведено докладні покрокові коментарі українською мовою.*
+
+[👉 **Перейти до файлу (клікніть тут)**](../DriversManagement/src/DriversManagement/Extensions/Services/ProducerRegistrations/DriverCreatedEndpointRegistration.cs#L8-L16)
 
 ```csharp
 public static void DriverCreatedEndpoint(this IRabbitMqBusFactoryConfigurator cfg)
@@ -313,18 +323,21 @@ public static void DriverCreatedEndpoint(this IRabbitMqBusFactoryConfigurator cf
 }
 ```
 
-> 🔘 **[👉 Відкрити файл у проєкті: `DriverUpdatedEndpointRegistration.cs`](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/02-Microservices-Craftsman/DriversManagement/src/DriversManagement/Extensions/Services/ProducerRegistrations/DriverUpdatedEndpointRegistration.cs)**  
-> 🔗 *Шлях: `DriversManagement/Extensions/Services/ProducerRegistrations/DriverUpdatedEndpointRegistration.cs`*
+> 📍 **Шлях до файлу:** `DriversManagement/src/DriversManagement/Extensions/Services/ProducerRegistrations/DriverUpdatedEndpointRegistration.cs`  
+> 📝 *У файлі наведено докладні покрокові коментарі українською мовою.*
+
+[👉 **Перейти до файлу (клікніть тут)**](../DriversManagement/src/DriversManagement/Extensions/Services/ProducerRegistrations/DriverUpdatedEndpointRegistration.cs#L8-L16)
 
 ---
 
-### 7.4. Споживач у блозі водіїв (`DriversBlogManagement`)
+### 7.4. Споживач у блозі водіїв (DriversBlogManagement)
 
 Клас `SyncDriver` підписаний одночасно на створення та оновлення водіїв:
 
-> 🔘 **[👉 Відкрити файл у проєкті: `SyncDriver.cs`](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/02-Microservices-Craftsman/DriversBlogManagement/src/DriversBlogManagement/Domain/SyncDriver.cs)**  
-> 🔗 *Шлях: `DriversBlogManagement/Domain/SyncDriver.cs`*  
+> 📍 **Шлях до файлу:** `DriversBlogManagement/src/DriversBlogManagement/Domain/SyncDriver.cs`  
 > 📝 *У файлі наведено докладні покрокові коментарі українською мовою щодо ідемпотентності та тіньових моделей.*
+
+[👉 **Перейти до файлу (клікніть тут)**](../DriversBlogManagement/src/DriversBlogManagement/Domain/SyncDriver.cs#L50-L80)
 
 ```csharp
 public sealed class SyncDriver : IConsumer<IDriverCreated>, IConsumer<IDriverUpdated>
@@ -345,21 +358,26 @@ public sealed class SyncDriver : IConsumer<IDriverCreated>, IConsumer<IDriverUpd
 
 Конфігурація кінцевої точки та зв'язування з обмінниками:
 
-> 🔘 **[👉 Відкрити файл у проєкті: `SyncPatientEndpointRegistration.cs`](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/02-Microservices-Craftsman/DriversBlogManagement/src/DriversBlogManagement/Extensions/Services/ConsumerRegistrations/SyncPatientEndpointRegistration.cs)**  
-> 🔗 *Шлях: `DriversBlogManagement/Extensions/Services/ConsumerRegistrations/SyncPatientEndpointRegistration.cs`*
+> 📍 **Шлях до файлу:** `DriversBlogManagement/src/DriversBlogManagement/Extensions/Services/ConsumerRegistrations/SyncPatientEndpointRegistration.cs`  
+> 📝 *У файлі наведено докладні покрокові коментарі українською мовою.*
+
+[👉 **Перейти до файлу (клікніть тут)**](../DriversBlogManagement/src/DriversBlogManagement/Extensions/Services/ConsumerRegistrations/SyncPatientEndpointRegistration.cs#L10-L35)
 
 ---
 
-### 7.5. Споживач у сервісі замовлень (`CargoOrderingService`)
+### 7.5. Споживач у сервісі замовлень (CargoOrderingService)
 
 Сервіс замовлень також реплікує водіїв для забезпечення повної автономності при призначенні вантажів:
 
-> 🔘 **[👉 Відкрити файл у проєкті: `SyncDriverInOrdering.cs`](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/02-Microservices-Craftsman/CargoOrderingService/src/CargoOrderingService/Domain/Drivers/Consumers/SyncDriverInOrdering.cs)**  
-> 🔗 *Шлях: `CargoOrderingService/Domain/Drivers/Consumers/SyncDriverInOrdering.cs`*  
+> 📍 **Шлях до файлу:** `CargoOrderingService/src/CargoOrderingService/Domain/Drivers/Consumers/SyncDriverInOrdering.cs`  
 > 📝 *У файлі наведено докладні покрокові коментарі українською мовою щодо автономності Bounded Context.*
 
-> 🔘 **[👉 Відкрити файл у проєкті: `SyncDriverInOrderingEndpointRegistration.cs`](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/02-Microservices-Craftsman/CargoOrderingService/src/CargoOrderingService/Extensions/Services/ConsumerRegistrations/SyncDriverInOrderingEndpointRegistration.cs)**  
-> 🔗 *Шлях: `CargoOrderingService/Extensions/Services/ConsumerRegistrations/SyncDriverInOrderingEndpointRegistration.cs`*
+[👉 **Перейти до файлу (клікніть тут)**](../CargoOrderingService/src/CargoOrderingService/Domain/Drivers/Consumers/SyncDriverInOrdering.cs#L50-L80)
+
+> 📍 **Шлях до файлу:** `CargoOrderingService/src/CargoOrderingService/Extensions/Services/ConsumerRegistrations/SyncDriverInOrderingEndpointRegistration.cs`  
+> 📝 *У файлі наведено докладні покрокові коментарі українською мовою.*
+
+[👉 **Перейти до файлу (клікніть тут)**](../CargoOrderingService/src/CargoOrderingService/Extensions/Services/ConsumerRegistrations/SyncDriverInOrderingEndpointRegistration.cs#L10-L30)
 
 ---
 
@@ -367,8 +385,10 @@ public sealed class SyncDriver : IConsumer<IDriverCreated>, IConsumer<IDriverUpd
 
 У файлі конфігурації шини реалізовано інтелектуальний механізм вибору транспорту:
 
-> 🔘 **[👉 Відкрити файл у проєкті: `MassTransitServiceExtension.cs (Ordering)`](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/02-Microservices-Craftsman/CargoOrderingService/src/CargoOrderingService/Extensions/Services/MassTransitServiceExtension.cs)**  
-> 🔗 *Шлях: `CargoOrderingService/Extensions/Services/MassTransitServiceExtension.cs`*
+> 📍 **Шлях до файлу:** `CargoOrderingService/src/CargoOrderingService/Extensions/Services/MassTransitServiceExtension.cs`  
+> 📝 *У файлі наведено докладні покрокові коментарі українською мовою.*
+
+[👉 **Перейти до файлу (клікніть тут)**](../CargoOrderingService/src/CargoOrderingService/Extensions/Services/MassTransitServiceExtension.cs#L20-L60)
 
 ```csharp
 // 1. Якщо передано рядок підключення від Aspire (GetConnectionString("rabbitmq"))
@@ -391,8 +411,10 @@ else
 }
 ```
 
-> 🔘 **[👉 Відкрити файл у проєкті: `MassTransitServiceExtension.cs (Drivers)`](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/02-Microservices-Craftsman/DriversManagement/src/DriversManagement/Extensions/Services/MassTransitServiceExtension.cs)**  
-> 🔗 *Шлях: `DriversManagement/Extensions/Services/MassTransitServiceExtension.cs`*
+> 📍 **Шлях до файлу:** `DriversManagement/src/DriversManagement/Extensions/Services/MassTransitServiceExtension.cs`  
+> 📝 *У файлі наведено докладні покрокові коментарі українською мовою.*
+
+[👉 **Перейти до файлу (клікніть тут)**](../DriversManagement/src/DriversManagement/Extensions/Services/MassTransitServiceExtension.cs#L20-L60)
 
 ---
 
@@ -417,3 +439,27 @@ else
 - [x] **Кворум-черги (Quorum Queues) для критичних даних:** Реплікація на базі Raft-консенсусу захищає від збоїв кластера.
 - [x] **Lazy Queues для оптимізації ресурсів:** Запобігає перевантаженню оперативної пам'яті брокера.
 - [x] **In-Memory Fallback для автоматизованих тестів:** Юніт- та компонентні тести проходять миттєво в пам'яті без необхідності підіймати важкий контейнер RabbitMQ.
+
+---
+
+## 10. Швидка навігація по вихідному коду
+
+* 📦 **Контракти повідомлень (SharedKernel):**
+  * [👉 **Перейти до DriverCreated.cs**](../SharedKernel/DriverCreated.cs#L26-L52)
+  * [👉 **Перейти до DriverUpdated.cs**](../SharedKernel/DriverUpdated.cs#L20-L36)
+  * [👉 **Перейти до OrderMessages.cs**](../SharedKernel/OrderMessages.cs#L20-L40)
+* 🚀 **Продюсери подій (Publishers):**
+  * [👉 **Перейти до AddDriver.cs (DriversManagement)**](../DriversManagement/src/DriversManagement/Domain/Drivers/Features/AddDriver.cs#L45-L65)
+  * [👉 **Перейти до UpdateDriver.cs (DriversManagement)**](../DriversManagement/src/DriversManagement/Domain/Drivers/Features/UpdateDriver.cs#L45-L65)
+  * [👉 **Перейти до DriverCreatedEndpointRegistration.cs**](../DriversManagement/src/DriversManagement/Extensions/Services/ProducerRegistrations/DriverCreatedEndpointRegistration.cs#L8-L16)
+  * [👉 **Перейти до DriverUpdatedEndpointRegistration.cs**](../DriversManagement/src/DriversManagement/Extensions/Services/ProducerRegistrations/DriverUpdatedEndpointRegistration.cs#L8-L16)
+  * [👉 **Перейти до AddOrder.cs (CargoOrderingService)**](../CargoOrderingService/src/CargoOrderingService/Domain/Orders/Features/AddOrder.cs#L45-L60)
+* 📥 **Споживачі (Consumers):**
+  * [👉 **Перейти до SyncDriver.cs (DriversBlogManagement)**](../DriversBlogManagement/src/DriversBlogManagement/Domain/SyncDriver.cs#L50-L80)
+  * [👉 **Перейти до SyncPatientEndpointRegistration.cs**](../DriversBlogManagement/src/DriversBlogManagement/Extensions/Services/ConsumerRegistrations/SyncPatientEndpointRegistration.cs#L10-L35)
+  * [👉 **Перейти до SyncDriverInOrdering.cs (CargoOrderingService)**](../CargoOrderingService/src/CargoOrderingService/Domain/Drivers/Consumers/SyncDriverInOrdering.cs#L50-L80)
+  * [👉 **Перейти до SyncDriverInOrderingEndpointRegistration.cs**](../CargoOrderingService/src/CargoOrderingService/Extensions/Services/ConsumerRegistrations/SyncDriverInOrderingEndpointRegistration.cs#L10-L30)
+* ⚙️ **Конфігурація шини MassTransit:**
+  * [👉 **Перейти до MassTransitServiceExtension.cs (Ordering)**](../CargoOrderingService/src/CargoOrderingService/Extensions/Services/MassTransitServiceExtension.cs#L20-L60)
+  * [👉 **Перейти до MassTransitServiceExtension.cs (Drivers)**](../DriversManagement/src/DriversManagement/Extensions/Services/MassTransitServiceExtension.cs#L20-L60)
+

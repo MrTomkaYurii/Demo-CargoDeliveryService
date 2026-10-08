@@ -127,12 +127,13 @@ flowchart TD
 
 ## 5. Детальний розбір вихідного коду проєкту
 
-### 5.1. Контракт Protocol Buffers (`Driver.proto`)
+### 5.1. Контракт Protocol Buffers (Driver.proto)
 
 Контракт є єдиним джерелом правди між двома мікросервісами.
 
-> 🔘 **[👉 Відкрити файл у проєкті: `Driver.proto`](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/02-Microservices-Craftsman/DriversBlogManagement/src/DriversBlogManagement/Domain/Drivers/Protos/Driver.proto)**  
-> 🔗 *Шлях: `DriversBlogManagement/Domain/Drivers/Protos/Driver.proto`*
+> 📍 **Шлях до файлу:** `DriversBlogManagement/src/DriversBlogManagement/Domain/Drivers/Protos/Driver.proto`
+
+[👉 **Перейти до файлу (клікніть тут)**](../DriversBlogManagement/src/DriversBlogManagement/Domain/Drivers/Protos/Driver.proto)
 
 ```protobuf
 syntax = "proto3";
@@ -169,13 +170,14 @@ message PostAboutDriverResponse {
 
 ---
 
-### 5.2. Серверний gRPC сервіс (`DriverRpcService.cs`)
+### 5.2. Серверний gRPC сервіс (DriverRpcService.cs)
 
 Сервер реалізує абстрактний базовий клас `DriverRpc.DriverRpcBase`, згенерований пакетом `Grpc.Tools`:
 
-> 🔘 **[👉 Відкрити файл у проєкті: `DriverRpcService.cs`](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/02-Microservices-Craftsman/DriversBlogManagement/src/DriversBlogManagement/Domain/Drivers/Services/DriverRpcService.cs)**  
-> 🔗 *Шлях: `DriversBlogManagement/Domain/Drivers/Services/DriverRpcService.cs`*  
+> 📍 **Шлях до файлу:** `DriversBlogManagement/src/DriversBlogManagement/Domain/Drivers/Services/DriverRpcService.cs`  
 > 📝 *У файлі наведено докладні покрокові коментарі українською мовою.*
+
+[👉 **Перейти до файлу (клікніть тут)**](../DriversBlogManagement/src/DriversBlogManagement/Domain/Drivers/Services/DriverRpcService.cs#L10-L60)
 
 Фрагмент реалізації методу:
 ```csharp
@@ -226,12 +228,13 @@ app.MapGrpcService<DriverRpcService>();
 
 ---
 
-### 5.3. Клієнтська конфігурація та Service Discovery (`WebAppServiceConfiguration.cs`)
+### 5.3. Клієнтська конфігурація та Service Discovery (WebAppServiceConfiguration.cs)
 
 У мікросервісі `DriversManagement` клієнт gRPC реєструється через фабрику:
 
-> 🔘 **[👉 Відкрити файл у проєкті: `WebAppServiceConfiguration.cs` (Рядки 42–51)](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/02-Microservices-Craftsman/DriversManagement/src/DriversManagement/Extensions/Services/WebAppServiceConfiguration.cs#L42-L51)**  
-> 🔗 *Шлях: `DriversManagement/Extensions/Services/WebAppServiceConfiguration.cs`*
+> 📍 **Шлях до файлу:** `DriversManagement/src/DriversManagement/Extensions/Services/WebAppServiceConfiguration.cs`
+
+[👉 **Перейти до файлу (клікніть тут)**](../DriversManagement/src/DriversManagement/Extensions/Services/WebAppServiceConfiguration.cs#L42-L51)
 
 ```csharp
 builder.Services.AddGrpcClient<DriverRpc.DriverRpcClient>(options =>
@@ -247,11 +250,12 @@ builder.Services.AddGrpcClient<DriverRpc.DriverRpcClient>(options =>
 
 ---
 
-### 5.4. Виклик клієнта з патерном Graceful Degradation (`GetDriver.cs`)
+### 5.4. Виклик клієнта з патерном Graceful Degradation (GetDriver.cs)
 
-> 🔘 **[👉 Відкрити файл у проєкті: `GetDriver.cs`](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/02-Microservices-Craftsman/DriversManagement/src/DriversManagement/Domain/Drivers/Features/GetDriver.cs)**  
-> 🔗 *Шлях: `DriversManagement/Domain/Drivers/Features/GetDriver.cs`*  
+> 📍 **Шлях до файлу:** `DriversManagement/src/DriversManagement/Domain/Drivers/Features/GetDriver.cs`  
 > 📝 *У файлі наведено докладні покрокові коментарі українською мовою.*
+
+[👉 **Перейти до файлу (клікніть тут)**](../DriversManagement/src/DriversManagement/Domain/Drivers/Features/GetDriver.cs#L55-L105)
 
 Фрагмент захищеного виклику:
 ```csharp
@@ -293,3 +297,16 @@ catch (RpcException)
 - [x] **Впроваджуйте Graceful Degradation:** завжди перехоплюйте `RpcException` на клієнтській стороні.
 - [x] **Передавайте `CancellationToken`:** скасовуйте тривалі операції на сервері при відміні виклику клієнтом.
 - [x] **Використовуйте Service Discovery:** підключайте клієнти через логічні імена .NET Aspire.
+
+---
+
+## 7. Швидка навігація по вихідному коду
+
+* 📜 **Контракт Protocol Buffers:**
+  * [👉 **Перейти до Driver.proto**](../DriversBlogManagement/src/DriversBlogManagement/Domain/Drivers/Protos/Driver.proto)
+* ⚡ **Сервер gRPC (DriversBlogManagement):**
+  * [👉 **Перейти до DriverRpcService.cs**](../DriversBlogManagement/src/DriversBlogManagement/Domain/Drivers/Services/DriverRpcService.cs#L10-L60)
+* 🔌 **Клієнт gRPC (DriversManagement):**
+  * [👉 **Перейти до WebAppServiceConfiguration.cs (Реєстрація)**](../DriversManagement/src/DriversManagement/Extensions/Services/WebAppServiceConfiguration.cs#L42-L51)
+  * [👉 **Перейти до GetDriver.cs (Виклик з Graceful Degradation)**](../DriversManagement/src/DriversManagement/Domain/Drivers/Features/GetDriver.cs#L55-L105)
+
