@@ -299,6 +299,72 @@
             Two-letter country code <a href="https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2">(ISO 3166-1 alpha-2)</a>.
             </summary>
         </member>
+        <member name="T:DriversBlogManagement.Domain.Drivers.Services.DriverRpcService">
+             <summary>
+             ====================================================================================
+             ⚡ АРХІТЕКТУРНИЙ ПАТЕРН: СИНХРОННИЙ gRPC СЕРВЕР (SERVICE-TO-SERVICE RPC)
+             ------------------------------------------------------------------------------------
+             ПРИЗНАЧЕННЯ:
+             Цей сервіс реалізує серверний ендпоінт gRPC для надання постів водія за запитом
+             від мікросервісу DriversManagement.
+            
+             ЧОМУ САМЕ gRPC ДЛЯ ВНУТРІШНЬОГО ЗВ'ЯЗКУ МІЖ СЕРВІСАМИ?
+             1. Протокол HTTP/2:
+                На відміну від HTTP/1.1 REST, де на кожен запит відкривається окремий TCP-handshake,
+                gRPC підтримує мультиплексування (Multiplexing) — сотні запитів передаються паралельно
+                через одне відкрите постійне TCP-з'єднання.
+             2. Бінарний формат Protocol Buffers (Protobuf):
+                Дані пакуються в компактні байти замість важкого тексту JSON. Це в 5-10 разів зменшує
+                обсяг трафіку і не витрачає час процесора на парсинг строк.
+             3. Суворий контракт (Driver.proto):
+                Базовий клас DriverRpc.DriverRpcBase та моделі DriverWithPostsRequest/Response
+                генеруються автоматично компілятором protoc на етапі збірки проєкту (MSBuild).
+             ====================================================================================
+             </summary>
+        </member>
+        <member name="M:DriversBlogManagement.Domain.Drivers.Services.DriverRpcService.#ctor(DriversBlogManagement.Domain.Drivers.Services.DriverRepository)">
+            <summary>
+            Конструктор інжектує локальний репозиторій блогу для читання постів водія.
+            </summary>
+        </member>
+        <member name="M:DriversBlogManagement.Domain.Drivers.Services.DriverRpcService.GetDriverWithPosts(DriversBlogManagement.DriverWithPostsRequest,Grpc.Core.ServerCallContext)">
+             <summary>
+             ====================================================================================
+             МЕТОД: GetDriverWithPosts
+             ------------------------------------------------------------------------------------
+             Вхідний Protobuf-запит містить driver_id.
+             Сервер зчитує водія та його публікації з локальної бази DriversBlog DB
+             і повертає строго типізовану бінарну Protobuf-відповідь.
+            
+             ServerCallContext context:
+             Дозволяє перевіряти скасування запиту клієнтом (context.CancellationToken),
+             зчитувати метадані (заголовки авторизації) та передавати трейсинг OpenTelemetry.
+             ====================================================================================
+             </summary>
+        </member>
+        <member name="T:DriversBlogManagement.Extensions.Services.ConsumerRegistrations.SyncPatientEndpointRegistration">
+             <summary>
+             ====================================================================================
+             📬 ТОПОЛОГІЯ ТА НАЛАШТУВАННЯ ЧЕРГИ СПОЖИВАЧА У DRIVERSBLOGMANAGEMENT
+             ------------------------------------------------------------------------------------
+             ПРИЗНАЧЕННЯ:
+             Налаштовує кінцеву точку прийому повідомлень (ReceiveEndpoint) 'sync-updated-driver'
+             для мікросервісу блогів водіїв.
+            
+             КЛЮЧОВІ ПАРАМЕТРИ RABBITMQ:
+             1. ConfigureConsumeTopology = false:
+                Вимикає автоматичне автостворення топології за замовчуванням, дозволяючи явно
+                визначити ім'я черги та прив'язати її до обмінників.
+             2. SetQuorumQueue():
+                Вмикає надійну репліковану чергу Quorum Queue (Raft-консенсус).
+             3. SetQueueArgument("declare", "lazy"):
+                Увімкнення режиму Lazy Queue для оптимального використання пам'яті брокера.
+             4. Bind("driver-updated", Fanout) &amp; Bind("driver-created", Fanout):
+                Черга підписується на обидва обмінники, забезпечуючи отримання як створених,
+                так і оновлених водіїв через єдиного споживача SyncDriver.
+             ====================================================================================
+             </summary>
+        </member>
         <member name="M:DriversBlogManagement.Extensions.Services.WebAppServiceConfiguration.AddBoundaryServices(Microsoft.Extensions.DependencyInjection.IServiceCollection,System.Reflection.Assembly[])">
             <summary>
             Registers all services in the assembly of the given interface.
@@ -448,11 +514,45 @@
             <param name="serviceImpl">An object implementing the server-side handling logic.</param>
         </member>
         <member name="T:Billing.Domain.SyncDriver">
+             <summary>
+             ====================================================================================
+             📬 АРХІТЕКТУРНИЙ ПАТЕРН: MASSTRANSIT CONSUMER (EVENT-DRIVEN DATA REPLICATION)
+             ------------------------------------------------------------------------------------
+             АРХІТЕКТУРНА КОНЦЕПЦІЯ:
+            
+             1. ПРИЗНАЧЕННЯ:
+                Асинхронний споживач подій шини повідомлень MassTransit (RabbitMQ).
+                Автоматично реплікує інформацію про водіїв з основного сервісу DriversManagement
+                у локальну базу даних мікросервісу блогів (DriversBlogManagement).
+            
+             2. КОНЦЕПЦІЯ "SHADOW MODEL" (ТІНЬОВА МОДЕЛЬ ВОДІЯ):
+                Мікросервісу блогів НЕ потрібні всі поля водія (паспорт, категорія, медогляд).
+                Йому потрібні лише Id, FirstName та LastName для підпису постів та лайків.
+                Тому блог створює власну спрощену копію сутності Driver у своїй базі (Database-per-Service).
+            
+             3. ПРИНЦИП ІДЕМПОТЕНТНОСТІ (IDEMPOTENCY):
+                У розподілених мережах брокер повідомлень гарантує семантику "At-least-once delivery"
+                (повідомлення доставляється як мінімум один раз, але через мережеві повтори
+                може надійти двічі).
+                Код перевіряє: if (existingDriver == null) -> Add, інакше оновлюємо або ігноруємо.
+                Це захищає базу від дублювання та конфліктів первинних ключів.
+            
+             4. ПІДТВЕРДЖЕННЯ ДОСТАВКИ (ACK / NACK):
+                Коли метод Consume завершується без помилок, MassTransit надсилає брокеру RabbitMQ
+                сигнал Basic.Ack, і повідомлення остаточно видаляється з черги.
+                Якщо трапляється виняток — MassTransit робить повторні спроби (Retry Policy),
+                а при постійному збої переміщує повідомлення у чергу помилок (Error Queue / Dead Letter).
+             ====================================================================================
+             </summary>
+        </member>
+        <member name="M:Billing.Domain.SyncDriver.Consume(MassTransit.ConsumeContext{SharedKernel.Messages.IDriverCreated})">
             <summary>
-            ПАТЕРН EVENT-DRIVEN DATA REPLICATION / EVENTUAL CONSISTENCY:
-            Асинхронний споживач подій шини повідомлень MassTransit (RabbitMQ).
-            Забезпечує реплікацію довідника водіїв з основного мікросервісу DriversManagement
-            у локальну базу даних мікросервісу блогів (DriversBlogManagement).
+            Обробляє подію створення водія (IDriverCreated).
+            </summary>
+        </member>
+        <member name="M:Billing.Domain.SyncDriver.Consume(MassTransit.ConsumeContext{SharedKernel.Messages.IDriverUpdated})">
+            <summary>
+            Обробляє подію оновлення даних водія (IDriverUpdated).
             </summary>
         </member>
     </members>

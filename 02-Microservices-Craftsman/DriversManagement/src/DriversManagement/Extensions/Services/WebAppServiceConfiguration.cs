@@ -1,4 +1,4 @@
-﻿namespace DriversManagement.Extensions.Services;
+namespace DriversManagement.Extensions.Services;
 
 using DriversManagement.Middleware;
 using DriversManagement.Services;
@@ -48,6 +48,30 @@ public static class WebAppServiceConfiguration
 
             options.Address = new Uri(grpcAddress);
         });
+
+        // ====================================================================================
+        // 🌐 РЕЄСТРАЦІЯ ТИПІЗОВАНИХ HTTP-КЛІЄНТІВ ДЛЯ GATEWAY AGGREGATOR / BFF
+        // ------------------------------------------------------------------------------------
+        // Використовуємо IHttpClientFactory, .NET Aspire Service Discovery та Polly Resilience:
+        // 1. "http://cargoorderingservice" - розпізнається через Aspire Service Discovery.
+        // 2. "http://driversblogmanagement" - розпізнається через Aspire Service Discovery.
+        // 3. AddStandardResilienceHandler() - вбудовані політики Retry, Circuit Breaker та Timeout.
+        // ====================================================================================
+        builder.Services.AddHttpClient<DriversManagement.Domain.Drivers.Services.Http.ICargoOrderingApiClient, DriversManagement.Domain.Drivers.Services.Http.CargoOrderingApiClient>(client =>
+        {
+            var baseUrl = builder.Configuration["services:cargoorderingservice:http:0"]
+                ?? builder.Configuration["services:cargoorderingservice:https:0"]
+                ?? "http://cargoorderingservice";
+            client.BaseAddress = new Uri(baseUrl.EndsWith('/') ? baseUrl : $"{baseUrl}/");
+        }).AddStandardResilienceHandler();
+
+        builder.Services.AddHttpClient<DriversManagement.Domain.Drivers.Services.Http.IDriversBlogApiClient, DriversManagement.Domain.Drivers.Services.Http.DriversBlogApiClient>(client =>
+        {
+            var baseUrl = builder.Configuration["services:driversblogmanagement:http:0"]
+                ?? builder.Configuration["services:driversblogmanagement:https:0"]
+                ?? "http://driversblogmanagement";
+            client.BaseAddress = new Uri(baseUrl.EndsWith('/') ? baseUrl : $"{baseUrl}/");
+        }).AddStandardResilienceHandler();
     }
 
     private static void AddBoundaryServices(this IServiceCollection services, params Assembly[] assemblies)

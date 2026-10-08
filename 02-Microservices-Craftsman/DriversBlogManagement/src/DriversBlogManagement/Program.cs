@@ -5,6 +5,7 @@ using Hellang.Middleware.ProblemDetails;
 using DriversBlogManagement.Extensions.Application;
 using DriversBlogManagement.Extensions.Services;
 using DriversBlogManagement.Databases;
+using DriversBlogManagement.Domain.Drivers.Services;
 using DriversBlogManagement.Resources.HangfireUtilities;
 using Microsoft.Extensions.Hosting;
 

@@ -1,87 +1,155 @@
 # ⚡ 03. Патерни синхронної міжсервісної взаємодії: gRPC та Protocol Buffers
 
 > **Блок 2:** `02-Microservices-Craftsman`  
-> **Технологічний стек:** gRPC (`Grpc.AspNetCore`, `Grpc.Net.Client`), Protocol Buffers (`Google.Protobuf`), HTTP/2, C# Code Generation.
+> **Технологічний стек:** .NET 10, gRPC (`Grpc.AspNetCore`, `Grpc.Net.Client`, `Grpc.Tools`), Protocol Buffers (`Google.Protobuf`), HTTP/2 Мультиплексування, C# Code Generation, Graceful Degradation.
 
 ---
 
 ## 1. Теоретична концепція: Чому gRPC для внутрішньої комунікації?
 
-У розподілених системах розрізняють два типи міжсервісної взаємодії:
-1. **Зовнішнє API (Edge / Ingress)**: клієнти (веб-браузери, мобільні додатки) зазвичай спілкуються з бекендом через **REST HTTP/1.1 JSON**, оскільки це універсальний стандарт.
-2. **Внутрішнє міжсервісне API (Service-to-Service)**: виклики між сервісами всередині приватного кластера вимагають максимальної швидкодії, мінімальної затримки (latency) та суворої типізації.
+У сучасних розподілених мікросервісних системах розрізняють дві принципово різні площини взаємодії:
 
-### REST проти gRPC у мікросервісах:
+1. **Зовнішнє API (North-South Traffic / Ingress):**  
+   Зв'язок між зовнішніми клієнтами (браузери, мобільні додатки) та бекендом. Тут домінує **REST HTTP/1.1 або HTTP/2 JSON**, тому що це загальновизнаний відкритий стандарт, зрозумілий фронтенд-розробникам і браузерним рушіям.
+   
+2. **Внутрішнє API (East-West Traffic / Service-to-Service):**  
+   Зв'язок між сервісами всередині приватного кластера (наприклад, `DriversManagement ➔ DriversBlogManagement`). Використання тут важкого текстового REST JSON є марнотратством обчислювальних ресурсів процесора та мережі. Внутрішня комунікація вимагає:
+   * **Мінімальної затримки (Sub-millisecond Latency).**
+   * **Мінімального розміру корисного навантаження (Payload).**
+   * **Суворої контрактної типізації**, яка перевіряється на етапі компіляції проекту.
 
-| Характеристика | Класичний REST (JSON) | gRPC (Protocol Buffers) |
-| :--- | :--- | :--- |
-| **Транспортний протокол** | HTTP/1.1 (текстовий, повільний handshake) | **HTTP/2** (бінарний, мультиплексування в одному TCP-з'єднанні) |
-| **Формат корисного навантаження** | Текстовий JSON (надлишковий, повільний парсинг) | **Protobuf** (компактний бінарний формат) |
-| **Контракт** | OpenAPI/Swagger (часто несинхронізований) | **`.proto` файл** (суворий контракт, обов'язковий компілятор) |
-| **Генерація клієнтів** | Сторонні утиліти | **Автоматична кодогенерація** у збірку на рівні MSBuild |
-| **Стрімінг** | Лише через WebSockets/SSE | Двосторонній стрімінг із коробки (Bidirectional Streaming) |
-
----
-
-## 2. Аналогія з реального життя: Спецзв'язок замість поштових листів
-
-* **REST JSON** схожий на відправку офіційного паперового листа у конверті. Потрібно роздрукувати текст, наклеїти марку, чекати кур'єра, а адресат має розірвати конверт і прочитати текст слово за словом.
-* **gRPC** схожий на **закритий телефонний спецзв'язок (пряма гаряча лінія)** між кабінетами двох директорів. З'єднання вже встановлено (`HTTP/2 Multiplexing`), розмова ведеться короткими чіткими військовими кодами (`Protobuf`), інформація передається миттєво без зайвих формальностей.
+Саме ці завдання ідеально вирішує **gRPC** (розроблений Google високопродуктивний RPC-фреймворк).
 
 ---
 
-## 3. Діаграма послідовності виклику (Sequence Diagram)
+## 2. Глибоке порівняння: REST JSON проти gRPC Protobuf
+
+| Характеристика | Класичний REST (JSON) | gRPC (Protocol Buffers) | Перевага gRPC |
+| :--- | :--- | :--- | :--- |
+| **Транспортний протокол** | HTTP/1.1 (текстовий, Head-of-Line blocking) | **HTTP/2** (бінарний фреймінг, єдине постійне з'єднання) | Відсутність затримок на TCP Handshake |
+| **Мультиплексування** | ❌ Немає (1 запит = 1 TCP з'єднання) | **✅ Так** (сотні паралельних потоків в одному сокеті) | Економія сокетів операційної системи |
+| **Стиснення заголовків**| ❌ Тільки важкі текстові HTTP-заголовки | **✅ Алгоритм HPACK** | Економія до 80% мережевого оверхеду |
+| **Формат корисного навантаження**| Текстовий JSON (дублювання імен полів у кожному рядку) | **Бінарний Protobuf** (числові теги полів `1, 2, 3`) | Компактність байтів у 5–10 разів вища |
+| **Швидкість серіалізації** | Повільний парсинг рядків у CPU | **Пряма бінарна десеріалізація** | У 6–8 разів швидше за `System.Text.Json` |
+| **Контракт** | Слабкий (Swagger/OpenAPI часто застаріває) | **Суворий `.proto` файл** | Помилка несумісності виявляється під час білду |
+| **Генерація клієнтів** | Ручна або сторонні генератори | **Автоматична компіляція `protoc` у MSBuild** | Готовий C# клієнт без жодного рядка коду вручну |
+
+---
+
+## 3. Аналогія з реального життя: Поштовий лист проти Спецзв'язку
+
+* **REST JSON** схожий на відправку офіційного паперового листа через кур'єрську службу. Вам потрібно роздрукувати текст на аркуші, покласти в конверт, наклеїти марку, а адресат повинен розрізати ножицями конверт, прочитати кожне слово та розпарсити сенс. Це надійно, але повільно й марнотратно.
+* **gRPC** схожий на **закритий телефонний спецзв'язок (пряма гаряча лінія)** між кабінетами двох директорів. Кабель зв'язку вже протягнутий і постійно підключений (`HTTP/2 Multiplexing`). Розмова ведеться короткими військовими радіокодами (`Protobuf`), інформація передається миттєво без зайвих формальностей.
+
+---
+
+## 4. Архітектурні діаграми
+
+### 4.1. Мультиплексування HTTP/2 в одному TCP-з'єднанні
 
 ```mermaid
-sequenceDiagram
-    autonumber
-    actor Client as Клієнт / Frontend
-    participant DM_API as DriversManagement API
-    participant MediatR as GetDriver.Handler
-    participant DB_Repo as Drivers DB (Local)
-    participant gRPC_Client as DriverRpcClient (HTTP/2)
-    participant Blog_gRPC as DriverRpcService (Blog Service)
-    participant Blog_DB as DriversBlog DB
-
-    Client->>DM_API: GET /api/v1/drivers/{id}
-    DM_API->>MediatR: Send(GetDriver.Query(id))
-    MediatR->>DB_Repo: GetById(id)
-    DB_Repo-->>MediatR: Driver entity
-    
-    rect rgb(30, 40, 60)
-        note over MediatR,Blog_gRPC: gRPC Synchronous RPC Call
-        MediatR->>gRPC_Client: GetDriverWithPostsAsync(request)
-        gRPC_Client->>Blog_gRPC: POST /DriverRpc/GetDriverWithPosts (Protobuf)
-        Blog_gRPC->>Blog_DB: GetDriverWithPosts(driverId)
-        Blog_DB-->>Blog_gRPC: Posts List
-        Blog_gRPC-->>gRPC_Client: DriverWithPostsResponse (Binary)
-        gRPC_Client-->>MediatR: grpcResponse.Posts
+flowchart LR
+    subgraph REST_Problem["❌ HTTP/1.1 (REST JSON): Блокування та окремі сокети"]
+        direction TB
+        C1["Клієнт"] -->|TCP Handshake 1| S1["Сервер: Request 1"]
+        C1 -->|TCP Handshake 2| S2["Сервер: Request 2"]
+        C1 -->|TCP Handshake 3| S3["Сервер: Request 3"]
     end
 
-    MediatR-->>DM_API: FullDataAboutDriverAndPostsDto
-    DM_API-->>Client: HTTP 200 OK (JSON)
+    subgraph gRPC_Solution["✅ HTTP/2 (gRPC Protobuf): Одне постійне з'єднання"]
+        direction TB
+        C2["Клієнт"] ===|"Єдине TCP-з'єднання (Мультиплексування)<br/>Stream 1 (GetDriver) | Stream 3 (GetPosts) | Stream 5"| S4["Сервер"]
+    end
 ```
 
 ---
 
-## 4. Реалізація у коді проєкту
+### 4.2. Повна діаграма послідовності виклику (Sequence Diagram)
 
-### 4.1. Protobuf Контракт ([`Driver.proto`](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/02-Microservices-Craftsman/DriversBlogManagement/src/DriversBlogManagement/Domain/Drivers/Protos/Driver.proto))
-У файлі визначено єдиний міжсервісний контракт:
+Діаграма відображає наскрізний шлях запиту: від веб-клієнта, через MediatR у `DriversManagement`, до віддаленого gRPC-сервера `DriversBlogManagement`:
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Client as 📱 Веб-клієнт / Frontend
+    participant DM_API as 🚚 DriversController (REST)
+    participant MediatR as ⚙️ GetDriver.Handler (CQRS)
+    participant Local_DB as 🗄️ DriversManagement DB (EF Core)
+    participant gRPC_Client as 🔌 DriverRpcClient (HTTP/2)
+    participant Blog_Server as 📝 DriverRpcService (gRPC Сервер)
+    participant Blog_DB as 🗄️ DriversBlog DB (EF Core)
+
+    Client->>DM_API: GET /api/v1/drivers/{id}
+    DM_API->>MediatR: Send(GetDriver.Query(id))
+    
+    %% Локальне зчитування
+    MediatR->>Local_DB: GetById(id)
+    Local_DB-->>MediatR: Driver aggregate entity
+
+    %% Віддалений gRPC дзвінок
+    rect rgb(20, 35, 60)
+        note over MediatR,Blog_Server: Синхронний бінарний RPC-виклик по протоколу HTTP/2
+        MediatR->>gRPC_Client: GetDriverWithPostsAsync(DriverWithPostsRequest)
+        gRPC_Client->>Blog_Server: POST /DriverRpc/GetDriverWithPosts (Protobuf Frames)
+        Blog_Server->>Blog_DB: GetDriverWithPosts(driverId)
+        Blog_DB-->>Blog_Server: Posts List
+        Blog_Server-->>gRPC_Client: DriverWithPostsResponse (Binary Payload)
+        gRPC_Client-->>MediatR: grpcResponse.Posts
+    end
+
+    %% Відповідь клієнту
+    MediatR-->>DM_API: FullDataAboutDriverAndPostsDto
+    DM_API-->>Client: 200 OK (Композитний JSON)
+```
+
+---
+
+### 4.3. Діаграма обробки збоїв (Graceful Degradation Flow)
+
+Якщо віддалений мікросервіс блогів недоступний, система не повинна зазнавати каскадного колапсу (**Cascading Failure**):
+
+```mermaid
+flowchart TD
+    Start["Запит GetDriver.Query"] --> FetchLocal["Зчитування водія з DriversManagement DB"]
+    FetchLocal --> CallRpc{"Виклик DriverRpcClient<br/>GetDriverWithPostsAsync"}
+    
+    CallRpc -->|Успіх 200 OK| ParsePosts["Мапінг Protobuf постів у DTO"]
+    CallRpc -->|RpcException: Unavailable / Timeout| HandleError["Блок catch (RpcException)"]
+    
+    HandleError --> LogWarn["Логування попередження в OpenTelemetry"]
+    LogWarn --> Fallback["Fallback: результат з порожнім списком постів []"]
+    
+    ParsePosts --> ReturnSuccess["Повернення 200 OK користувачу"]
+    Fallback --> ReturnSuccess
+```
+
+---
+
+## 5. Детальний розбір вихідного коду проєкту
+
+### 5.1. Контракт Protocol Buffers (`Driver.proto`)
+
+Контракт є єдиним джерелом правди між двома мікросервісами.
+
+> 🔘 **[👉 Відкрити файл у проєкті: `Driver.proto`](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/02-Microservices-Craftsman/DriversBlogManagement/src/DriversBlogManagement/Domain/Drivers/Protos/Driver.proto)**  
+> 🔗 *Шлях: `DriversBlogManagement/Domain/Drivers/Protos/Driver.proto`*
 
 ```protobuf
 syntax = "proto3";
 
 option csharp_namespace = "DriversBlogManagement";
 
-message DriverWithPostsRequest {
-  string driver_id = 1;
-}
-
+// Опис gRPC-сервісу з віддаленою процедурою
 service DriverRpc {
   rpc GetDriverWithPosts(DriverWithPostsRequest) returns (DriverWithPostsResponse);
 }
 
+// Запит: містить лише ідентифікатор водія (число 1 - це числовий тег Protobuf)
+message DriverWithPostsRequest {
+  string driver_id = 1;
+}
+
+// Відповідь: містить дані водія та колекцію повторюваних постів (repeated)
 message DriverWithPostsResponse {
   string driver_id = 1;
   string first_name = 2;
@@ -96,9 +164,20 @@ message PostAboutDriverResponse {
 }
 ```
 
-### 4.2. Серверний сервіс ([`DriverRpcService.cs`](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/02-Microservices-Craftsman/DriversBlogManagement/src/DriversBlogManagement/Domain/Drivers/Services/DriverRpcService.cs))
-У проєкті `DriversBlogManagement` клас успадковує згенерований базовий клас `DriverRpc.DriverRpcBase`:
+> [!NOTE]
+> Числа `= 1; = 2; = 3;` — це **не значення за замовчуванням**, а **бінарні теги полів**. Саме за цими номерами Protobuf серіалізує дані в байти, не передаючи довгі текстові імена полів `first_name`, що й забезпечує неймовірну швидкість та компактність.
 
+---
+
+### 5.2. Серверний gRPC сервіс (`DriverRpcService.cs`)
+
+Сервер реалізує абстрактний базовий клас `DriverRpc.DriverRpcBase`, згенерований пакетом `Grpc.Tools`:
+
+> 🔘 **[👉 Відкрити файл у проєкті: `DriverRpcService.cs`](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/02-Microservices-Craftsman/DriversBlogManagement/src/DriversBlogManagement/Domain/Drivers/Services/DriverRpcService.cs)**  
+> 🔗 *Шлях: `DriversBlogManagement/Domain/Drivers/Services/DriverRpcService.cs`*  
+> 📝 *У файлі наведено докладні покрокові коментарі українською мовою.*
+
+Фрагмент реалізації методу:
 ```csharp
 public class DriverRpcService : DriverRpc.DriverRpcBase
 {
@@ -110,8 +189,10 @@ public class DriverRpcService : DriverRpc.DriverRpcBase
     }
 
     public override async Task<DriverWithPostsResponse> GetDriverWithPosts(
-        DriverWithPostsRequest request, ServerCallContext context)
+        DriverWithPostsRequest request, 
+        ServerCallContext context)
     {
+        // context.CancellationToken дозволяє перервати запит, якщо клієнт відключився
         var driverId = Guid.Parse(request.DriverId);
         var driverWithPostsDto = await _driverRepository.GetDriverWithPosts(driverId);
 
@@ -136,29 +217,52 @@ public class DriverRpcService : DriverRpc.DriverRpcBase
     }
 }
 ```
-Реєстрація ендпоінта в [`Program.cs`](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/02-Microservices-Craftsman/DriversBlogManagement/src/DriversBlogManagement/Program.cs):
+
+Реєстрація сервісу у конвеєрі маршрутизації `DriversBlogManagement`:
 ```csharp
+// Program.cs у DriversBlogManagement:
 app.MapGrpcService<DriverRpcService>();
 ```
 
-### 4.3. Реєстрація gRPC-клієнта ([`WebAppServiceConfiguration.cs`](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/02-Microservices-Craftsman/DriversManagement/src/DriversManagement/Extensions/Services/WebAppServiceConfiguration.cs))
-У сервісі `DriversManagement` типізований gRPC-клієнт підключається через фабрику:
+---
+
+### 5.3. Клієнтська конфігурація та Service Discovery (`WebAppServiceConfiguration.cs`)
+
+У мікросервісі `DriversManagement` клієнт gRPC реєструється через фабрику:
+
+> 🔘 **[👉 Відкрити файл у проєкті: `WebAppServiceConfiguration.cs` (Рядки 42–51)](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/02-Microservices-Craftsman/DriversManagement/src/DriversManagement/Extensions/Services/WebAppServiceConfiguration.cs#L42-L51)**  
+> 🔗 *Шлях: `DriversManagement/Extensions/Services/WebAppServiceConfiguration.cs`*
+
 ```csharp
 builder.Services.AddGrpcClient<DriverRpc.DriverRpcClient>(options =>
 {
-    options.Address = new Uri(builder.Configuration["Services:BlogServiceUrl"] ?? "https://localhost:5001");
+    // Адресація за іменем сервісу через .NET Aspire Service Discovery
+    var grpcAddress = builder.Configuration["services:driversblogmanagement:https:0"]
+        ?? builder.Configuration["services:driversblogmanagement:http:0"]
+        ?? "https://localhost:5002";
+
+    options.Address = new Uri(grpcAddress);
 });
 ```
 
-### 4.4. Виклик клієнта та патерн стійкості (Graceful Degradation) ([`GetDriver.cs`](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/02-Microservices-Craftsman/DriversManagement/src/DriversManagement/Domain/Drivers/Features/GetDriver.cs))
-У разі недоступності віддаленого мікросервісу блогів клієнт не повинен викидати необроблений збій на користувача (Cascading Failure):
+---
 
+### 5.4. Виклик клієнта з патерном Graceful Degradation (`GetDriver.cs`)
+
+> 🔘 **[👉 Відкрити файл у проєкті: `GetDriver.cs`](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/02-Microservices-Craftsman/DriversManagement/src/DriversManagement/Domain/Drivers/Features/GetDriver.cs)**  
+> 🔗 *Шлях: `DriversManagement/Domain/Drivers/Features/GetDriver.cs`*  
+> 📝 *У файлі наведено докладні покрокові коментарі українською мовою.*
+
+Фрагмент захищеного виклику:
 ```csharp
-// Виклик віддаленого мікросервісу через синхронний gRPC контракт
 try
 {
     var grpcRequest = new DriverWithPostsRequest { DriverId = request.DriverId.ToString() };
-    DriverWithPostsResponse grpcResponse = await _client.GetDriverWithPostsAsync(grpcRequest, cancellationToken: cancellationToken);
+    
+    // Синхронний виклик через згенерований типізований клієнт
+    DriverWithPostsResponse grpcResponse = await _client.GetDriverWithPostsAsync(
+        grpcRequest, 
+        cancellationToken: cancellationToken);
 
     if (grpcResponse?.Posts != null)
     {
@@ -172,17 +276,20 @@ try
 }
 catch (RpcException)
 {
-    // Патерн стійкості (Graceful Degradation): якщо мікросервіс блогів недоступний,
-    // повертаємо дані водія з порожнім списком постів, уникаючи відмови всієї операції
+    // ПАТЕРН СТІЙКОСТІ (GRACEFUL DEGRADATION):
+    // Якщо мікросервіс блогів упав або не відповідає, повертаємо профіль водія
+    // з порожнім списком постів, рятуючи користувацьку операцію від помилки 500!
     result.Posts = new List<PostAboutDriverDto>();
 }
 ```
 
 ---
 
-## 5. Швидка навігація по файлах коду
+## 6. Чеклист для впровадження gRPC у мікросервісах
 
-- 📜 Контракт Protobuf: [`Driver.proto`](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/02-Microservices-Craftsman/DriversBlogManagement/src/DriversBlogManagement/Domain/Drivers/Protos/Driver.proto)
-- 🖥️ Сервер gRPC: [`DriverRpcService.cs`](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/02-Microservices-Craftsman/DriversBlogManagement/src/DriversBlogManagement/Domain/Drivers/Services/DriverRpcService.cs)
-- 🔌 Конфігурація клієнта: [`WebAppServiceConfiguration.cs`](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/02-Microservices-Craftsman/DriversManagement/src/DriversManagement/Extensions/Services/WebAppServiceConfiguration.cs)
-- 📞 Виклик з обробкою відмов: [`GetDriver.cs`](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/02-Microservices-Craftsman/DriversManagement/src/DriversManagement/Domain/Drivers/Features/GetDriver.cs)
+- [x] **Єдиний `.proto` контракт:** створюйте чіткі повідомлення та сервіси у файлі `.proto`.
+- [x] **Налаштуйте MSBuild Protobuf:** додайте `<Protobuf Include="Protos\*.proto" GrpcServices="Server" />` на сервері та `GrpcServices="Client"` на клієнті.
+- [x] **HTTP/2 Endpoints:** переконайтеся, що Kestrel налаштований на підтримку протоколу `HttpProtocols.Http2`.
+- [x] **Впроваджуйте Graceful Degradation:** завжди перехоплюйте `RpcException` на клієнтській стороні.
+- [x] **Передавайте `CancellationToken`:** скасовуйте тривалі операції на сервері при відміні виклику клієнтом.
+- [x] **Використовуйте Service Discovery:** підключайте клієнти через логічні імена .NET Aspire.

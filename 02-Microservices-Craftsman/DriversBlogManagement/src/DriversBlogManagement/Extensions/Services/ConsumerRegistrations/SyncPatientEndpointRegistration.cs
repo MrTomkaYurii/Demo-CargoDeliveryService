@@ -5,26 +5,46 @@ using MassTransit.RabbitMqTransport;
 using RabbitMQ.Client;
 using Billing.Domain;
 
+/// <summary>
+/// ====================================================================================
+/// 📬 ТОПОЛОГІЯ ТА НАЛАШТУВАННЯ ЧЕРГИ СПОЖИВАЧА У DRIVERSBLOGMANAGEMENT
+/// ------------------------------------------------------------------------------------
+/// ПРИЗНАЧЕННЯ:
+/// Налаштовує кінцеву точку прийому повідомлень (ReceiveEndpoint) 'sync-updated-driver'
+/// для мікросервісу блогів водіїв.
+///
+/// КЛЮЧОВІ ПАРАМЕТРИ RABBITMQ:
+/// 1. ConfigureConsumeTopology = false:
+///    Вимикає автоматичне автостворення топології за замовчуванням, дозволяючи явно
+///    визначити ім'я черги та прив'язати її до обмінників.
+/// 2. SetQuorumQueue():
+///    Вмикає надійну репліковану чергу Quorum Queue (Raft-консенсус).
+/// 3. SetQueueArgument("declare", "lazy"):
+///    Увімкнення режиму Lazy Queue для оптимального використання пам'яті брокера.
+/// 4. Bind("driver-updated", Fanout) &amp; Bind("driver-created", Fanout):
+///    Черга підписується на обидва обмінники, забезпечуючи отримання як створених,
+///    так і оновлених водіїв через єдиного споживача SyncDriver.
+/// ====================================================================================
+/// </summary>
 public static class SyncPatientEndpointRegistration
 {
     public static void SyncPatientEndpoint(this IRabbitMqBusFactoryConfigurator cfg, IBusRegistrationContext context)
     {
         cfg.ReceiveEndpoint("sync-updated-driver", re =>
         {
-            // turns off default fanout settings
+            // Вимикає стандартну топологію MassTransit для повного ручного контролю
             re.ConfigureConsumeTopology = false;
 
-            // a replicated queue to provide high availability and data safety. available in RMQ 3.8+
+            // Кворум-черга для високої доступності та надійності даних (RabbitMQ 3.8+)
             re.SetQuorumQueue();
 
-            // enables a lazy queue for more stable cluster with better predictive performance.
-            // Please note that you should disable lazy queues if you require really high performance, if the queues are always short, or if you have set a max-length policy.
+            // Lazy Queue для стабільності та передбачуваної продуктивності
             re.SetQueueArgument("declare", "lazy");
 
-            // the consumers that are subscribed to the endpoint
+            // Реєстрація класу-споживача, який обробляє повідомлення з черги
             re.ConfigureConsumer<SyncDriver>(context);
 
-            // the binding of the intermediary exchange and the primary exchange
+            // Прив'язка (Binding) черги до первинних Fanout-обмінників
             re.Bind("driver-updated", e =>
             {
                 e.ExchangeType = ExchangeType.Fanout;

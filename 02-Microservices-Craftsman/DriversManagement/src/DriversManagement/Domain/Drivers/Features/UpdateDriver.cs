@@ -1,4 +1,4 @@
-﻿namespace DriversManagement.Domain.Drivers.Features;
+namespace DriversManagement.Domain.Drivers.Features;
 
 using DriversManagement.Domain.Drivers;
 using DriversManagement.Domain.Drivers.Dtos;
@@ -34,6 +34,25 @@ public static class UpdateDriver
             _publishEndpoint = publishEndpoint;
         }
 
+        /// <summary>
+        /// ====================================================================================
+        /// 📬 ОБРОБНИК КОМАНДИ ОНОВЛЕННЯ ВОДІЯ З АСИНХРОННОЮ ПУБЛІКАЦІЄЮ В RABBITMQ
+        /// ------------------------------------------------------------------------------------
+        /// 1. ВАЛІДАЦІЯ ТА АВТОРИЗАЦІЯ:
+        ///    Перевіряємо дозвіл 'CanUpdateDriver' через HeimGuard.
+        /// 2. ЛОКАЛЬНА ТРАНЗАКЦІЯ:
+        ///    Оновлюємо агрегат Driver у локальній базі DriversManagement та фіксуємо
+        ///    зміни через _unitOfWork.CommitChanges.
+        /// 3. ПАТЕРН EVENT-DRIVEN NOTIFICATION (Асинхронне сповіщення підписників):
+        ///    Публікуємо SharedKernel.Messages.IDriverUpdated через IPublishEndpoint.
+        ///    MassTransit спрямовує повідомлення у RabbitMQ Fanout Exchange 'driver-updated',
+        ///    який миттєво дублює його у черги:
+        ///      - sync-updated-driver (DriversBlogManagement)
+        ///      - ordering-sync-driver (CargoOrderingService)
+        /// 4. EVENTUAL CONSISTENCY (Кінцева узгодженість):
+        ///    Всі сервіси отримують новий стан водія асинхронно, без блокування клієнтського запиту.
+        /// ====================================================================================
+        /// </summary>
         public async Task Handle(Command request, CancellationToken cancellationToken)
         {
             await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanUpdateDriver);
@@ -45,8 +64,7 @@ public static class UpdateDriver
             _driverRepository.Update(driverToUpdate);
             await _unitOfWork.CommitChanges(cancellationToken);
 
-            // ПАТЕРН EVENT-DRIVEN SYNC (Публікація оновлення сутності через RabbitMQ):
-            // Сповіщаємо всі зацікавлені мікросервіси про зміну даних водія
+            // Публікуємо подію оновлення після успішного збереження в БД
             var message = new SharedKernel.Messages.DriverUpdated
             {
                 DriverId = request.DriverId,

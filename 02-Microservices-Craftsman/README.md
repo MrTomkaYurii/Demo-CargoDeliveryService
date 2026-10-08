@@ -32,7 +32,7 @@
    *Концепція Bounded Contexts у DDD, Vertical Slice Architecture з MediatR (CQRS), відокремлені сутності Driver у різних мікросервісах та порівняння з монолітом Блоку 1.*
 
 2. 🌐 **[02_Patterns_Synchronous_HttpClient_Aggregator_BFF.md](02-02-Communication-Documentation/02_Patterns_Synchronous_HttpClient_Aggregator_BFF.md)**  
-   *Синхронна HTTP-комунікація через `HttpClient` / `IHttpClientFactory`, патерн Gateway Aggregator / Backend for Frontend (BFF), паралельний Fan-Out/Fan-In (`Task.WhenAll`), Polly Resilience та Aspire Service Discovery.*
+   *Синхронна HTTP-комунікація через `HttpClient` / `IHttpClientFactory`, патерн Gateway Aggregator / Backend for Frontend (BFF), паралельний Fan-Out/Fan-In (`Task.WhenAll`), Aspire Service Discovery та ізоляція збоїв Graceful Degradation.*
 
 3. ⚡ **[03_Patterns_Synchronous_gRPC_Communication.md](02-02-Communication-Documentation/03_Patterns_Synchronous_gRPC_Communication.md)**  
    *Високопродуктивний міжсервісний зв'язок через gRPC (HTTP/2 + Protobuf), контракт `Driver.proto`, сервер `DriverRpcService`, клієнт `DriverRpcClient` та патерн стійкості Graceful Degradation.*

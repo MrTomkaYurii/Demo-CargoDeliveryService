@@ -21,7 +21,7 @@
   * Проблема надлишкових запитів клієнтів (Network Chattiness) та композиція API в один комплексний ендпоінт.
   * Використання `IHttpClientFactory` та типізованих клієнтів (Typed Clients) у .NET 10.
   * Паралельний Fan-Out / Fan-In (`Task.WhenAll`) для одночасного опитування підпорядкованих мікросервісів.
-  * Стійкість та ізоляція збоїв: інтеграція Polly (`AddStandardResilienceHandler`) та Graceful Degradation.
+  * Стійкість та ізоляція збоїв: патерн Graceful Degradation (повернення часткових даних при недоступності окремого сервісу).
   * Нативне розпізнавання імен через .NET Aspire Service Discovery (`http://driversmanagement`, тощо).
 
 ### 3. ⚡ [03_Patterns_Synchronous_gRPC_Communication.md](03_Patterns_Synchronous_gRPC_Communication.md)

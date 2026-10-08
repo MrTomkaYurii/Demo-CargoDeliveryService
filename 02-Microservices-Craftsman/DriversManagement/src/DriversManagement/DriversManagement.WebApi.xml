@@ -34,6 +34,37 @@
             Deletes an existing Company record.
             </summary>
         </member>
+        <member name="T:DriversManagement.Controllers.v1.DriverDashboardController">
+             <summary>
+             ====================================================================================
+             🌐 API GATEWAY AGGREGATOR / BACKEND FOR FRONTEND (BFF) CONTROLLER
+             ------------------------------------------------------------------------------------
+             ПРИЗНАЧЕННЯ:
+             Цей контролер надає спеціалізовані композитні (агреговані) ендпоінти, оптимізовані
+             для потреб клієнтського інтерфейсу (Web SPA, мобільні додатки, WPF десктоп-клієнт).
+            
+             ЧОМУ ЦЕ ВИНЕСЕНО В ОКРЕМИЙ КОНТРОЛЕР АГРЕГАТОРА?
+             1. Розділення відповідальності:
+                Звичайний DriversController фокусується на CRUD-операціях суто над локальною
+                сутністю Driver (створити, оновити, видалити).
+                Агрегатор (DriverDashboardController) призначений для читання та компонування
+                даних з кількох доменів і сервісів.
+             2. Оптимізація трафіку (BFF):
+                Клієнт отримує строго ті поля, які потрібні для відображення картки водія,
+                без зайвого надлишкового payload і без потреби робити 3 окремих запити.
+             ====================================================================================
+             </summary>
+        </member>
+        <member name="M:DriversManagement.Controllers.v1.DriverDashboardController.GetDashboard(System.Guid,System.Threading.CancellationToken)">
+            <summary>
+            Отримує зведену аналітичну панель водія (дані профілю, авто, активні рейси та публікації).
+            </summary>
+            <param name="id">Ідентифікатор водія (Guid).</param>
+            <param name="cancellationToken">Токен скасування запиту.</param>
+            <returns>Зведена модель AggregatedDriverDashboardDto.</returns>
+            <response code="200">Успішно сформовано дашборд (повні або часткові дані).</response>
+            <response code="404">Водія не знайдено в локальній базі даних.</response>
+        </member>
         <member name="M:DriversManagement.Controllers.v1.DriversController.GetDrivers(DriversManagement.Domain.Drivers.Dtos.DriverParametersDto)">
             <summary>
             Gets a list of all Drivers.
@@ -368,6 +399,392 @@
             <summary>
             Two-letter country code <a href="https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2">(ISO 3166-1 alpha-2)</a>.
             </summary>
+        </member>
+        <member name="T:DriversManagement.Domain.Drivers.Dtos.AggregatedDriverDashboardDto">
+            <summary>
+            Зведена DTO-модель для аналітичної панелі водія (Патерн Gateway Aggregator / BFF).
+            Об'єднує дані з трьох незалежних мікросервісів:
+            1. DriversManagement (локальна база: профіль водія, компанія, закріплене авто)
+            2. CargoOrderingService (зовнішній HTTP REST: активні рейси та доставки)
+            3. DriversBlogManagement (зовнішній HTTP REST / gRPC: останні публікації та активність)
+            </summary>
+        </member>
+        <member name="P:DriversManagement.Domain.Drivers.Dtos.AggregatedDriverDashboardDto.DriverId">
+            <summary>
+            Ідентифікатор водія в системі.
+            </summary>
+        </member>
+        <member name="P:DriversManagement.Domain.Drivers.Dtos.AggregatedDriverDashboardDto.FullName">
+            <summary>
+            Повне ім'я водія (FirstName + LastName).
+            </summary>
+        </member>
+        <member name="P:DriversManagement.Domain.Drivers.Dtos.AggregatedDriverDashboardDto.LicenseNumber">
+            <summary>
+            Номер посвідчення водія.
+            </summary>
+        </member>
+        <member name="P:DriversManagement.Domain.Drivers.Dtos.AggregatedDriverDashboardDto.CompanyName">
+            <summary>
+            Назва транспортної компанії-роботодавця.
+            </summary>
+        </member>
+        <member name="P:DriversManagement.Domain.Drivers.Dtos.AggregatedDriverDashboardDto.AssignedTruckInfo">
+            <summary>
+            Закріплений вантажний автомобіль (модель та держномер).
+            </summary>
+        </member>
+        <member name="P:DriversManagement.Domain.Drivers.Dtos.AggregatedDriverDashboardDto.ActiveDeliveries">
+            <summary>
+            Список активних доставок із CargoOrderingService (отримано через HTTP Client).
+            </summary>
+        </member>
+        <member name="P:DriversManagement.Domain.Drivers.Dtos.AggregatedDriverDashboardDto.RecentBlogPosts">
+            <summary>
+            Останні публікації водія у блозі з DriversBlogManagement (отримано через HTTP Client).
+            </summary>
+        </member>
+        <member name="P:DriversManagement.Domain.Drivers.Dtos.AggregatedDriverDashboardDto.IsPartialData">
+            <summary>
+            Прапорець часткової деградації: true, якщо один із допоміжних сервісів був недоступний
+            і відповідь сформована за принципом Graceful Degradation.
+            </summary>
+        </member>
+        <member name="T:DriversManagement.Domain.Drivers.Dtos.AggregatedDeliveryDto">
+            <summary>
+            Скорочена модель доставки для зведеного дашборду.
+            </summary>
+        </member>
+        <member name="T:DriversManagement.Domain.Drivers.Dtos.AggregatedBlogPostDto">
+            <summary>
+            Скорочена модель блог-поста для зведеного дашборду.
+            </summary>
+        </member>
+        <member name="T:DriversManagement.Domain.Drivers.Features.AddDriver">
+             <summary>
+             ====================================================================================
+             📬 CQRS FEATURE: ADD DRIVER (EVENT-DRIVEN ARCHITECTURE PUBLISHER)
+             ------------------------------------------------------------------------------------
+             АРХІТЕКТУРНА КОНЦЕПЦІЯ:
+            
+             1. ВЕРТИКАЛЬНИЙ ЗРІЗ (VERTICAL SLICE ARCHITECTURE):
+                Вся логіка створення водія (команда Command, обробник Handler, валідація,
+                робота з БД та публікація в шину) зібрана в одному ізольованому файлі фічі.
+            
+             2. ЧОМУ "_publishEndpoint.Publish" А НЕ "_sendEndpoint.Send"?
+                - Send (Point-to-Point): відправляє повідомлення в ОДНУ конкретну чергу.
+                  Вимагає, щоб видавець знав точну чергу отримувача (жорсткий зв'язок).
+                - Publish (Publish/Subscribe): публікує подію в Fanout Exchange (SharedKernel.Messages:IDriverCreated).
+                  RabbitMQ автоматично робить копію повідомлення для ВСІХ черг сервісів,
+                  які підписалися на цей контракт (DriversBlogManagement, CargoOrderingService, тощо).
+                  Видавець взагалі не знає, хто саме і скільки споживачів слухають цю подію!
+            
+             3. ПОСЛІДОВНІСТЬ: СПОЧАТКУ БАЗА ДАНИХ, ПОТІМ ШИНА (ACID + EVENTUAL CONSISTENCY):
+                Рядок 1: await _unitOfWork.CommitChanges(cancellationToken) -> зберігає водія в БД.
+                Рядок 2: await _publishEndpoint.Publish(...) -> відправляє факт створення в брокер.
+                Це гарантує: ми ніколи не повідомимо інші сервіси про сутність, яка не змогла
+                зберегтися в нашій первинній базі.
+             ====================================================================================
+             </summary>
+        </member>
+        <member name="T:DriversManagement.Domain.Drivers.Features.AddDriver.Command">
+            <summary>
+            Незмінна CQRS-команда на створення водія.
+            </summary>
+        </member>
+        <member name="M:DriversManagement.Domain.Drivers.Features.AddDriver.Command.#ctor(DriversManagement.Domain.Drivers.Dtos.DriverForCreationDto)">
+            <summary>
+            Незмінна CQRS-команда на створення водія.
+            </summary>
+        </member>
+        <member name="T:DriversManagement.Domain.Drivers.Features.AddDriver.Handler">
+            <summary>
+            Обробник команди зі збереженням агрегату та публікацією події через MassTransit.
+            </summary>
+        </member>
+        <member name="T:DriversManagement.Domain.Drivers.Features.GetDriver">
+             <summary>
+             ====================================================================================
+             ⚡ CQRS FEATURE: GET DRIVER WITH GRPC BLOG POSTS (СИНХРОННИЙ gRPC КЛІЄНТ)
+             ------------------------------------------------------------------------------------
+             АРХІТЕКТУРНА КОНЦЕПЦІЯ:
+            
+             1. ПРИЗНАЧЕННЯ:
+                Цей CQRS-обробник зчитує картку водія з локальної бази даних DriversManagement DB
+                та робить СИНХРОННИЙ БІНАРНИЙ виклик по протоколу HTTP/2 через gRPC до віддаленого
+                мікросервісу DriversBlogManagement для отримання його публікацій.
+            
+             2. ЧОМУ ТУТ ВИКОРИСТОВУЄТЬСЯ gRPC ЗАМІСТЬ ЗВИЧАЙНОГО REST HTTP?
+                - Висока продуктивність: gRPC використовує постійний HTTP/2 мультиплексований канал,
+                  що усуває затримки на відкриття нових TCP-з'єднань.
+                - Компактність: дані серіалізуються у двійковий формат Protocol Buffers (Google.Protobuf),
+                  що значно економить пропускну здатність внутрішньої мережі.
+                - Суворий контракт: клас DriverRpc.DriverRpcClient компілюється безпосередньо з файлу
+                  Driver.proto, гарантуючи 100% відповідність типів даних між клієнтом і сервером.
+            
+             3. ПАТЕРН СТІЙКОСТІ "GRACEFUL DEGRADATION" (ЕЛЕГАНТНА ДЕГРАДАЦІЯ):
+                Зверніть увагу на блок catch (RpcException):
+                Якщо сервіс блогів упав, перезавантажується або виник мережевий таймаут —
+                ми НЕ викидаємо помилку 500 для користувача! Ми повертаємо валідний профіль водія
+                із порожнім списком постів result.Posts = new List&lt;...&gt;().
+                Це ключовий принцип надійності мікросервісів — збій некритичного функціоналу
+                не повинен руйнувати базовий бізнес-процес.
+            
+             4. SERVICE DISCOVERY В .NET ASPIRE:
+                Клієнт зареєстрований у WebAppServiceConfiguration.cs через AddGrpcClient(...).
+                Адресація автоматично транслюється на запущений контейнер або процес
+                через ім'я "driversblogmanagement".
+             ====================================================================================
+             </summary>
+        </member>
+        <member name="T:DriversManagement.Domain.Drivers.Features.GetDriver.Query">
+            <summary>
+            Незмінний CQRS-запит (Query) на отримання водія за ID разом із постами.
+            </summary>
+        </member>
+        <member name="M:DriversManagement.Domain.Drivers.Features.GetDriver.Query.#ctor(System.Guid)">
+            <summary>
+            Незмінний CQRS-запит (Query) на отримання водія за ID разом із постами.
+            </summary>
+        </member>
+        <member name="T:DriversManagement.Domain.Drivers.Features.GetDriver.Handler">
+            <summary>
+            Обробник запиту MediatR з інжекцією репозиторію та згенерованого gRPC-клієнта.
+            </summary>
+        </member>
+        <member name="T:DriversManagement.Domain.Drivers.Features.GetDriverDashboard">
+             <summary>
+             ====================================================================================
+             🏛️ CQRS FEATURE: GET DRIVER DASHBOARD (GATEWAY AGGREGATOR / BFF HANDLER)
+             ------------------------------------------------------------------------------------
+             АРХІТЕКТУРНИЙ ДИЗАЙН ТА ПРИНЦИП РОБОТИ:
+             
+             1. ПРИЗНАЧЕННЯ:
+                Реалізація патерну Composite API / Gateway Aggregator (або Backend for Frontend, BFF).
+                Замість того, щоб клієнтський додаток (веб-портал, мобільний застосунок або WPF)
+                виконував 3 окремих мережевих виклики через інтернет:
+                  - GET /api/v1/drivers/{id} (до DriversManagement)
+                  - GET /api/v1/deliveries (до CargoOrderingService)
+                  - GET /api/v1/postaboutdrivers (до DriversBlogManagement)
+                Клієнт робить ОДИН легкий запит:
+                  -> GET /api/v1/driver-dashboard/{id}
+             
+             2. ЧОМУ САМЕ "Task.WhenAll", А НЕ ПОСЛІДОВНІ "await"?
+                - Послідовні виклики (await A; await B; await C;) сумують час очікування мережі:
+                  Загальний час = Latency(A) + Latency(B) + Latency(C) = 45ms + 60ms + 40ms = 145ms.
+                - Паралельні виклики через Task.WhenAll відправляють запити в сокети ОДНОЧАСНО:
+                  Загальний час = Max(Latency(A), Latency(B), Latency(C)) = Max(45, 60, 40) = 60ms!
+                  Це зменшує час відгуку для кінцевого користувача більш ніж у 2.4 раза.
+            
+             3. ПАТЕРН СТІЙКОСТІ "GRACEFUL DEGRADATION" (ЧАСТКОВА ДЕГРАДАЦІЯ):
+                Якщо блог або система замовлень тимчасово недоступні (503 Service Unavailable,
+                таймаут, розімкнений Circuit Breaker у Polly), ми НЕ «кладемо» весь дашборд з кодом 500!
+                Метод SafeFetchAsync перехоплює мережевий збій, фіксує його в логах (OpenTelemetry)
+                і повертає дефолтне значення (порожній список).
+                Клієнт отримує статус 200 OK з даними водія і прапорцем IsPartialData = true.
+             ====================================================================================
+             </summary>
+        </member>
+        <member name="T:DriversManagement.Domain.Drivers.Features.GetDriverDashboard.Query">
+            <summary>
+            Незмінний CQRS-запит (Query) для отримання агрегованої панелі водія.
+            </summary>
+        </member>
+        <member name="M:DriversManagement.Domain.Drivers.Features.GetDriverDashboard.Query.#ctor(System.Guid)">
+            <summary>
+            Незмінний CQRS-запит (Query) для отримання агрегованої панелі водія.
+            </summary>
+        </member>
+        <member name="T:DriversManagement.Domain.Drivers.Features.GetDriverDashboard.Handler">
+            <summary>
+            Обробник запиту MediatR з інжекцією локальних репозиторіїв та типізованих HTTP-клієнтів.
+            </summary>
+        </member>
+        <member name="M:DriversManagement.Domain.Drivers.Features.GetDriverDashboard.Handler.SafeFetchAsync``1(System.Func{System.Threading.Tasks.Task{``0}},``0,System.Action)">
+            <summary>
+            Допоміжний механізм захисту від відмов (Fault Tolerance Wrapper):
+            Запобігає повному аварійному завершенню агрегатора при збоях окремих сервісів.
+            </summary>
+        </member>
+        <member name="M:DriversManagement.Domain.Drivers.Features.UpdateDriver.Handler.Handle(DriversManagement.Domain.Drivers.Features.UpdateDriver.Command,System.Threading.CancellationToken)">
+            <summary>
+            ====================================================================================
+            📬 ОБРОБНИК КОМАНДИ ОНОВЛЕННЯ ВОДІЯ З АСИНХРОННОЮ ПУБЛІКАЦІЄЮ В RABBITMQ
+            ------------------------------------------------------------------------------------
+            1. ВАЛІДАЦІЯ ТА АВТОРИЗАЦІЯ:
+               Перевіряємо дозвіл 'CanUpdateDriver' через HeimGuard.
+            2. ЛОКАЛЬНА ТРАНЗАКЦІЯ:
+               Оновлюємо агрегат Driver у локальній базі DriversManagement та фіксуємо
+               зміни через _unitOfWork.CommitChanges.
+            3. ПАТЕРН EVENT-DRIVEN NOTIFICATION (Асинхронне сповіщення підписників):
+               Публікуємо SharedKernel.Messages.IDriverUpdated через IPublishEndpoint.
+               MassTransit спрямовує повідомлення у RabbitMQ Fanout Exchange 'driver-updated',
+               який миттєво дублює його у черги:
+                 - sync-updated-driver (DriversBlogManagement)
+                 - ordering-sync-driver (CargoOrderingService)
+            4. EVENTUAL CONSISTENCY (Кінцева узгодженість):
+               Всі сервіси отримують новий стан водія асинхронно, без блокування клієнтського запиту.
+            ====================================================================================
+            </summary>
+        </member>
+        <member name="T:DriversManagement.Domain.Drivers.Services.Http.CargoOrderingApiClient">
+             <summary>
+             ====================================================================================
+             🌐 РЕАЛІЗАЦІЯ ТИПІЗОВАНОГО HTTP-КЛІЄНТА ДО CARGOORDERINGSERVICE
+             ------------------------------------------------------------------------------------
+             ЯК ЦЕ ПРАЦЮЄ ПІД КАПОТОМ (.NET 10 &amp; .NET ASPIRE):
+            
+             1. ЧОМУ МИ НЕ ВИКОРИСТОВУЄМО "new HttpClient()"?
+                Створення екземплярів через "new" призводить до вичерпання сокетів операційної
+                системи (Socket Exhaustion під навантаженням). Натомість цей клас реєструється через:
+                builder.Services.AddHttpClient&lt;ICargoOrderingApiClient, CargoOrderingApiClient&gt;(...)
+                Фабрика IHttpClientFactory автоматично пулить і перевикористовує базові обробники
+                HttpMessageHandler, уникаючи витоків ресурсів.
+            
+             2. ЗВІДКИ БЕРЕТЬСЯ АДРЕСА СЕРВІСУ (SERVICE DISCOVERY)?
+                У Program.cs встановлюється: client.BaseAddress = new Uri("http://cargoorderingservice");
+                У середовищі .NET Aspire компонент Service Discovery автоматично перехоплює це
+                логічне ім'я "cargoorderingservice" і підставляє реальний IP-порт запущеного контейнера
+                чи локального процесу (наприклад, http://localhost:5241).
+            
+             3. СТІЙКІСТЬ ЧЕРЕЗ POLLY (.AddStandardResilienceHandler):
+                Усі виклики через цей клієнт автоматично захищені:
+                - Повторними спробами (Retry з експоненційним бекоффом при HTTP 503/504).
+                - Розмикачем ланцюга (Circuit Breaker при масових збоях).
+                - Загальним таймаутом на виконання запиту.
+             ====================================================================================
+             </summary>
+        </member>
+        <member name="M:DriversManagement.Domain.Drivers.Services.Http.CargoOrderingApiClient.#ctor(System.Net.Http.HttpClient,Microsoft.Extensions.Logging.ILogger{DriversManagement.Domain.Drivers.Services.Http.CargoOrderingApiClient})">
+            <summary>
+            Конструктор отримує сконфігурований HttpClient із пулу IHttpClientFactory.
+            </summary>
+        </member>
+        <member name="M:DriversManagement.Domain.Drivers.Services.Http.CargoOrderingApiClient.GetActiveDeliveriesByDriverAsync(System.Guid,System.Threading.CancellationToken)">
+            <summary>
+            Виконує GET-запит до ендпоінту доставок у CargoOrderingService.
+            </summary>
+        </member>
+        <member name="T:DriversManagement.Domain.Drivers.Services.Http.DriversBlogApiClient">
+             <summary>
+             ====================================================================================
+             🌐 РЕАЛІЗАЦІЯ ТИПІЗОВАНОГО HTTP-КЛІЄНТА ДО DRIVERSBLOGMANAGEMENT
+             ------------------------------------------------------------------------------------
+             АРХІТЕКТУРНІ ОСОБЛИВОСТІ:
+            
+             1. ВЗАЄМОДІЯ З СЕРВІСОМ ЧЕРЕЗ .NET ASPIRE SERVICE DISCOVERY:
+                Адресація сервісу налаштовується як "http://driversblogmanagement".
+                У продакшені або при тестуванні в Aspire AppHost ім'я автоматично мапиться
+                на внутрішню адресу відповідного контейнера/процесу.
+            
+             2. РОБОТА З ТЕЛЕМЕТРІЄЮ (OPENTELEMETRY):
+                Клієнт бере участь у розподіленому трейсингу: заголовки "traceparent"
+                прокидаються автоматично завдяки HttpClientInstrumentation, що дає змогу
+                бачити цей HTTP-виклик як дочірній спан у дашборді Aspire.
+            
+             3. ОБРОБКА НЕСТАБІЛЬНОСТІ МЕРЕЖІ:
+                Якщо сервіс блогів відповідає із затримкою або повертає помилку 500,
+                обробник Polly Standard Resilience робить повторні спроби, а при збереженні
+                збою генерує виняток, який перехоплюється вищим рівнем для повернення дефолтних даних.
+             ====================================================================================
+             </summary>
+        </member>
+        <member name="M:DriversManagement.Domain.Drivers.Services.Http.DriversBlogApiClient.GetDriverPostsAsync(System.Guid,System.Threading.CancellationToken)">
+            <summary>
+            Отримує пости про водія через REST API ендпоінт /api/v1/postaboutdrivers.
+            </summary>
+        </member>
+        <member name="T:DriversManagement.Domain.Drivers.Services.Http.ICargoOrderingApiClient">
+             <summary>
+             ====================================================================================
+             🌐 АРХІТЕКТУРНИЙ ПАТЕРН: TYPED HTTP CLIENT (ТИПІЗОВАНИЙ HTTP-КЛІЄНТ)
+             ------------------------------------------------------------------------------------
+             ПРИЗНАЧЕННЯ:
+             Інтерфейс клієнта для виконання синхронних HTTP REST-запитів до мікросервісу
+             замовлень вантажів (CargoOrderingService).
+            
+             ЧОМУ ВИКОРИСТОВУЄТЬСЯ ІНТЕРФЕЙС ТА ТИПІЗОВАНИЙ КЛІЄНТ?
+             1. Принцип інверсії залежностей (DIP з SOLID):
+                Наш CQRS Handler (GetDriverDashboard) залежить від абстракції (ICargoOrderingApiClient),
+                а не від конкретного мережевого коду чи класу HttpClient. Це дозволяє легко писати
+                Unit-тести, підставляючи Fake/Mock без реальних мережевих викликів.
+             2. Інкапсуляція мережевих деталей:
+                Всі URL-шляхи (/api/v1/deliveries), параметри запиту та десеріалізація JSON
+                приховані всередині імплементації клієнта.
+             ====================================================================================
+             </summary>
+        </member>
+        <member name="M:DriversManagement.Domain.Drivers.Services.Http.ICargoOrderingApiClient.GetActiveDeliveriesByDriverAsync(System.Guid,System.Threading.CancellationToken)">
+            <summary>
+            Отримує список активних доставок для вказаного водія за його ідентифікатором.
+            </summary>
+            <param name="driverId">Унікальний ідентифікатор водія (Guid).</param>
+            <param name="cancellationToken">Токен скасування для переривання виклику при таймауті або відміні клієнтом.</param>
+            <returns>Список доставок водія у форматі DTO.</returns>
+        </member>
+        <member name="T:DriversManagement.Domain.Drivers.Services.Http.IDriversBlogApiClient">
+             <summary>
+             ====================================================================================
+             🌐 ІНТЕРФЕЙС ТИПІЗОВАНОГО HTTP-КЛІЄНТА ДО DRIVERSBLOGMANAGEMENT
+             ------------------------------------------------------------------------------------
+             ПРИЗНАЧЕННЯ:
+             Абстракція для виконання синхронних HTTP REST-запитів до мікросервісу блогів водіїв
+             (DriversBlogManagement) в рамках патерну Gateway Aggregator / BFF.
+            
+             ЧОМУ МИ СТВОРЮЄМО ОКРЕМИЙ КЛІЄНТ ДЛЯ КОЖНОГО МІКРОСЕРВІСУ?
+             1. Принцип єдиної відповідальності (SRP):
+                Кожен клієнт відповідає виключно за комунікацію з одним конкретним мікросервісом.
+             2. Ізольовані налаштування стійкості:
+                Для блогу (менш критичний функціонал) ми можемо налаштувати коротший таймаут
+                (наприклад, 2 секунди замість 10), щоб збій у блозі не затримував відповідь
+                всього Агрегатора.
+             3. Типобезпечність:
+                Клієнт віддає чітко типізовані моделі DTO, приховуючи роботу з HTTP-статусами,
+                заголовками та десеріалізацією JSON.
+             ====================================================================================
+             </summary>
+        </member>
+        <member name="M:DriversManagement.Domain.Drivers.Services.Http.IDriversBlogApiClient.GetDriverPostsAsync(System.Guid,System.Threading.CancellationToken)">
+            <summary>
+            Отримує список останніх публікацій про вказаного водія з мікросервісу блогу.
+            </summary>
+            <param name="driverId">Унікальний ідентифікатор водія (Guid).</param>
+            <param name="cancellationToken">Токен скасування для безпечного переривання запиту.</param>
+            <returns>Список постів водія для зведеного дашборду.</returns>
+        </member>
+        <member name="T:DriversManagement.Extensions.Services.ProducerRegistrations.DriverCreatedEndpointRegistration">
+             <summary>
+             ====================================================================================
+             📬 НАЛАШТУВАННЯ ПЕРВИННОГО ОБМІННИКА ДЛЯ ПОДІЇ IDriverCreated
+             ------------------------------------------------------------------------------------
+             ПРИЗНАЧЕННЯ:
+             Конфігурує назву та тип обмінника (Exchange) у RabbitMQ для контракту IDriverCreated.
+            
+             1. SetEntityName("driver-created"):
+                Явно задає коротке ім'я обмінника замість згенерованого за замовчуванням
+                довгого імені 'SharedKernel.Messages:IDriverCreated'.
+             2. ExchangeType = ExchangeType.Fanout:
+                Обмінник транслює кожне опубліковане повідомлення ВСІМ чергам, які до нього
+                прив'язані (Broadcasting), ігноруючи Routing Keys. Це забезпечує чистий патерн
+                Publish-Subscribe (Pub/Sub).
+             ====================================================================================
+             </summary>
+        </member>
+        <member name="T:DriversManagement.Extensions.Services.ProducerRegistrations.DriverUpdatedEndpointRegistration">
+             <summary>
+             ====================================================================================
+             📬 НАЛАШТУВАННЯ ПЕРВИННОГО ОБМІННИКА ДЛЯ ПОДІЇ IDriverUpdated
+             ------------------------------------------------------------------------------------
+             ПРИЗНАЧЕННЯ:
+             Конфігурує назву та тип обмінника (Exchange) у RabbitMQ для контракту IDriverUpdated.
+            
+             1. SetEntityName("driver-updated"):
+                Явно задає коротке ім'я обмінника замість повного імені типу.
+             2. ExchangeType = ExchangeType.Fanout:
+                Обмінник транслює повідомлення про зміну водія всім підписаним сервісам
+                (DriversBlogManagement, CargoOrderingService тощо) паралельно.
+             ====================================================================================
+             </summary>
         </member>
         <member name="T:DriversManagement.Migrations.InitialMigration">
             <inheritdoc />

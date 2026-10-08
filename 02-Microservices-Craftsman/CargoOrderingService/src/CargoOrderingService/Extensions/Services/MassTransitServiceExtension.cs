@@ -1,4 +1,4 @@
-﻿namespace CargoOrderingService.Extensions.Services;
+namespace CargoOrderingService.Extensions.Services;
 
 using MassTransit;
 using Microsoft.AspNetCore.Hosting;
@@ -10,6 +10,22 @@ using CargoOrderingService.Configurations;
 using CargoOrderingService.Extensions.Services.ConsumerRegistrations;
 using CargoOrderingService.Extensions.Services.ProducerRegistrations;
 
+/// <summary>
+/// ====================================================================================
+/// 📬 АРХІТЕКТУРНИЙ ПАТЕРН: РЕЄСТРАЦІЯ ТА КОНФІГУРАЦІЯ ШИНИ MASSTRANSIT (RABBITMQ)
+/// ------------------------------------------------------------------------------------
+/// ПРИЗНАЧЕННЯ:
+/// Налаштовує брокер повідомлень MassTransit для сервісу замовлень з підтримкою:
+/// 1. Aspire Connection String (автоматичне зв'язування з контейнером через Aspire AppHost).
+/// 2. Класичної конфігурації RabbitMqOptions (для роботи в standalone Docker-compose/K8s).
+/// 3. In-Memory Transport Fallback (для тестів та локального запуску без запущеного брокера).
+///
+/// ПРИНЦИП РОБОТИ:
+/// - mt.AddConsumers(): автоматично знаходить та реєструє споживача SyncDriverInOrdering.
+/// - cfg.OrderCreatedEndpoint(): налаштовує Fanout Exchange для публікації IOrderCreated.
+/// - cfg.SyncDriverInOrderingEndpoint(): створює Quorum Queue для підписки на зміни водіїв.
+/// ====================================================================================
+/// </summary>
 public static class MassTransitServiceExtension
 {
     public static void AddMassTransitServices(this IServiceCollection services, 

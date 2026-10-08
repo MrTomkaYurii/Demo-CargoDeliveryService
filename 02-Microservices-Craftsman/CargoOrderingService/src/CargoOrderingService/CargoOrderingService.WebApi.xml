@@ -195,11 +195,114 @@
             </summary>
         </member>
         <member name="T:CargoOrderingService.Domain.Drivers.Consumers.SyncDriverInOrdering">
+             <summary>
+             ====================================================================================
+             📬 АРХІТЕКТУРНИЙ ПАТЕРН: MASSTRANSIT CONSUMER У CARGOORDERINGSERVICE
+             ------------------------------------------------------------------------------------
+             АРХІТЕКТУРНА КОНЦЕПЦІЯ:
+            
+             1. ПРИЗНАЧЕННЯ:
+                Споживач MassTransit у мікросервісі замовлень вантажів (CargoOrderingService).
+                Автоматично реплікує сутності водіїв у локальну базу даних Ordering Context
+                при отриманні доменних подій через RabbitMQ Fanout Exchange.
+            
+             2. АВТОНОМНІСТЬ СЕРВІСУ ЗАМОВЛЕНЬ (AUTONOMY):
+                Коли диспетчер призначає водія на вантажну доставку, сервісу CargoOrderingService
+                не потрібно робити мережевий REST або gRPC запит до DriversManagement.
+                Вся необхідна інформація (Id, ПІБ, посвідчення, телефон) вже збережена
+                у власній локальній таблиці Drivers завдяки цьому споживачу.
+                Якщо сервіс DriversManagement тимчасово вимкнено — CargoOrderingService
+                продовжує повноцінно працювати й оформлювати рейси!
+            
+             3. ОБРОБКА ДВОХ ПОДІЙ В ОДНОМУ КЛАСІ:
+                Клас реалізує інтерфейси:
+                  - IConsumer&lt;IDriverCreated&gt;
+                  - IConsumer&lt;IDriverUpdated&gt;
+                MassTransit самостійно прив'язує обидві черги до відповідних методів Consume().
+             ====================================================================================
+             </summary>
+        </member>
+        <member name="M:CargoOrderingService.Domain.Drivers.Consumers.SyncDriverInOrdering.Consume(MassTransit.ConsumeContext{SharedKernel.Messages.IDriverCreated})">
             <summary>
-            ПАТЕРН EVENT-DRIVEN DATA REPLICATION:
-            Споживач MassTransit у мікросервісі CargoOrderingService.
-            Автоматично реплікує сутності водіїв у локальну базу даних Ordering Context
-            при отриманні подій IDriverCreated та IDriverUpdated через RabbitMQ.
+            Обробляє подію IDriverCreated та створює запис у локальній БД замовлень.
+            </summary>
+        </member>
+        <member name="M:CargoOrderingService.Domain.Drivers.Consumers.SyncDriverInOrdering.Consume(MassTransit.ConsumeContext{SharedKernel.Messages.IDriverUpdated})">
+            <summary>
+            Обробляє подію IDriverUpdated та оновлює локальні реквізити водія.
+            </summary>
+        </member>
+        <member name="M:CargoOrderingService.Domain.Orders.Features.AddOrder.Handler.Handle(CargoOrderingService.Domain.Orders.Features.AddOrder.Command,System.Threading.CancellationToken)">
+            <summary>
+            ====================================================================================
+            📬 ОБРОБНИК КОМАНДИ СТВОРЕННЯ ЗАМОВЛЕННЯ З ПУБЛІКАЦІЄЮ IOrderCreated
+            ------------------------------------------------------------------------------------
+            1. ВАЛІДАЦІЯ ТА АВТОРИЗАЦІЯ:
+               Перевіряємо дозвіл 'CanAddOrder' через HeimGuard.
+            2. ЗБЕРЕЖЕННЯ В ЛОКАЛЬНІЙ БАЗІ (CARGOORDERING DB):
+               Створюємо сутність Order через фабричний метод Order.Create(orderToAdd).
+               Фіксуємо транзакцію через _unitOfWork.CommitChanges.
+            3. ПАТЕРН EVENT-DRIVEN PUBLISHING (Шина MassTransit / RabbitMQ):
+               Після успішного збереження в БД публікуємо спільний контракт IOrderCreated.
+               MassTransit надсилає повідомлення в Fanout Exchange 'order-created'.
+            4. DECOUPLING (Слабкий зв'язок):
+               Сервіс замовлень не знає, хто саме підписаний на подію (білінг, трекінг чи аналітика).
+               Його обов'язок — лише повідомити про факт створення замовлення.
+            ====================================================================================
+            </summary>
+        </member>
+        <member name="T:CargoOrderingService.Extensions.Services.ConsumerRegistrations.SyncDriverInOrderingEndpointRegistration">
+             <summary>
+             ====================================================================================
+             📬 ТОПОЛОГІЯ ТА НАЛАШТУВАННЯ ЧЕРГИ СПОЖИВАЧА У CARGOORDERINGSERVICE
+             ------------------------------------------------------------------------------------
+             ПРИЗНАЧЕННЯ:
+             Налаштовує кінцеву точку прийому повідомлень (ReceiveEndpoint) 'ordering-sync-driver'
+             для мікросервісу замовлень.
+            
+             КЛЮЧОВІ ПАРАМЕТРИ RABBITMQ:
+             1. ConfigureConsumeTopology = false:
+                Вимикає автоматичне створення черг за замовчуванням у MassTransit. Ми повністю
+                контролюємо назву черги, її параметри та зв'язки (Bindings).
+             2. SetQuorumQueue():
+                Вмикає Quorum Queues (на базі консенсусу Raft у кластері RabbitMQ 3.8+).
+                Забезпечує реплікацію та стійкість до втрати даних при перезавантаженні брокера.
+             3. SetQueueArgument("declare", "lazy"):
+                Оптимізує використання пам'яті (RAM), скидаючи повідомлення на диск за потреби.
+             4. Bind("driver-created", Fanout) &amp; Bind("driver-updated", Fanout):
+                Створює прив'язки (Bindings) між головними обмінниками подій водіїв та цією чергою.
+             ====================================================================================
+             </summary>
+        </member>
+        <member name="T:CargoOrderingService.Extensions.Services.MassTransitServiceExtension">
+             <summary>
+             ====================================================================================
+             📬 АРХІТЕКТУРНИЙ ПАТЕРН: РЕЄСТРАЦІЯ ТА КОНФІГУРАЦІЯ ШИНИ MASSTRANSIT (RABBITMQ)
+             ------------------------------------------------------------------------------------
+             ПРИЗНАЧЕННЯ:
+             Налаштовує брокер повідомлень MassTransit для сервісу замовлень з підтримкою:
+             1. Aspire Connection String (автоматичне зв'язування з контейнером через Aspire AppHost).
+             2. Класичної конфігурації RabbitMqOptions (для роботи в standalone Docker-compose/K8s).
+             3. In-Memory Transport Fallback (для тестів та локального запуску без запущеного брокера).
+            
+             ПРИНЦИП РОБОТИ:
+             - mt.AddConsumers(): автоматично знаходить та реєструє споживача SyncDriverInOrdering.
+             - cfg.OrderCreatedEndpoint(): налаштовує Fanout Exchange для публікації IOrderCreated.
+             - cfg.SyncDriverInOrderingEndpoint(): створює Quorum Queue для підписки на зміни водіїв.
+             ====================================================================================
+             </summary>
+        </member>
+        <member name="T:CargoOrderingService.Extensions.Services.ProducerRegistrations.OrderCreatedEndpointRegistration">
+            <summary>
+            ====================================================================================
+            📬 ТОПОЛОГІЯ ОБМІННИКА ДЛЯ ПОДІЇ СТВОРЕННЯ ЗАМОВЛЕННЯ (IOrderCreated)
+            ------------------------------------------------------------------------------------
+            ПРИЗНАЧЕННЯ:
+            Налаштовує RabbitMQ Fanout Exchange 'order-created' для публікації подій замовлень.
+            Будь-який новий мікросервіс (наприклад, Billing або Notifications) може підключитися
+            до шини, створити власну чергу, прив'язатися до 'order-created' та отримувати події
+            без внесення змін у сервіс CargoOrderingService!
+            ====================================================================================
             </summary>
         </member>
         <member name="M:CargoOrderingService.Extensions.Services.WebAppServiceConfiguration.AddBoundaryServices(Microsoft.Extensions.DependencyInjection.IServiceCollection,System.Reflection.Assembly[])">
