@@ -8,10 +8,18 @@
 
 | Мікросервіс / Проєкт | Опис | Архітектурний стек |
 | :--- | :--- | :--- |
-| **`DriversManagement`** | Основний сервіс обліку водіїв, автопарку, компаній та технічного обслуговування | Clean Architecture, CQRS, MediatR, gRPC Client, MassTransit Publisher |
-| **`CargoOrderingService`** | Сервіс керування замовленнями вантажів, доставками та відстеженням маршрутів | Clean Architecture, MediatR, EF Core (.NET 10), MassTransit Publisher & Consumer |
-| **`DriversBlogManagement`** | Сервіс блогу водіїв, постів, коментарів, лайків та соціальної взаємодії | Clean Architecture, CQRS, MediatR, gRPC Server (`DriverRpcService`), MassTransit Consumer |
+| **`DriversManagement`** | Основний сервіс обліку водіїв, автопарку, компаній та технічного обслуговування | Clean Architecture, CQRS, MediatR, gRPC Client, MassTransit Publisher (.NET 10) |
+| **`CargoOrderingService`** | Сервіс керування замовленнями вантажів, доставками та відстеженням маршрутів | Clean Architecture, MediatR, EF Core, MassTransit Publisher & Consumer (.NET 10) |
+| **`DriversBlogManagement`** | Сервіс блогу водіїв, постів, коментарів, лайків та соціальної взаємодії | Clean Architecture, CQRS, MediatR, gRPC Server (`DriverRpcService`), MassTransit Consumer (.NET 10) |
 | **`SharedKernel`** | Спільне ядро подій та контрактів між мікросервісами | `IDriverCreated`, `IDriverUpdated`, `IOrderCreated`, `IOrderAssignedToDriver` |
+| **`CargoDelivery.AppHost`** | Диригент оркестрації .NET Aspire: запуск RabbitMQ, SQL Server та 3 API | .NET Aspire 13, Full Orchestration, C# Application Model (.NET 10) |
+| **`CargoDelivery.ServiceDefaults`** | Спільні діагностичні розширення для всіх мікросервісів | OpenTelemetry (OTLP), Health Checks, Service Discovery, Polly Resilience (.NET 10) |
+
+---
+
+## 🚀 Оркестрація та Розподілена Телеметрія (.NET Aspire)
+
+👉 **[docs/02-01-Aspire-Documentation/02-01-Aspire-MasterClass.md](docs/02-01-Aspire-Documentation/02-01-Aspire-MasterClass.md)** — **Повний інтерактивний Майстер-Клас (15 слайдів)** з деталізованим розбором для чайників, архітектурою `AppHost`, відмовою від Jaeger на користь нативного OTLP, gRPC discovery, сквозним трейсингом MassTransit та практичним гайдом запуску.
 
 ---
 

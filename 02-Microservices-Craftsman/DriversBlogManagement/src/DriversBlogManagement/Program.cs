@@ -6,6 +6,7 @@ using DriversBlogManagement.Extensions.Application;
 using DriversBlogManagement.Extensions.Services;
 using DriversBlogManagement.Databases;
 using DriversBlogManagement.Resources.HangfireUtilities;
+using Microsoft.Extensions.Hosting;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -43,6 +44,7 @@ var app = builder.Build();
     app.UseCors("DriversBlogManagementCorsPolicy");
 
     app.MapHealthChecks("api/health");
+app.MapDefaultEndpoints();
     app.UseSerilogRequestLogging();
     app.UseRouting();
 

@@ -6,6 +6,7 @@ using CargoOrderingService.Extensions.Application;
 using CargoOrderingService.Extensions.Services;
 using CargoOrderingService.Databases;
 using CargoOrderingService.Resources.HangfireUtilities;
+using Microsoft.Extensions.Hosting;
 
 var builder = WebApplication.CreateBuilder(args);
 Log.Logger = new LoggerConfiguration()
@@ -39,6 +40,7 @@ app.UseHttpsRedirection();
 app.UseCors("CargoOrderingServiceCorsPolicy");
 
 app.MapHealthChecks("api/health");
+app.MapDefaultEndpoints();
 app.UseSerilogRequestLogging();
 app.UseRouting();
 

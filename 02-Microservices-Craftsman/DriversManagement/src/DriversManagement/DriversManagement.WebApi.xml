@@ -369,11 +369,6 @@
             Two-letter country code <a href="https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2">(ISO 3166-1 alpha-2)</a>.
             </summary>
         </member>
-        <member name="M:DriversManagement.Extensions.Services.WebAppServiceConfiguration.AddBoundaryServices(Microsoft.Extensions.DependencyInjection.IServiceCollection,System.Reflection.Assembly[])">
-            <summary>
-            Registers all services in the assembly of the given interface.
-            </summary>
-        </member>
         <member name="T:DriversManagement.Migrations.InitialMigration">
             <inheritdoc />
         </member>

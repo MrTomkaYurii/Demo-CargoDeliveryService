@@ -17,8 +17,37 @@ public static class MassTransitServiceExtension
         IConfiguration configuration)
     {
         var rmqOptions = configuration.GetRabbitMqOptions();
+        var rmqConnectionString = configuration.GetConnectionString("rabbitmq");
 
-        if (rmqOptions != null && !string.IsNullOrEmpty(rmqOptions.Host))
+        if (!string.IsNullOrEmpty(rmqConnectionString))
+        {
+            services.AddMassTransit(mt =>
+            {
+                mt.AddConsumers(Assembly.GetExecutingAssembly());
+                mt.UsingRabbitMq((context, cfg) =>
+                {
+                    var uri = new Uri(rmqConnectionString);
+                    var userInfo = uri.UserInfo.Split(':');
+                    var username = userInfo.Length > 0 && !string.IsNullOrEmpty(userInfo[0]) ? userInfo[0] : "guest";
+                    var password = userInfo.Length > 1 ? userInfo[1] : "guest";
+                    var vhost = string.IsNullOrEmpty(uri.AbsolutePath.Trim('/')) ? "/" : uri.AbsolutePath.Trim('/');
+
+                    cfg.Host(uri.Host, uri.Port > 0 ? (ushort)uri.Port : (ushort)5672, vhost, h =>
+                    {
+                        h.Username(username);
+                        h.Password(password);
+                    });
+
+                    // Producers
+                    cfg.OrderCreatedEndpoint();
+
+                    // Consumers
+                    cfg.SyncDriverInOrderingEndpoint(context);
+                });
+            });
+            services.AddOptions<MassTransitHostOptions>();
+        }
+        else if (rmqOptions != null && !string.IsNullOrEmpty(rmqOptions.Host))
         {
             services.AddMassTransit(mt =>
             {

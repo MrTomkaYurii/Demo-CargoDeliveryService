@@ -1,4 +1,4 @@
-namespace DriversManagement.Extensions.Services;
+п»їnamespace DriversManagement.Extensions.Services;
 
 using DriversManagement.Middleware;
 using DriversManagement.Services;
@@ -20,7 +20,6 @@ public static class WebAppServiceConfiguration
         builder.Services.AddProblemDetails(ProblemDetailsConfigurationExtension.ConfigureProblemDetails)
             .AddProblemDetailsConventions();
 
-        // TODO update CORS for your env
         builder.Services.AddCorsService("DriversManagementCorsPolicy", builder.Environment);
         builder.OpenTelemetryRegistration(builder.Configuration, "DriversManagement");
         builder.Services.AddInfrastructure(builder.Environment, builder.Configuration);
@@ -33,7 +32,6 @@ public static class WebAppServiceConfiguration
         builder.Services.AddHttpContextAccessor();
         builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly()));
 
-        // registers all services that inherit from your base service interface - IDriversManagementScopedService
         builder.Services.AddBoundaryServices(Assembly.GetExecutingAssembly());
 
         builder.Services.AddMvc();
@@ -41,16 +39,17 @@ public static class WebAppServiceConfiguration
         builder.Services.AddHealthChecks();
         builder.Services.AddSwaggerExtension(builder.Configuration);
 
-        // Добавляем генерацию клиента gRPC
         builder.Services.AddGrpcClient<DriverRpc.DriverRpcClient>(options =>
         {
-            options.Address = new Uri(builder.Configuration.GetSection("GrpcServer")["Address"]); // Адрес вашего gRPC сервера
+            var grpcAddress = builder.Configuration["services:driversblogmanagement:https:0"]
+                ?? builder.Configuration["services:driversblogmanagement:http:0"]
+                ?? builder.Configuration.GetSection("GrpcServer")["Address"]
+                ?? "https://localhost:5002";
+
+            options.Address = new Uri(grpcAddress);
         });
     }
 
-    /// <summary>
-    /// Registers all services in the assembly of the given interface.
-    /// </summary>
     private static void AddBoundaryServices(this IServiceCollection services, params Assembly[] assemblies)
     {
         if (!assemblies.Any())

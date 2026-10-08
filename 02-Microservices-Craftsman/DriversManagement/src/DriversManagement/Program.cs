@@ -6,6 +6,7 @@ using DriversManagement.Extensions.Application;
 using DriversManagement.Extensions.Services;
 using DriversManagement.Databases;
 using DriversManagement.Resources.HangfireUtilities;
+using Microsoft.Extensions.Hosting;
 
 var builder = WebApplication.CreateBuilder(args);
     Log.Logger = new LoggerConfiguration()
@@ -40,6 +41,7 @@ var app = builder.Build();
     app.UseCors("DriversManagementCorsPolicy");
 
     app.MapHealthChecks("api/health");
+    app.MapDefaultEndpoints();
     app.UseSerilogRequestLogging();
     app.UseRouting();
 
