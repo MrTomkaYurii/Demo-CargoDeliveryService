@@ -238,7 +238,7 @@ await _publishEndpoint.Publish<IDriverCreated>(message, cancellationToken);
 > 📍 **Шлях до файлу:** `SharedKernel/DriverCreated.cs`  
 > 📝 *У файлі наведено докладні покрокові коментарі українською мовою.*
 
-[👉 **Перейти до файлу (клікніть тут)**](../SharedKernel/DriverCreated.cs#L26-L52)
+[👉 **Перейти до файлу (клікніть тут)**](../SharedKernel/DriverCreated.cs)
 
 ```csharp
 public interface IDriverCreated
@@ -254,7 +254,7 @@ public interface IDriverCreated
 > 📍 **Шлях до файлу:** `SharedKernel/DriverUpdated.cs`  
 > 📝 *У файлі наведено докладні покрокові коментарі українською мовою.*
 
-[👉 **Перейти до файлу (клікніть тут)**](../SharedKernel/DriverUpdated.cs#L20-L36)
+[👉 **Перейти до файлу (клікніть тут)**](../SharedKernel/DriverUpdated.cs)
 
 ```csharp
 public interface IDriverUpdated
@@ -268,7 +268,7 @@ public interface IDriverUpdated
 > 📍 **Шлях до файлу:** `SharedKernel/OrderMessages.cs`  
 > 📝 *У файлі наведено докладні покрокові коментарі українською мовою.*
 
-[👉 **Перейти до файлу (клікніть тут)**](../SharedKernel/OrderMessages.cs#L20-L40)
+[👉 **Перейти до файлу (клікніть тут)**](../SharedKernel/OrderMessages.cs)
 
 ---
 
@@ -279,7 +279,7 @@ public interface IDriverUpdated
 > 📍 **Шлях до файлу:** `DriversManagement/src/DriversManagement/Domain/Drivers/Features/AddDriver.cs`  
 > 📝 *У файлі наведено докладні покрокові коментарі українською мовою.*
 
-[👉 **Перейти до файлу (клікніть тут)**](../DriversManagement/src/DriversManagement/Domain/Drivers/Features/AddDriver.cs#L45-L65)
+[👉 **Перейти до файлу (клікніть тут)**](../DriversManagement/src/DriversManagement/Domain/Drivers/Features/AddDriver.cs)
 
 ```csharp
 // Зберігаємо водія в локальній базі даних
@@ -302,7 +302,7 @@ await _publishEndpoint.Publish<IDriverCreated>(new DriverCreated
 > 📍 **Шлях до файлу:** `DriversManagement/src/DriversManagement/Domain/Drivers/Features/UpdateDriver.cs`  
 > 📝 *У файлі наведено докладні покрокові коментарі українською мовою.*
 
-[👉 **Перейти до файлу (клікніть тут)**](../DriversManagement/src/DriversManagement/Domain/Drivers/Features/UpdateDriver.cs#L45-L65)
+[👉 **Перейти до файлу (клікніть тут)**](../DriversManagement/src/DriversManagement/Domain/Drivers/Features/UpdateDriver.cs)
 
 ---
 
@@ -313,7 +313,7 @@ await _publishEndpoint.Publish<IDriverCreated>(new DriverCreated
 > 📍 **Шлях до файлу:** `DriversManagement/src/DriversManagement/Extensions/Services/ProducerRegistrations/DriverCreatedEndpointRegistration.cs`  
 > 📝 *У файлі наведено докладні покрокові коментарі українською мовою.*
 
-[👉 **Перейти до файлу (клікніть тут)**](../DriversManagement/src/DriversManagement/Extensions/Services/ProducerRegistrations/DriverCreatedEndpointRegistration.cs#L8-L16)
+[👉 **Перейти до файлу (клікніть тут)**](../DriversManagement/src/DriversManagement/Extensions/Services/ProducerRegistrations/DriverCreatedEndpointRegistration.cs)
 
 ```csharp
 public static void DriverCreatedEndpoint(this IRabbitMqBusFactoryConfigurator cfg)
@@ -326,7 +326,7 @@ public static void DriverCreatedEndpoint(this IRabbitMqBusFactoryConfigurator cf
 > 📍 **Шлях до файлу:** `DriversManagement/src/DriversManagement/Extensions/Services/ProducerRegistrations/DriverUpdatedEndpointRegistration.cs`  
 > 📝 *У файлі наведено докладні покрокові коментарі українською мовою.*
 
-[👉 **Перейти до файлу (клікніть тут)**](../DriversManagement/src/DriversManagement/Extensions/Services/ProducerRegistrations/DriverUpdatedEndpointRegistration.cs#L8-L16)
+[👉 **Перейти до файлу (клікніть тут)**](../DriversManagement/src/DriversManagement/Extensions/Services/ProducerRegistrations/DriverUpdatedEndpointRegistration.cs)
 
 ---
 
@@ -337,7 +337,7 @@ public static void DriverCreatedEndpoint(this IRabbitMqBusFactoryConfigurator cf
 > 📍 **Шлях до файлу:** `DriversBlogManagement/src/DriversBlogManagement/Domain/SyncDriver.cs`  
 > 📝 *У файлі наведено докладні покрокові коментарі українською мовою щодо ідемпотентності та тіньових моделей.*
 
-[👉 **Перейти до файлу (клікніть тут)**](../DriversBlogManagement/src/DriversBlogManagement/Domain/SyncDriver.cs#L50-L80)
+[👉 **Перейти до файлу (клікніть тут)**](../DriversBlogManagement/src/DriversBlogManagement/Domain/SyncDriver.cs)
 
 ```csharp
 public sealed class SyncDriver : IConsumer<IDriverCreated>, IConsumer<IDriverUpdated>
@@ -361,7 +361,7 @@ public sealed class SyncDriver : IConsumer<IDriverCreated>, IConsumer<IDriverUpd
 > 📍 **Шлях до файлу:** `DriversBlogManagement/src/DriversBlogManagement/Extensions/Services/ConsumerRegistrations/SyncPatientEndpointRegistration.cs`  
 > 📝 *У файлі наведено докладні покрокові коментарі українською мовою.*
 
-[👉 **Перейти до файлу (клікніть тут)**](../DriversBlogManagement/src/DriversBlogManagement/Extensions/Services/ConsumerRegistrations/SyncPatientEndpointRegistration.cs#L10-L35)
+[👉 **Перейти до файлу (клікніть тут)**](../DriversBlogManagement/src/DriversBlogManagement/Extensions/Services/ConsumerRegistrations/SyncPatientEndpointRegistration.cs)
 
 ---
 
@@ -372,12 +372,12 @@ public sealed class SyncDriver : IConsumer<IDriverCreated>, IConsumer<IDriverUpd
 > 📍 **Шлях до файлу:** `CargoOrderingService/src/CargoOrderingService/Domain/Drivers/Consumers/SyncDriverInOrdering.cs`  
 > 📝 *У файлі наведено докладні покрокові коментарі українською мовою щодо автономності Bounded Context.*
 
-[👉 **Перейти до файлу (клікніть тут)**](../CargoOrderingService/src/CargoOrderingService/Domain/Drivers/Consumers/SyncDriverInOrdering.cs#L50-L80)
+[👉 **Перейти до файлу (клікніть тут)**](../CargoOrderingService/src/CargoOrderingService/Domain/Drivers/Consumers/SyncDriverInOrdering.cs)
 
 > 📍 **Шлях до файлу:** `CargoOrderingService/src/CargoOrderingService/Extensions/Services/ConsumerRegistrations/SyncDriverInOrderingEndpointRegistration.cs`  
 > 📝 *У файлі наведено докладні покрокові коментарі українською мовою.*
 
-[👉 **Перейти до файлу (клікніть тут)**](../CargoOrderingService/src/CargoOrderingService/Extensions/Services/ConsumerRegistrations/SyncDriverInOrderingEndpointRegistration.cs#L10-L30)
+[👉 **Перейти до файлу (клікніть тут)**](../CargoOrderingService/src/CargoOrderingService/Extensions/Services/ConsumerRegistrations/SyncDriverInOrderingEndpointRegistration.cs)
 
 ---
 
@@ -388,7 +388,7 @@ public sealed class SyncDriver : IConsumer<IDriverCreated>, IConsumer<IDriverUpd
 > 📍 **Шлях до файлу:** `CargoOrderingService/src/CargoOrderingService/Extensions/Services/MassTransitServiceExtension.cs`  
 > 📝 *У файлі наведено докладні покрокові коментарі українською мовою.*
 
-[👉 **Перейти до файлу (клікніть тут)**](../CargoOrderingService/src/CargoOrderingService/Extensions/Services/MassTransitServiceExtension.cs#L20-L60)
+[👉 **Перейти до файлу (клікніть тут)**](../CargoOrderingService/src/CargoOrderingService/Extensions/Services/MassTransitServiceExtension.cs)
 
 ```csharp
 // 1. Якщо передано рядок підключення від Aspire (GetConnectionString("rabbitmq"))
@@ -414,7 +414,7 @@ else
 > 📍 **Шлях до файлу:** `DriversManagement/src/DriversManagement/Extensions/Services/MassTransitServiceExtension.cs`  
 > 📝 *У файлі наведено докладні покрокові коментарі українською мовою.*
 
-[👉 **Перейти до файлу (клікніть тут)**](../DriversManagement/src/DriversManagement/Extensions/Services/MassTransitServiceExtension.cs#L20-L60)
+[👉 **Перейти до файлу (клікніть тут)**](../DriversManagement/src/DriversManagement/Extensions/Services/MassTransitServiceExtension.cs)
 
 ---
 
@@ -445,21 +445,21 @@ else
 ## 10. Швидка навігація по вихідному коду
 
 * 📦 **Контракти повідомлень (SharedKernel):**
-  * [👉 **Перейти до DriverCreated.cs**](../SharedKernel/DriverCreated.cs#L26-L52)
-  * [👉 **Перейти до DriverUpdated.cs**](../SharedKernel/DriverUpdated.cs#L20-L36)
-  * [👉 **Перейти до OrderMessages.cs**](../SharedKernel/OrderMessages.cs#L20-L40)
+  * [👉 **Перейти до DriverCreated.cs**](../SharedKernel/DriverCreated.cs)
+  * [👉 **Перейти до DriverUpdated.cs**](../SharedKernel/DriverUpdated.cs)
+  * [👉 **Перейти до OrderMessages.cs**](../SharedKernel/OrderMessages.cs)
 * 🚀 **Продюсери подій (Publishers):**
-  * [👉 **Перейти до AddDriver.cs (DriversManagement)**](../DriversManagement/src/DriversManagement/Domain/Drivers/Features/AddDriver.cs#L45-L65)
-  * [👉 **Перейти до UpdateDriver.cs (DriversManagement)**](../DriversManagement/src/DriversManagement/Domain/Drivers/Features/UpdateDriver.cs#L45-L65)
-  * [👉 **Перейти до DriverCreatedEndpointRegistration.cs**](../DriversManagement/src/DriversManagement/Extensions/Services/ProducerRegistrations/DriverCreatedEndpointRegistration.cs#L8-L16)
-  * [👉 **Перейти до DriverUpdatedEndpointRegistration.cs**](../DriversManagement/src/DriversManagement/Extensions/Services/ProducerRegistrations/DriverUpdatedEndpointRegistration.cs#L8-L16)
-  * [👉 **Перейти до AddOrder.cs (CargoOrderingService)**](../CargoOrderingService/src/CargoOrderingService/Domain/Orders/Features/AddOrder.cs#L45-L60)
+  * [👉 **Перейти до AddDriver.cs (DriversManagement)**](../DriversManagement/src/DriversManagement/Domain/Drivers/Features/AddDriver.cs)
+  * [👉 **Перейти до UpdateDriver.cs (DriversManagement)**](../DriversManagement/src/DriversManagement/Domain/Drivers/Features/UpdateDriver.cs)
+  * [👉 **Перейти до DriverCreatedEndpointRegistration.cs**](../DriversManagement/src/DriversManagement/Extensions/Services/ProducerRegistrations/DriverCreatedEndpointRegistration.cs)
+  * [👉 **Перейти до DriverUpdatedEndpointRegistration.cs**](../DriversManagement/src/DriversManagement/Extensions/Services/ProducerRegistrations/DriverUpdatedEndpointRegistration.cs)
+  * [👉 **Перейти до AddOrder.cs (CargoOrderingService)**](../CargoOrderingService/src/CargoOrderingService/Domain/Orders/Features/AddOrder.cs)
 * 📥 **Споживачі (Consumers):**
-  * [👉 **Перейти до SyncDriver.cs (DriversBlogManagement)**](../DriversBlogManagement/src/DriversBlogManagement/Domain/SyncDriver.cs#L50-L80)
-  * [👉 **Перейти до SyncPatientEndpointRegistration.cs**](../DriversBlogManagement/src/DriversBlogManagement/Extensions/Services/ConsumerRegistrations/SyncPatientEndpointRegistration.cs#L10-L35)
-  * [👉 **Перейти до SyncDriverInOrdering.cs (CargoOrderingService)**](../CargoOrderingService/src/CargoOrderingService/Domain/Drivers/Consumers/SyncDriverInOrdering.cs#L50-L80)
-  * [👉 **Перейти до SyncDriverInOrderingEndpointRegistration.cs**](../CargoOrderingService/src/CargoOrderingService/Extensions/Services/ConsumerRegistrations/SyncDriverInOrderingEndpointRegistration.cs#L10-L30)
+  * [👉 **Перейти до SyncDriver.cs (DriversBlogManagement)**](../DriversBlogManagement/src/DriversBlogManagement/Domain/SyncDriver.cs)
+  * [👉 **Перейти до SyncPatientEndpointRegistration.cs**](../DriversBlogManagement/src/DriversBlogManagement/Extensions/Services/ConsumerRegistrations/SyncPatientEndpointRegistration.cs)
+  * [👉 **Перейти до SyncDriverInOrdering.cs (CargoOrderingService)**](../CargoOrderingService/src/CargoOrderingService/Domain/Drivers/Consumers/SyncDriverInOrdering.cs)
+  * [👉 **Перейти до SyncDriverInOrderingEndpointRegistration.cs**](../CargoOrderingService/src/CargoOrderingService/Extensions/Services/ConsumerRegistrations/SyncDriverInOrderingEndpointRegistration.cs)
 * ⚙️ **Конфігурація шини MassTransit:**
-  * [👉 **Перейти до MassTransitServiceExtension.cs (Ordering)**](../CargoOrderingService/src/CargoOrderingService/Extensions/Services/MassTransitServiceExtension.cs#L20-L60)
-  * [👉 **Перейти до MassTransitServiceExtension.cs (Drivers)**](../DriversManagement/src/DriversManagement/Extensions/Services/MassTransitServiceExtension.cs#L20-L60)
+  * [👉 **Перейти до MassTransitServiceExtension.cs (Ordering)**](../CargoOrderingService/src/CargoOrderingService/Extensions/Services/MassTransitServiceExtension.cs)
+  * [👉 **Перейти до MassTransitServiceExtension.cs (Drivers)**](../DriversManagement/src/DriversManagement/Extensions/Services/MassTransitServiceExtension.cs)
 

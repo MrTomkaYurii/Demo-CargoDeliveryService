@@ -119,7 +119,7 @@ flowchart TD
 > 📍 **Шлях до файлу:** `DriversManagement/src/DriversManagement/Domain/Drivers/Services/Http/CargoOrderingApiClient.cs`  
 > 📝 *У файлі наведено докладні покрокові коментарі українською мовою.*
 
-[👉 **Перейти до файлу (клікніть тут)**](../DriversManagement/src/DriversManagement/Domain/Drivers/Services/Http/CargoOrderingApiClient.cs#L20-L50)
+[👉 **Перейти до файлу (клікніть тут)**](../DriversManagement/src/DriversManagement/Domain/Drivers/Services/Http/CargoOrderingApiClient.cs)
 
 Фрагмент коду клієнта:
 ```csharp
@@ -151,7 +151,7 @@ public sealed class CargoOrderingApiClient : ICargoOrderingApiClient
 > 📍 **Шлях до файлу:** `DriversManagement/src/DriversManagement/Domain/Drivers/Services/Http/DriversBlogApiClient.cs`  
 > 📝 *У файлі наведено докладні покрокові коментарі українською мовою.*
 
-[👉 **Перейти до файлу (клікніть тут)**](../DriversManagement/src/DriversManagement/Domain/Drivers/Services/Http/DriversBlogApiClient.cs#L15-L45)
+[👉 **Перейти до файлу (клікніть тут)**](../DriversManagement/src/DriversManagement/Domain/Drivers/Services/Http/DriversBlogApiClient.cs)
 
 Фрагмент коду інтерфейсу:
 ```csharp
@@ -169,7 +169,7 @@ public interface IDriversBlogApiClient
 
 > 📍 **Шлях до файлу:** `DriversManagement/src/DriversManagement/Extensions/Services/WebAppServiceConfiguration.cs`
 
-[👉 **Перейти до файлу (клікніть тут)**](../DriversManagement/src/DriversManagement/Extensions/Services/WebAppServiceConfiguration.cs#L50-L70)
+[👉 **Перейти до файлу (клікніть тут)**](../DriversManagement/src/DriversManagement/Extensions/Services/WebAppServiceConfiguration.cs)
 
 ```csharp
 // Реєстрація типізованого клієнта з резолвінгом імені сервісу
@@ -200,7 +200,7 @@ builder.Services.AddHttpClient<IDriversBlogApiClient, DriversBlogApiClient>(clie
 > 📍 **Шлях до файлу:** `DriversManagement/src/DriversManagement/Domain/Drivers/Features/GetDriverDashboard.cs`  
 > 📝 *У файлі наведено вичерпні коментарі українською мовою до кожного кроку виконання.*
 
-[👉 **Перейти до файлу (клікніть тут)**](../DriversManagement/src/DriversManagement/Domain/Drivers/Features/GetDriverDashboard.cs#L45-L95)
+[👉 **Перейти до файлу (клікніть тут)**](../DriversManagement/src/DriversManagement/Domain/Drivers/Features/GetDriverDashboard.cs)
 
 Ключова логіка паралельного запуску:
 ```csharp
@@ -238,7 +238,7 @@ return new AggregatedDriverDashboardDto
 > 📍 **Шлях до файлу:** `DriversManagement/src/DriversManagement/Controllers/v1/DriverDashboardController.cs`  
 > 📝 *У файлі наведено докладні коментарі українською мовою.*
 
-[👉 **Перейти до файлу (клікніть тут)**](../DriversManagement/src/DriversManagement/Controllers/v1/DriverDashboardController.cs#L25-L60)
+[👉 **Перейти до файлу (клікніть тут)**](../DriversManagement/src/DriversManagement/Controllers/v1/DriverDashboardController.cs)
 
 Контролер надає маршрут `GET /api/v1/driver-dashboard/{id}` та повертає статус 200 OK з повною або частково деградованою моделлю.
 
@@ -275,13 +275,13 @@ return new AggregatedDriverDashboardDto
 ## 8. Швидка навігація по вихідному коду
 
 * 🌐 **Типізовані HTTP-клієнти:**
-  * [👉 **Перейти до CargoOrderingApiClient.cs**](../DriversManagement/src/DriversManagement/Domain/Drivers/Services/Http/CargoOrderingApiClient.cs#L20-L50)
-  * [👉 **Перейти до DriversBlogApiClient.cs**](../DriversManagement/src/DriversManagement/Domain/Drivers/Services/Http/DriversBlogApiClient.cs#L15-L45)
+  * [👉 **Перейти до CargoOrderingApiClient.cs**](../DriversManagement/src/DriversManagement/Domain/Drivers/Services/Http/CargoOrderingApiClient.cs)
+  * [👉 **Перейти до DriversBlogApiClient.cs**](../DriversManagement/src/DriversManagement/Domain/Drivers/Services/Http/DriversBlogApiClient.cs)
 * ⚙️ **Реєстрація та Service Discovery:**
-  * [👉 **Перейти до WebAppServiceConfiguration.cs**](../DriversManagement/src/DriversManagement/Extensions/Services/WebAppServiceConfiguration.cs#L50-L70)
+  * [👉 **Перейти до WebAppServiceConfiguration.cs**](../DriversManagement/src/DriversManagement/Extensions/Services/WebAppServiceConfiguration.cs)
 * 🛡️ **Оркестратор Агрегатора (Fan-Out/Fan-In):**
-  * [👉 **Перейти до GetDriverDashboard.cs**](../DriversManagement/src/DriversManagement/Domain/Drivers/Features/GetDriverDashboard.cs#L45-L95)
-  * [👉 **Перейти до AggregatedDriverDashboardDto.cs**](../DriversManagement/src/DriversManagement/Domain/Drivers/Dtos/AggregatedDriverDashboardDto.cs#L10-L40)
+  * [👉 **Перейти до GetDriverDashboard.cs**](../DriversManagement/src/DriversManagement/Domain/Drivers/Features/GetDriverDashboard.cs)
+  * [👉 **Перейти до AggregatedDriverDashboardDto.cs**](../DriversManagement/src/DriversManagement/Domain/Drivers/Dtos/AggregatedDriverDashboardDto.cs)
 * 📱 **BFF Контролер:**
-  * [👉 **Перейти до DriverDashboardController.cs**](../DriversManagement/src/DriversManagement/Controllers/v1/DriverDashboardController.cs#L25-L60)
+  * [👉 **Перейти до DriverDashboardController.cs**](../DriversManagement/src/DriversManagement/Controllers/v1/DriverDashboardController.cs)
 

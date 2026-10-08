@@ -91,9 +91,9 @@ flowchart TD
 
 | Мікросервіс | Роль сутності водія | Які поля містить модель | Посилання на вихідний код проєкту |
 | :--- | :--- | :--- | :--- |
-| **`DriversManagement`** | **Rich Aggregate Root** (Повний агрегат) | Повне досьє: `FirstName`, `LastName`, `DriverLicenseNumber`, `Birthdate`, `Gender`, `Company`, `Truck`, `Expences`, `Photo` | [👉 **Відкрити файл: `Driver.cs`**](../DriversManagement/src/DriversManagement/Domain/Drivers/Driver.cs#L20-L80)<br/>*`DriversManagement/Domain/Drivers/Driver.cs`* |
-| **`CargoOrderingService`** | **Logistics Shadow Model** (Тіньова копія) | Тільки логістичні атрибути: `Id`, `FirstName`, `LastName`, `DriverLicenseNumber`, `Phone`, зв'язок із `Deliveries` та `Orders` | [👉 **Відкрити файл: `Driver.cs`**](../CargoOrderingService/src/CargoOrderingService/Domain/Drivers/Driver.cs#L10-L40)<br/>*`CargoOrderingService/Domain/Drivers/Driver.cs`* |
-| **`DriversBlogManagement`** | **Social Shadow Model** (Соціальна копія) | Тільки публічні реквізити автора: `Id`, `FirstName`, `LastName`, колекція публікацій `PostAboutDrivers` та `Likes` | [👉 **Відкрити файл: `Driver.cs`**](../DriversBlogManagement/src/DriversBlogManagement/Domain/Drivers/Driver.cs#L10-L40)<br/>*`DriversBlogManagement/Domain/Drivers/Driver.cs`* |
+| **`DriversManagement`** | **Rich Aggregate Root** (Повний агрегат) | Повне досьє: `FirstName`, `LastName`, `DriverLicenseNumber`, `Birthdate`, `Gender`, `Company`, `Truck`, `Expences`, `Photo` | [👉 **Відкрити файл: `Driver.cs`**](../DriversManagement/src/DriversManagement/Domain/Drivers/Driver.cs)<br/>*`DriversManagement/Domain/Drivers/Driver.cs`* |
+| **`CargoOrderingService`** | **Logistics Shadow Model** (Тіньова копія) | Тільки логістичні атрибути: `Id`, `FirstName`, `LastName`, `DriverLicenseNumber`, `Phone`, зв'язок із `Deliveries` та `Orders` | [👉 **Відкрити файл: `Driver.cs`**](../CargoOrderingService/src/CargoOrderingService/Domain/Drivers/Driver.cs)<br/>*`CargoOrderingService/Domain/Drivers/Driver.cs`* |
+| **`DriversBlogManagement`** | **Social Shadow Model** (Соціальна копія) | Тільки публічні реквізити автора: `Id`, `FirstName`, `LastName`, колекція публікацій `PostAboutDrivers` та `Likes` | [👉 **Відкрити файл: `Driver.cs`**](../DriversBlogManagement/src/DriversBlogManagement/Domain/Drivers/Driver.cs)<br/>*`DriversBlogManagement/Domain/Drivers/Driver.cs`* |
 
 > [!IMPORTANT]
 > **Автономність даних:** Якщо мікросервіс `DriversManagement` вимкнеться для технічного обслуговування, сервіс `CargoOrderingService` **продовжує повноцінно працювати**, тому що всі потрібні водії вже репліковані у його власну таблицю `OrderingContext.Drivers`!
@@ -147,31 +147,31 @@ flowchart LR
    > 📍 **Шлях до файлу:** `DriversManagement/src/DriversManagement/Domain/Drivers/Driver.cs`  
    *Інкапсуляція бізнес-правил, закриті сеттери, фабричний метод `Driver.Create()`, валідація віку та посвідчення.*
 
-   [👉 **Перейти до файлу (клікніть тут)**](../DriversManagement/src/DriversManagement/Domain/Drivers/Driver.cs#L20-L80)
+   [👉 **Перейти до файлу (клікніть тут)**](../DriversManagement/src/DriversManagement/Domain/Drivers/Driver.cs)
 
 2. **Команда додавання водія з публікацією в шину:**
    > 📍 **Шлях до файлу:** `DriversManagement/src/DriversManagement/Domain/Drivers/Features/AddDriver.cs`  
    *Поєднання транзакційного збереження в EF Core з публікацією події `IDriverCreated` через MassTransit.*
 
-   [👉 **Перейти до файлу (клікніть тут)**](../DriversManagement/src/DriversManagement/Domain/Drivers/Features/AddDriver.cs#L45-L65)
+   [👉 **Перейти до файлу (клікніть тут)**](../DriversManagement/src/DriversManagement/Domain/Drivers/Features/AddDriver.cs)
 
 3. **Запит водія із синхронним gRPC клієнтом:**
    > 📍 **Шлях до файлу:** `DriversManagement/src/DriversManagement/Domain/Drivers/Features/GetDriver.cs`  
    *Виклик локальної БД та швидкий віддалений RPC-дзвінок до блогу з обробкою часткової відмови.*
 
-   [👉 **Перейти до файлу (клікніть тут)**](../DriversManagement/src/DriversManagement/Domain/Drivers/Features/GetDriver.cs#L55-L105)
+   [👉 **Перейти до файлу (клікніть тут)**](../DriversManagement/src/DriversManagement/Domain/Drivers/Features/GetDriver.cs)
 
 4. **Агрегатор аналітичної панелі водія (BFF):**
    > 📍 **Шлях до файлу:** `DriversManagement/src/DriversManagement/Domain/Drivers/Features/GetDriverDashboard.cs`  
    *Паралельне опитування мікросервісів через `Task.WhenAll` з використанням типізованих HTTP-клієнтів.*
 
-   [👉 **Перейти до файлу (клікніть тут)**](../DriversManagement/src/DriversManagement/Domain/Drivers/Features/GetDriverDashboard.cs#L45-L95)
+   [👉 **Перейти до файлу (клікніть тут)**](../DriversManagement/src/DriversManagement/Domain/Drivers/Features/GetDriverDashboard.cs)
 
 5. **Головний API-контролер водіїв:**
    > 📍 **Шлях до файлу:** `DriversManagement/src/DriversManagement/Controllers/v1/DriversController.cs`  
    *REST-ендпоінти, пагінація, передача команд через MediatR `_mediator.Send()`.*
 
-   [👉 **Перейти до файлу (клікніть тут)**](../DriversManagement/src/DriversManagement/Controllers/v1/DriversController.cs#L40-L90)
+   [👉 **Перейти до файлу (клікніть тут)**](../DriversManagement/src/DriversManagement/Controllers/v1/DriversController.cs)
 
 ---
 

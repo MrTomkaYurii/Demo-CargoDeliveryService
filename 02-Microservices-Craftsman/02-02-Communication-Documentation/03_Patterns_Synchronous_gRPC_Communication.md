@@ -177,7 +177,7 @@ message PostAboutDriverResponse {
 > 📍 **Шлях до файлу:** `DriversBlogManagement/src/DriversBlogManagement/Domain/Drivers/Services/DriverRpcService.cs`  
 > 📝 *У файлі наведено докладні покрокові коментарі українською мовою.*
 
-[👉 **Перейти до файлу (клікніть тут)**](../DriversBlogManagement/src/DriversBlogManagement/Domain/Drivers/Services/DriverRpcService.cs#L10-L60)
+[👉 **Перейти до файлу (клікніть тут)**](../DriversBlogManagement/src/DriversBlogManagement/Domain/Drivers/Services/DriverRpcService.cs)
 
 Фрагмент реалізації методу:
 ```csharp
@@ -234,7 +234,7 @@ app.MapGrpcService<DriverRpcService>();
 
 > 📍 **Шлях до файлу:** `DriversManagement/src/DriversManagement/Extensions/Services/WebAppServiceConfiguration.cs`
 
-[👉 **Перейти до файлу (клікніть тут)**](../DriversManagement/src/DriversManagement/Extensions/Services/WebAppServiceConfiguration.cs#L42-L51)
+[👉 **Перейти до файлу (клікніть тут)**](../DriversManagement/src/DriversManagement/Extensions/Services/WebAppServiceConfiguration.cs)
 
 ```csharp
 builder.Services.AddGrpcClient<DriverRpc.DriverRpcClient>(options =>
@@ -255,7 +255,7 @@ builder.Services.AddGrpcClient<DriverRpc.DriverRpcClient>(options =>
 > 📍 **Шлях до файлу:** `DriversManagement/src/DriversManagement/Domain/Drivers/Features/GetDriver.cs`  
 > 📝 *У файлі наведено докладні покрокові коментарі українською мовою.*
 
-[👉 **Перейти до файлу (клікніть тут)**](../DriversManagement/src/DriversManagement/Domain/Drivers/Features/GetDriver.cs#L55-L105)
+[👉 **Перейти до файлу (клікніть тут)**](../DriversManagement/src/DriversManagement/Domain/Drivers/Features/GetDriver.cs)
 
 Фрагмент захищеного виклику:
 ```csharp
@@ -305,8 +305,8 @@ catch (RpcException)
 * 📜 **Контракт Protocol Buffers:**
   * [👉 **Перейти до Driver.proto**](../DriversBlogManagement/src/DriversBlogManagement/Domain/Drivers/Protos/Driver.proto)
 * ⚡ **Сервер gRPC (DriversBlogManagement):**
-  * [👉 **Перейти до DriverRpcService.cs**](../DriversBlogManagement/src/DriversBlogManagement/Domain/Drivers/Services/DriverRpcService.cs#L10-L60)
+  * [👉 **Перейти до DriverRpcService.cs**](../DriversBlogManagement/src/DriversBlogManagement/Domain/Drivers/Services/DriverRpcService.cs)
 * 🔌 **Клієнт gRPC (DriversManagement):**
-  * [👉 **Перейти до WebAppServiceConfiguration.cs (Реєстрація)**](../DriversManagement/src/DriversManagement/Extensions/Services/WebAppServiceConfiguration.cs#L42-L51)
-  * [👉 **Перейти до GetDriver.cs (Виклик з Graceful Degradation)**](../DriversManagement/src/DriversManagement/Domain/Drivers/Features/GetDriver.cs#L55-L105)
+  * [👉 **Перейти до WebAppServiceConfiguration.cs (Реєстрація)**](../DriversManagement/src/DriversManagement/Extensions/Services/WebAppServiceConfiguration.cs)
+  * [👉 **Перейти до GetDriver.cs (Виклик з Graceful Degradation)**](../DriversManagement/src/DriversManagement/Domain/Drivers/Features/GetDriver.cs)
 

@@ -51,7 +51,7 @@ flowchart TD
 
 > 📍 **Шлях до файлу оркестратора:** `02-Microservices-Craftsman/Aspire/CargoDelivery.AppHost/AppHost.cs`
 
-[👉 **Перейти до файлу (клікніть тут)**](../Aspire/CargoDelivery.AppHost/AppHost.cs#L1-L68)
+[👉 **Перейти до файлу (клікніть тут)**](../Aspire/CargoDelivery.AppHost/AppHost.cs)
 
 ```powershell
 # Запуск усієї системи (БД + Брокер + 3 API + Дашборд) однією командою:

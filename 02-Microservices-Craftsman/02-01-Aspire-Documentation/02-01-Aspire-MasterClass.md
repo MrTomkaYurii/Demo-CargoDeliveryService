@@ -116,7 +116,7 @@ flowchart TB
    > 📍 **Шлях до файлу:** `02-Microservices-Craftsman/DriversManagement/src/DriversManagement/Controllers/v1/DriverDashboardController.cs`  
    *Композиція досьє водія, активних доставок та останніх блог-постів у єдиний DTO-відповідь.*
 
-   [👉 **Перейти до файлу (клікніть тут)**](../DriversManagement/src/DriversManagement/Controllers/v1/DriverDashboardController.cs#L20-L45)
+   [👉 **Перейти до файлу (клікніть тут)**](../DriversManagement/src/DriversManagement/Controllers/v1/DriverDashboardController.cs)
 
 3. **Сервіс блогу водіїв (gRPC Сервер та стрічка дописів):**
    > 📍 **Шлях до файлу:** `02-Microservices-Craftsman/DriversBlogManagement/src/DriversBlogManagement/DriversBlogManagement.csproj`  
@@ -156,7 +156,7 @@ flowchart TB
 #### 2. Реальний код нашого AppHost
 > 📍 **Шлях до файлу:** `02-Microservices-Craftsman/Aspire/CargoDelivery.AppHost/AppHost.cs`
 
-[👉 **Перейти до файлу (клікніть тут)**](../Aspire/CargoDelivery.AppHost/AppHost.cs#L1-L68)
+[👉 **Перейти до файлу (клікніть тут)**](../Aspire/CargoDelivery.AppHost/AppHost.cs)
 
 ```csharp
 var builder = DistributedApplication.CreateBuilder(args);
@@ -240,7 +240,7 @@ sequenceDiagram
 #### 2. Посилання на код
 > 📍 **Шлях до файлу:** `02-Microservices-Craftsman/Aspire/CargoDelivery.AppHost/AppHost.cs`
 
-[👉 **Перейти до файлу (клікніть тут)**](../Aspire/CargoDelivery.AppHost/AppHost.cs#L20-L36)
+[👉 **Перейти до файлу (клікніть тут)**](../Aspire/CargoDelivery.AppHost/AppHost.cs)
 
 #### 3. Чому це зручно?
 1. **Ізоляція баз даних:** Кожен мікросервіс отримує власну базу даних (`dev_driversmanagement`, `dev_driversblogmanagement`, `dev_cargoorderingservice`), що повністю відповідає принципу **Database-per-Service** у Domain-Driven Design (DDD).
@@ -264,7 +264,7 @@ sequenceDiagram
 #### 2. Як це вирішено в нашому AppHost
 > 📍 **Шлях до файлу:** `02-Microservices-Craftsman/Aspire/CargoDelivery.AppHost/AppHost.cs`
 
-[👉 **Перейти до файлу (клікніть тут)**](../Aspire/CargoDelivery.AppHost/AppHost.cs#L55-L68)
+[👉 **Перейти до файлу (клікніть тут)**](../Aspire/CargoDelivery.AppHost/AppHost.cs)
 
 ```csharp
 var driversApi = builder.AddProject<Projects.DriversManagement>("driversmanagement")
@@ -323,13 +323,13 @@ flowchart LR
    > 📍 **Шлях до файлу:** `02-Microservices-Craftsman/Aspire/CargoDelivery.ServiceDefaults/Extensions.cs`  
    *Конфігурація метрик, логування, трейсингу, Polly та Health Checks.*
 
-   [👉 **Перейти до файлу (клікніть тут)**](../Aspire/CargoDelivery.ServiceDefaults/Extensions.cs#L24-L50)
+   [👉 **Перейти до файлу (клікніть тут)**](../Aspire/CargoDelivery.ServiceDefaults/Extensions.cs)
 
 2. **Реєстрація у Program.cs мікросервісу водіїв:**
    > 📍 **Шлях до файлу:** `02-Microservices-Craftsman/DriversManagement/src/DriversManagement/Program.cs`  
    *Виклик builder.AddServiceDefaults() та app.MapDefaultEndpoints().*
 
-   [👉 **Перейти до файлу (клікніть тут)**](../DriversManagement/src/DriversManagement/Program.cs#L40-L48)
+   [👉 **Перейти до файлу (клікніть тут)**](../DriversManagement/src/DriversManagement/Program.cs)
 
 #### 3. Що під капотом методу `AddServiceDefaults()`?
 1. **`builder.ConfigureOpenTelemetry()`**: конфігурує збір метрик процесу, AspNetCore, HttpClient та експорт через OTLP.
@@ -357,7 +357,7 @@ flowchart LR
 
 > 📍 **Шлях до файлу:** `02-Microservices-Craftsman/Aspire/CargoDelivery.ServiceDefaults/Extensions.cs`
 
-[👉 **Перейти до файлу (клікніть тут)**](../Aspire/CargoDelivery.ServiceDefaults/Extensions.cs#L90-L105)
+[👉 **Перейти до файлу (клікніть тут)**](../Aspire/CargoDelivery.ServiceDefaults/Extensions.cs)
 
 ```csharp
 private static TBuilder AddOpenTelemetryExporters<TBuilder>(this TBuilder builder) where TBuilder : IHostApplicationBuilder
@@ -407,7 +407,7 @@ MassTransit підтримує стандарт W3C `traceparent`. Коли по
 
 > 📍 **Шлях до файлу:** `02-Microservices-Craftsman/Aspire/CargoDelivery.ServiceDefaults/Extensions.cs`
 
-[👉 **Перейти до файлу (клікніть тут)**](../Aspire/CargoDelivery.ServiceDefaults/Extensions.cs#L64-L85)
+[👉 **Перейти до файлу (клікніть тут)**](../Aspire/CargoDelivery.ServiceDefaults/Extensions.cs)
 
 ```csharp
 .WithTracing(tracing =>
@@ -462,7 +462,7 @@ gantt
 #### 2. Реалізація Service Discovery з автоматичним Fallback
 > 📍 **Шлях до файлу:** `02-Microservices-Craftsman/DriversManagement/src/DriversManagement/Extensions/Services/WebAppServiceConfiguration.cs`
 
-[👉 **Перейти до файлу (клікніть тут)**](../DriversManagement/src/DriversManagement/Extensions/Services/WebAppServiceConfiguration.cs#L42-L75)
+[👉 **Перейти до файлу (клікніть тут)**](../DriversManagement/src/DriversManagement/Extensions/Services/WebAppServiceConfiguration.cs)
 
 ```csharp
 // Реєстрація gRPC-клієнта з підтримкою .NET Aspire Service Discovery
@@ -499,7 +499,7 @@ builder.Services.AddGrpcClient<DriverRpc.DriverRpcClient>(options =>
 #### 2. Універсальний адаптер у MassTransitServiceExtension
 > 📍 **Шлях до файлу:** `02-Microservices-Craftsman/DriversManagement/src/DriversManagement/Extensions/Services/MassTransitServiceExtension.cs`
 
-[👉 **Перейти до файлу (клікніть тут)**](../DriversManagement/src/DriversManagement/Extensions/Services/MassTransitServiceExtension.cs#L22-L55)
+[👉 **Перейти до файлу (клікніть тут)**](../DriversManagement/src/DriversManagement/Extensions/Services/MassTransitServiceExtension.cs)
 
 ```csharp
 var rmqOptions = configuration.GetRabbitMqOptions();
@@ -577,7 +577,7 @@ flowchart TD
 #### 2. Посилання на код
 > 📍 **Шлях до файлу:** `02-Microservices-Craftsman/Aspire/CargoDelivery.ServiceDefaults/Extensions.cs`
 
-[👉 **Перейти до файлу (клікніть тут)**](../Aspire/CargoDelivery.ServiceDefaults/Extensions.cs#L115-L138)
+[👉 **Перейти до файлу (клікніть тут)**](../Aspire/CargoDelivery.ServiceDefaults/Extensions.cs)
 
 ```csharp
 public static WebApplication MapDefaultEndpoints(this WebApplication app)
@@ -622,7 +622,7 @@ flowchart LR
 #### 2. Реалізація у нашому ServiceDefaults
 > 📍 **Шлях до файлу:** `02-Microservices-Craftsman/Aspire/CargoDelivery.ServiceDefaults/Extensions.cs`
 
-[👉 **Перейти до файлу (клікніть тут)**](../Aspire/CargoDelivery.ServiceDefaults/Extensions.cs#L35-L48)
+[👉 **Перейти до файлу (клікніть тут)**](../Aspire/CargoDelivery.ServiceDefaults/Extensions.cs)
 
 ```csharp
 builder.Services.ConfigureHttpClientDefaults(http =>
