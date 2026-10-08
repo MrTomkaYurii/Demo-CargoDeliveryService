@@ -80,17 +80,19 @@ flowchart TB
         end
 
         subgraph Services ["⚡ Microservice Web APIs (.NET 10)"]
-            DM["🚚 DriversManagement<br/>(Core API)"]
+            DM["🚚 DriversManagement<br/>(Core API & Gateway Aggregator)"]
             DB["📝 DriversBlogManagement<br/>(Blog & Feed API)"]
             CO["📦 CargoOrderingService<br/>(Orders API)"]
         end
     end
 
     DM -. "1. gRPC Protobuf (HTTP/2)" .-> DB
-    DM ==>|2. IDriverCreated / IDriverUpdated| RMQ
+    DM -. "2. HTTP Aggregator (BFF Task.WhenAll)" .-> DB
+    DM -. "2. HTTP Aggregator (BFF Task.WhenAll)" .-> CO
+    DM ==>|3. IDriverCreated / IDriverUpdated| RMQ
     RMQ ==>|Consume IDriverCreated| DB
     RMQ ==>|Consume IDriverCreated| CO
-    CO ==>|3. IOrderCreated| RMQ
+    CO ==>|4. IOrderCreated| RMQ
     RMQ ==>|Consume IOrderCreated| DM
 
     DM --> DB1
@@ -102,11 +104,37 @@ flowchart TB
     CO -. "OTLP (gRPC)" .-> AspireDashboard
 ```
 
-#### 2. Прямі посилання на вихідний код мікросервісів
-👉 Проєкт сервісу водіїв: [`DriversManagement.csproj`](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/02-Microservices-Craftsman/DriversManagement/src/DriversManagement/DriversManagement.csproj)  
-👉 Проєкт блогу водіїв: [`DriversBlogManagement.csproj`](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/02-Microservices-Craftsman/DriversBlogManagement/src/DriversBlogManagement/DriversBlogManagement.csproj)  
-👉 Проєкт замовлень вантажів: [`CargoOrderingService.csproj`](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/02-Microservices-Craftsman/CargoOrderingService/src/CargoOrderingService/CargoOrderingService.csproj)  
-👉 Спільні контракти повідомлень: [`SharedKernel.csproj`](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/02-Microservices-Craftsman/SharedKernel/SharedKernel.csproj)  
+#### 2. Прямі посилання на ключові компоненти та вихідний код
+
+1. **Сервіс водіїв та Gateway Aggregator (BFF):**
+   > 📍 **Шлях до файлу:** `02-Microservices-Craftsman/DriversManagement/src/DriversManagement/DriversManagement.csproj`  
+   *Головний агрегат водія, CQRS-команди, обчислення метрик та шлюз агрегації даних.*
+
+   [👉 **Перейти до файлу (клікніть тут)**](../DriversManagement/src/DriversManagement/DriversManagement.csproj)
+
+2. **BFF Контролер агрегації дашборду (Task.WhenAll Fan-Out / Fan-In):**
+   > 📍 **Шлях до файлу:** `02-Microservices-Craftsman/DriversManagement/src/DriversManagement/Controllers/v1/DriverDashboardController.cs`  
+   *Композиція досьє водія, активних доставок та останніх блог-постів у єдиний DTO-відповідь.*
+
+   [👉 **Перейти до файлу (клікніть тут)**](../DriversManagement/src/DriversManagement/Controllers/v1/DriverDashboardController.cs#L20-L45)
+
+3. **Сервіс блогу водіїв (gRPC Сервер та стрічка дописів):**
+   > 📍 **Шлях до файлу:** `02-Microservices-Craftsman/DriversBlogManagement/src/DriversBlogManagement/DriversBlogManagement.csproj`  
+   *Соціальний функціонал, коментарі, вподобайки та високошвидкісний бінарний gRPC-ендпоінт.*
+
+   [👉 **Перейти до файлу (клікніть тут)**](../DriversBlogManagement/src/DriversBlogManagement/DriversBlogManagement.csproj)
+
+4. **Сервіс замовлень вантажів (Cargo Logistics):**
+   > 📍 **Шлях до файлу:** `02-Microservices-Craftsman/CargoOrderingService/src/CargoOrderingService/CargoOrderingService.csproj`  
+   *Управління замовленнями, рейсами, статусами доставки та фонова синхронізація водіїв.*
+
+   [👉 **Перейти до файлу (клікніть тут)**](../CargoOrderingService/src/CargoOrderingService/CargoOrderingService.csproj)
+
+5. **Спільні контракти повідомлень шини (SharedKernel):**
+   > 📍 **Шлях до файлу:** `02-Microservices-Craftsman/SharedKernel/SharedKernel.csproj`  
+   *Інтерфейси доменних подій IDriverCreated, IDriverUpdated, IOrderCreated.*
+
+   [👉 **Перейти до файлу (клікніть тут)**](../SharedKernel/SharedKernel.csproj)
 
 [⬆ До змісту](#toc) • [Наступний слайд ➡](#slide-3)
 
@@ -126,7 +154,9 @@ flowchart TB
 > `AppHost` — це нотна партитура. Диригент не грає сам на скрипці чи барабанах (це роблять мікросервіси), але він точно знає, коли вступає ударна установка (база даних), а коли соло бере саксофон (Web API).
 
 #### 2. Реальний код нашого AppHost
-👉 Повний файл: [`AppHost.cs`](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/02-Microservices-Craftsman/Aspire/CargoDelivery.AppHost/AppHost.cs#L1-L36) 📍 (дивіться рядки 1–36)
+> 📍 **Шлях до файлу:** `02-Microservices-Craftsman/Aspire/CargoDelivery.AppHost/AppHost.cs`
+
+[👉 **Перейти до файлу (клікніть тут)**](../Aspire/CargoDelivery.AppHost/AppHost.cs#L1-L68)
 
 ```csharp
 var builder = DistributedApplication.CreateBuilder(args);
@@ -141,28 +171,30 @@ var driversDb = sqlserver.AddDatabase("DriversManagement", "dev_driversmanagemen
 var blogDb = sqlserver.AddDatabase("DriversBlogManagement", "dev_driversblogmanagement");
 var cargoDb = sqlserver.AddDatabase("CargoOrderingService", "dev_cargoorderingservice");
 
-// 3. Мікросервіс блогу водіїв (gRPC сервер + MassTransit консьюмер)
+// 3. Мікросервіс замовлень вантажів (MassTransit паблішер і консьюмер)
+var cargoApi = builder.AddProject<Projects.CargoOrderingService>("cargoorderingservice")
+    .WithReference(cargoDb)
+    .WithReference(rabbitmq)
+    .WaitFor(cargoDb)
+    .WaitFor(rabbitmq);
+
+// 4. Мікросервіс блогу водіїв (gRPC сервер + MassTransit консьюмер)
 var blogApi = builder.AddProject<Projects.DriversBlogManagement>("driversblogmanagement")
     .WithReference(blogDb)
     .WithReference(rabbitmq)
     .WaitFor(blogDb)
     .WaitFor(rabbitmq);
 
-// 4. Основний сервіс керування водіями (gRPC клієнт до блогу + MassTransit паблішер)
+// 5. Головний сервіс водіїв та Gateway Aggregator BFF (gRPC клієнт + HTTP BFF + MassTransit паблішер)
 var driversApi = builder.AddProject<Projects.DriversManagement>("driversmanagement")
     .WithReference(driversDb)
     .WithReference(rabbitmq)
     .WithReference(blogApi)
+    .WithReference(cargoApi)
     .WaitFor(driversDb)
     .WaitFor(rabbitmq)
-    .WaitFor(blogApi);
-
-// 5. Сервіс замовлень вантажів (MassTransit паблішер і консьюмер)
-var cargoApi = builder.AddProject<Projects.CargoOrderingService>("cargoorderingservice")
-    .WithReference(cargoDb)
-    .WithReference(rabbitmq)
-    .WaitFor(cargoDb)
-    .WaitFor(rabbitmq);
+    .WaitFor(blogApi)
+    .WaitFor(cargoApi);
 
 builder.Build().Run();
 ```
@@ -171,8 +203,9 @@ builder.Build().Run();
 1. `Projects.DriversManagement` — це згенерований генератором коду (Source Generator) статичний типізований клас, який дивиться на реальний `.csproj` файл. Якщо файл проєкту буде перейменовано або переміщено, помилка виникне під час компіляції, а не в рантаймі!
 2. `.WithReference(blogDb)` автоматично інжектує у змінну середовища процесу рядок підключення:  
    `ConnectionStrings__DriversManagement=Data Source=...`
-3. `.WithReference(blogApi)` автоматично додає адресу кінцевої точки (endpoint) у середовище `driversmanagement`:  
-   `services__driversblogmanagement__https__0=https://localhost:...`
+3. `.WithReference(blogApi)` та `.WithReference(cargoApi)` автоматично додають адреси кінцевих точок у середовище `driversmanagement`:  
+   `services__driversblogmanagement__https__0=https://localhost:...`  
+   `services__cargoorderingservice__http__0=http://localhost:...`
 
 [⬆ До змісту](#toc) • [Наступний слайд ➡](#slide-4)
 
@@ -205,7 +238,9 @@ sequenceDiagram
 ```
 
 #### 2. Посилання на код
-👉 Реєстрація контейнерів у коді: [`AppHost.cs`](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/02-Microservices-Craftsman/Aspire/CargoDelivery.AppHost/AppHost.cs#L3-L11) 📍 (рядки 3–11)
+> 📍 **Шлях до файлу:** `02-Microservices-Craftsman/Aspire/CargoDelivery.AppHost/AppHost.cs`
+
+[👉 **Перейти до файлу (клікніть тут)**](../Aspire/CargoDelivery.AppHost/AppHost.cs#L20-L36)
 
 #### 3. Чому це зручно?
 1. **Ізоляція баз даних:** Кожен мікросервіс отримує власну базу даних (`dev_driversmanagement`, `dev_driversblogmanagement`, `dev_cargoorderingservice`), що повністю відповідає принципу **Database-per-Service** у Domain-Driven Design (DDD).
@@ -227,21 +262,25 @@ sequenceDiagram
 > Ви не пускаєте швидкісний потяг (Web API), доки залізничники не закінчили вкладати рейки (SQL Server). Патерн `.WaitFor()` — це семафор, який тримає потяг на станції до моменту, поки рейки не пройдуть перевірку надійності.
 
 #### 2. Як це вирішено в нашому AppHost
-👉 Дивіться рядки 17-18, 24-26, 32-33: [`AppHost.cs`](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/02-Microservices-Craftsman/Aspire/CargoDelivery.AppHost/AppHost.cs#L17-L26)
+> 📍 **Шлях до файлу:** `02-Microservices-Craftsman/Aspire/CargoDelivery.AppHost/AppHost.cs`
+
+[👉 **Перейти до файлу (клікніть тут)**](../Aspire/CargoDelivery.AppHost/AppHost.cs#L55-L68)
 
 ```csharp
 var driversApi = builder.AddProject<Projects.DriversManagement>("driversmanagement")
     .WithReference(driversDb)
     .WithReference(rabbitmq)
     .WithReference(blogApi)
+    .WithReference(cargoApi)
     .WaitFor(driversDb)    // ⏳ Чекати, доки підніметься SQL Server та база даних
     .WaitFor(rabbitmq)     // ⏳ Чекати, доки брокер RabbitMQ буде готовий приймати TCP-з'єднання
-    .WaitFor(blogApi);     // ⏳ Чекати, доки сервіс блогу стане Healthy для gRPC-викликів!
+    .WaitFor(blogApi)      // ⏳ Чекати, доки сервіс блогу стане Healthy для gRPC-викликів
+    .WaitFor(cargoApi);    // ⏳ Чекати, доки сервіс замовлень стане Healthy для HTTP BFF-викликів
 ```
 
 #### 3. Що бачить користувач у Aspire Dashboard?
 У вебінтерфейсі стан сервісу `driversmanagement` послідовно змінюється:
-1. `Waiting` (жовтий індикатор) — *"Waiting for resources: sqlserver, rabbitmq, driversblogmanagement"*.
+1. `Waiting` (жовтий індикатор) — *"Waiting for resources: sqlserver, rabbitmq, driversblogmanagement, cargoorderingservice"*.
 2. `Starting` — як тільки залежності успішно пройшли перевірку готовності.
 3. `Running` (зелений індикатор) — мікросервіс готовий приймати зовнішні HTTP-запити.
 
@@ -279,8 +318,18 @@ flowchart LR
 ```
 
 #### 2. Посилання на код
-👉 Файл розширень: [`Extensions.cs`](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/02-Microservices-Craftsman/Aspire/CargoDelivery.ServiceDefaults/Extensions.cs#L18-L45) 📍 (дивіться рядки 18–45)  
-👉 Реєстрація у Program.cs: [`Program.cs`](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/02-Microservices-Craftsman/DriversManagement/src/DriversManagement/Program.cs#L40-L45) 📍 (дивіться виклик `MapDefaultEndpoints`)
+
+1. **Файл спільних розширень ServiceDefaults:**
+   > 📍 **Шлях до файлу:** `02-Microservices-Craftsman/Aspire/CargoDelivery.ServiceDefaults/Extensions.cs`  
+   *Конфігурація метрик, логування, трейсингу, Polly та Health Checks.*
+
+   [👉 **Перейти до файлу (клікніть тут)**](../Aspire/CargoDelivery.ServiceDefaults/Extensions.cs#L24-L50)
+
+2. **Реєстрація у Program.cs мікросервісу водіїв:**
+   > 📍 **Шлях до файлу:** `02-Microservices-Craftsman/DriversManagement/src/DriversManagement/Program.cs`  
+   *Виклик builder.AddServiceDefaults() та app.MapDefaultEndpoints().*
+
+   [👉 **Перейти до файлу (клікніть тут)**](../DriversManagement/src/DriversManagement/Program.cs#L40-L48)
 
 #### 3. Що під капотом методу `AddServiceDefaults()`?
 1. **`builder.ConfigureOpenTelemetry()`**: конфігурує збір метрик процесу, AspNetCore, HttpClient та експорт через OTLP.
@@ -305,7 +354,10 @@ flowchart LR
 
 #### 2. Сучасний підхід з .NET Aspire: Нативний OTLP
 У .NET Aspire все трасування, метрики та логи передаються за єдиним відкритим протоколом **OTLP** поверх gRPC / HTTP:
-👉 Код підключення у ServiceDefaults: [`Extensions.cs`](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/02-Microservices-Craftsman/Aspire/CargoDelivery.ServiceDefaults/Extensions.cs#L81-L93) 📍 (дивіться рядки 81–93)
+
+> 📍 **Шлях до файлу:** `02-Microservices-Craftsman/Aspire/CargoDelivery.ServiceDefaults/Extensions.cs`
+
+[👉 **Перейти до файлу (клікніть тут)**](../Aspire/CargoDelivery.ServiceDefaults/Extensions.cs#L90-L105)
 
 ```csharp
 private static TBuilder AddOpenTelemetryExporters<TBuilder>(this TBuilder builder) where TBuilder : IHostApplicationBuilder
@@ -351,7 +403,11 @@ flowchart TD
 MassTransit підтримує стандарт W3C `traceparent`. Коли повідомлення відправляється в чергу, MassTransit додає заголовки трасування. Коли консьюмер вичитує повідомлення, він підхоплює цей Trace ID!
 
 #### 2. Як ми навчили Aspire бачити події MassTransit?
-У нашому [`Extensions.cs`](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/02-Microservices-Craftsman/Aspire/CargoDelivery.ServiceDefaults/Extensions.cs#L60-L75) ми зареєстрували джерело активності MassTransit:
+У нашому розширенні `Extensions.cs` ми зареєстрували джерело активності MassTransit:
+
+> 📍 **Шлях до файлу:** `02-Microservices-Craftsman/Aspire/CargoDelivery.ServiceDefaults/Extensions.cs`
+
+[👉 **Перейти до файлу (клікніть тут)**](../Aspire/CargoDelivery.ServiceDefaults/Extensions.cs#L64-L85)
 
 ```csharp
 .WithTracing(tracing =>
@@ -404,7 +460,9 @@ gantt
 Якщо інший розробник змінював порт, сервіс блогу запускався на випадковому порту в Docker або в продакшні адреса змінювалася, виклики gRPC падали з помилкою `RpcException: Unavailable`.
 
 #### 2. Реалізація Service Discovery з автоматичним Fallback
-👉 Дивіться реальний код: [`WebAppServiceConfiguration.cs`](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/02-Microservices-Craftsman/DriversManagement/src/DriversManagement/Extensions/Services/WebAppServiceConfiguration.cs#L41-L50)
+> 📍 **Шлях до файлу:** `02-Microservices-Craftsman/DriversManagement/src/DriversManagement/Extensions/Services/WebAppServiceConfiguration.cs`
+
+[👉 **Перейти до файлу (клікніть тут)**](../DriversManagement/src/DriversManagement/Extensions/Services/WebAppServiceConfiguration.cs#L42-L75)
 
 ```csharp
 // Реєстрація gRPC-клієнта з підтримкою .NET Aspire Service Discovery
@@ -439,7 +497,9 @@ builder.Services.AddGrpcClient<DriverRpc.DriverRpcClient>(options =>
 - В **юніт-тестах** зовнішнього брокера немає взагалі — потрібен `In-Memory Bus`.
 
 #### 2. Універсальний адаптер у MassTransitServiceExtension
-👉 Дивіться реальний код: [`MassTransitServiceExtension.cs`](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/02-Microservices-Craftsman/DriversManagement/src/DriversManagement/Extensions/Services/MassTransitServiceExtension.cs#L22-L46)
+> 📍 **Шлях до файлу:** `02-Microservices-Craftsman/DriversManagement/src/DriversManagement/Extensions/Services/MassTransitServiceExtension.cs`
+
+[👉 **Перейти до файлу (клікніть тут)**](../DriversManagement/src/DriversManagement/Extensions/Services/MassTransitServiceExtension.cs#L22-L55)
 
 ```csharp
 var rmqOptions = configuration.GetRabbitMqOptions();
@@ -515,7 +575,9 @@ flowchart TD
 ```
 
 #### 2. Посилання на код
-👉 Конфігурація у ServiceDefaults: [`Extensions.cs`](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/02-Microservices-Craftsman/Aspire/CargoDelivery.ServiceDefaults/Extensions.cs#L98-L127) 📍 (дивіться рядки 98–127)
+> 📍 **Шлях до файлу:** `02-Microservices-Craftsman/Aspire/CargoDelivery.ServiceDefaults/Extensions.cs`
+
+[👉 **Перейти до файлу (клікніть тут)**](../Aspire/CargoDelivery.ServiceDefaults/Extensions.cs#L115-L138)
 
 ```csharp
 public static WebApplication MapDefaultEndpoints(this WebApplication app)
@@ -558,7 +620,9 @@ flowchart LR
 ```
 
 #### 2. Реалізація у нашому ServiceDefaults
-👉 Дивіться рядки 31–38: [`Extensions.cs`](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/02-Microservices-Craftsman/Aspire/CargoDelivery.ServiceDefaults/Extensions.cs#L31-L38)
+> 📍 **Шлях до файлу:** `02-Microservices-Craftsman/Aspire/CargoDelivery.ServiceDefaults/Extensions.cs`
+
+[👉 **Перейти до файлу (клікніть тут)**](../Aspire/CargoDelivery.ServiceDefaults/Extensions.cs#L35-L48)
 
 ```csharp
 builder.Services.ConfigureHttpClientDefaults(http =>
@@ -662,6 +726,10 @@ flowchart TD
 ---
 
 #### 2. Запуск всієї системи однією командою
+> 📍 **Шлях до файлу оркестратора:** `02-Microservices-Craftsman/Aspire/CargoDelivery.AppHost/CargoDelivery.AppHost.csproj`
+
+[👉 **Перейти до файлу (клікніть тут)**](../Aspire/CargoDelivery.AppHost/CargoDelivery.AppHost.csproj)
+
 Відкрийте термінал у корені репозиторію та виконайте:
 
 ```powershell
@@ -676,20 +744,28 @@ dotnet run --project "02-Microservices-Craftsman\Aspire\CargoDelivery.AppHost\Ca
 1. Aspire відкриє у вашому браузері **Aspire Dashboard**.
 2. Docker завантажить і запустить:
    - Контейнер `rabbitmq` з веб-панеллю на порту `15672`.
-   - Контейнер `sqlserver` з трьома базами даних.
+   - Контейнер `sqlserver` з трьома ізольованими базами даних.
 3. Дочекається повної готовності баз та черг (`.WaitFor()`).
 4. Запустить усі 3 Web API:
-   - `driversmanagement`
+   - `driversmanagement` (порт призначається динамічно)
    - `driversblogmanagement`
    - `cargoorderingservice`
 
 ---
 
-#### 4. Як провести демонстрацію (Showcase Demo):
-1. **Відкрийте Swagger:** У дашборді на вкладці *Resources* клікніть на посилання `driversmanagement` та перейдіть у Swagger.
-2. **Створіть водія:** Виконайте запит `POST /api/drivers`.
-3. **Подивіться магію у Traces:** Перейдіть у вкладку *Traces* у дашборді:
-   - Ви побачите повний шлях запиту: `POST /api/drivers` ➔ запис у базу `dev_driversmanagement` ➔ відправка повідомлення в `RabbitMQ` ➔ отримання та синхронізація в `dev_driversblogmanagement` та `dev_cargoorderingservice`!
-4. **Перегляньте логи:** Усі логи трьох процесів зібрані в одному місці зі спільним `TraceId`.
+#### 4. Як провести повноцінну демонстрацію (Showcase Demo):
+1. **Відкрийте Swagger:** У дашборді на вкладці *Resources* клікніть на посилання `driversmanagement` та перейдіть у Swagger UI.
+2. **Асинхронна шина подій (MassTransit + RabbitMQ):**  
+   Виконайте `POST /api/v1/drivers` для створення нового водія.  
+   *Подія `IDriverCreated` миттєво відправляється у RabbitMQ Fanout Exchange та реплікується в бази даних блогу і замовлень.*
+3. **Паралельний HTTP Aggregator / BFF (Task.WhenAll):**  
+   Виконайте `GET /api/v1/driver-dashboard/{id}`.  
+   *Агрегатор паралельно опитає локальну БД, `CargoOrderingService` та `DriversBlogManagement`, зливаючи інформацію у єдиний об'єднаний DTO.*
+4. **Синхронний бінарний RPC (gRPC HTTP/2):**  
+   Виконайте `GET /api/v1/drivers/{id}`.  
+   *Сервіс виконає прямий бінарний виклик `GetDriverWithPosts` до віддаленого сервера блогу з автоматичним Graceful Degradation fallback при аварії.*
+5. **Подивіться магію розподіленої телеметрії у Traces:**  
+   Перейдіть у вкладку *Traces* у дашборді:  
+   *Ви побачите всі три типи взаємодії (HTTP REST, бінарний gRPC та асинхронний RabbitMQ) у єдиному дереві спанів з точним таймінгом кожного виклику та SQL-запитів EF Core!*
 
 [⬆ До змісту](#toc)
