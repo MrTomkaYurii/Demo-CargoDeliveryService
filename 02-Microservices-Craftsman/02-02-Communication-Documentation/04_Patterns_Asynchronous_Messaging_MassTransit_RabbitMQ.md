@@ -46,7 +46,7 @@ sequenceDiagram
         note over Producer: 🚀 Продюсер миттєво вільний!<br/>Диспетчер отримує 201 Created за 10мс.
 
         note over Broker,Consumer: Асинхронна доставка (у власному темпі підписника)
-        Broker->)Consumer: Push повідомлення з черги: ConsumeContext<IDriverCreated>
+        Broker->>Consumer: Push повідомлення з черги: ConsumeContext(IDriverCreated)
         activate Consumer
         note over Consumer: Споживач записує дані у свою БД,<br/>навіть якщо продюсер уже вимкнено
         Consumer-->>Broker: Basic.Ack (Повідомлення видалено з черги)
@@ -148,13 +148,13 @@ sequenceDiagram
     participant Ord as 📦 CargoOrderingService (Consumer)
 
     Dispatcher->>DM: POST /api/v1/drivers (Створення водія)
-    DM->>DM_DB: INSERT INTO Drivers; CommitChanges();
+    DM->>DM_DB: INSERT INTO Drivers та CommitChanges()
     DM_DB-->>DM: 200 OK (Водія збережено локально)
 
     %% Асинхронна публікація події
     rect rgb(20, 35, 60)
         note over DM,Broker: Асинхронна публікація доменної події
-        DM->>Bus: Publish<IDriverCreated>(new DriverCreated { ... })
+        DM->>Bus: Publish(IDriverCreated)
         Bus->>Broker: Basic.Publish -> exchange "driver-created"
         Broker-->>Bus: Basic.Ack (Повідомлення прийнято брокером)
         DM-->>Dispatcher: 201 Created (Миттєва відповідь диспетчеру!)
@@ -166,12 +166,12 @@ sequenceDiagram
 
     %% Асинхронне вичитування підписниками
     par Споживач Блогу
-        Q_Blog->>Blog: ConsumeContext<IDriverCreated>
+        Q_Blog->>Blog: ConsumeContext(IDriverCreated)
         Blog->>Blog: Перевірка ідемпотентності (if not exists)
         Blog->>Blog: INSERT INTO Shadow Drivers (EF Core)
         Blog-->>Q_Blog: Basic.Ack (Повідомлення видалено з черги)
     and Споживач Замовлень
-        Q_Ord->>Ord: ConsumeContext<IDriverCreated>
+        Q_Ord->>Ord: ConsumeContext(IDriverCreated)
         Ord->>Ord: Перевірка ідемпотентності (if not exists)
         Ord->>Ord: INSERT INTO Shadow Drivers (EF Core)
         Ord-->>Q_Ord: Basic.Ack (Повідомлення видалено з черги)
@@ -194,11 +194,11 @@ stateDiagram-v2
     note right of Acknowledged: Надсилається Basic.Ack.<br/>Повідомлення видаляється з черги.
 
     Processing --> RetrySchedule: Виняток (DbUpdateException / Timeout)
-    note right of RetrySchedule: MassTransit застосовує політики Retry:<br/>Негайний повтор або Exponential Backoff
+    note right of RetrySchedule: MassTransit застосовує політики повторів (Retry)<br/>Негайний повтор або Exponential Backoff
 
     RetrySchedule --> Processing: Повторна спроба обробки
     RetrySchedule --> ErrorQueue: Вичерпано ліміт спроб (Poison Message)
-    note right of ErrorQueue: Повідомлення переміщується в чергу помилок<br/>"ordering-sync-driver_error"<br/>для подальшого аналізу інженерами.
+    note right of ErrorQueue: Повідомлення переміщується в чергу помилок<br/>ordering-sync-driver_error<br/>для подальшого аналізу інженерами.
 
     Acknowledged --> [*]
     ErrorQueue --> [*]
