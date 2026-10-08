@@ -19,20 +19,39 @@
 2. **Гарантія брокера:** Брокер повідомлень (**RabbitMQ**) негайно зберігає повідомлення на диск у захищену чергу та повертає підтвердження публікації.
 3. **Автономність споживачів:** Сервіси-підписники вичитують події у власному темпі, коли вони готові, без необхідності тримати пряме з'єднання з видавцем.
 
-```
-┌─────────────────────────┐             ┌─────────────────────────┐
-│     Синхронний виклик    │             │   Асинхронні події EDA  │
-│      (REST / gRPC)      │             │  (MassTransit/RabbitMQ) │
-└────────────┬────────────┘             └────────────┬────────────┘
-             │                                       │
-     Виклик і очікування                     Публікація факту події
-             ▼                                       ▼
-  [Клієнт] ────Запит───► [Сервер]         [Продюсер] ──Event──► [RabbitMQ]
-     │                      │                  │                     │
-  Блокується            Обробляє           Вільний!               Зберігає
-     │                      │                  │                     ▼
-     ◄────Відповідь─────────┘                  │                 [Консьюмер]
-                                                              (вичитує коли готовий)
+```mermaid
+sequenceDiagram
+    autonumber
+    
+    rect rgb(38, 25, 25)
+        note over Client,SyncServer: ❌ 1. Синхронна взаємодія (REST / gRPC) — Часове блокування (Temporal Coupling)
+        Client->>SyncServer: Виклик: POST /api/v1/drivers (або gRPC)
+        activate Client
+        activate SyncServer
+        note over SyncServer: Сервер виконує бізнес-логіку,<br/>запис у базу даних тощо...
+        note over Client: ⏳ Клієнт заблокований і чекає!<br/>(Якщо сервер офлайн або впав — клієнт ламається)
+        SyncServer-->>Client: Відповідь: 200 OK / Response DTO
+        deactivate SyncServer
+        deactivate Client
+    end
+
+    rect rgb(20, 36, 48)
+        note over Producer,Consumer: ✅ 2. Асинхронний EDA (MassTransit + RabbitMQ) — Часове розв'язання (Temporal Decoupling)
+        Producer->>Broker: Публікація: Publish<IDriverCreated>(event)
+        activate Producer
+        activate Broker
+        Broker-->>Producer: Basic.Ack (Подія збережена в Quorum Queue)
+        deactivate Broker
+        deactivate Producer
+        note over Producer: 🚀 Продюсер миттєво вільний!<br/>Диспетчер отримує 201 Created за 10мс.
+
+        note over Broker,Consumer: Асинхронна доставка (у власному темпі підписника)
+        Broker->)Consumer: Push повідомлення з черги: ConsumeContext<IDriverCreated>
+        activate Consumer
+        note over Consumer: Споживач записує дані у свою БД,<br/>навіть якщо продюсер уже вимкнено
+        Consumer-->>Broker: Basic.Ack (Повідомлення видалено з черги)
+        deactivate Consumer
+    end
 ```
 
 ---
