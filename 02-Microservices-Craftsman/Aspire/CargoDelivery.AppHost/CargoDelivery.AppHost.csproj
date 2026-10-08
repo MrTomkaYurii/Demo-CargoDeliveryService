@@ -17,6 +17,7 @@
     <ProjectReference Include="..\..\CargoOrderingService\src\CargoOrderingService\CargoOrderingService.csproj" />
     <ProjectReference Include="..\..\DriversBlogManagement\src\DriversBlogManagement\DriversBlogManagement.csproj" />
     <ProjectReference Include="..\..\DriversManagement\src\DriversManagement\DriversManagement.csproj" />
+    <ProjectReference Include="..\..\CargoDelivery.HttpAggregator\CargoDelivery.HttpAggregator.csproj" />
   </ItemGroup>
 
 </Project>

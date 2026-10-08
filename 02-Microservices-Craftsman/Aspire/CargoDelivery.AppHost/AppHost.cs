@@ -83,4 +83,20 @@ var driversApi = builder.AddProject<Projects.DriversManagement>("driversmanageme
     .WaitFor(blogApi)
     .WaitFor(cargoApi);
 
+// ====================================================================================
+// 🛡️ 6. GATEWAY AGGREGATOR ДИСПЕТЧЕРА: CargoDelivery.HttpAggregator
+// ------------------------------------------------------------------------------------
+// - Патерн Scatter-Gather: паралельний Fan-Out / Fan-In через IHttpClientFactory.
+// - Демонстрація OpenTelemetry Distributed Tracing (батьківські та дочірні спани).
+// - Демонстрація Polly Resilience (Retry, Timeout, Circuit Breaker).
+// - .WaitFor(...) гарантує, що агрегатор стартує лише після готовності залежних API.
+// ====================================================================================
+var httpAggregator = builder.AddProject<Projects.CargoDelivery_HttpAggregator>("httpaggregator")
+    .WithReference(driversApi)
+    .WithReference(cargoApi)
+    .WithReference(blogApi)
+    .WaitFor(driversApi)
+    .WaitFor(cargoApi)
+    .WaitFor(blogApi);
+
 builder.Build().Run();
