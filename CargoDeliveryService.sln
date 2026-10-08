@@ -36,6 +36,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "02-01-Aspire-Documentation"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "02-02-Communication-Documentation", "02-02-Communication-Documentation", "{D4E5F6A1-B2C3-4D4E-BF5A-6B7C8D9E0F1A}"
 	ProjectSection(SolutionItems) = preProject
+		02-Microservices-Craftsman\02-02-Communication-Documentation\00_Communication_Matrix_Quick_Reference.md = 02-Microservices-Craftsman\02-02-Communication-Documentation\00_Communication_Matrix_Quick_Reference.md
 		02-Microservices-Craftsman\02-02-Communication-Documentation\01_Patterns_Microservices_Clean_Architecture.md = 02-Microservices-Craftsman\02-02-Communication-Documentation\01_Patterns_Microservices_Clean_Architecture.md
 		02-Microservices-Craftsman\02-02-Communication-Documentation\02_Patterns_Synchronous_HttpClient_Aggregator_BFF.md = 02-Microservices-Craftsman\02-02-Communication-Documentation\02_Patterns_Synchronous_HttpClient_Aggregator_BFF.md
 		02-Microservices-Craftsman\02-02-Communication-Documentation\03_Patterns_Synchronous_gRPC_Communication.md = 02-Microservices-Craftsman\02-02-Communication-Documentation\03_Patterns_Synchronous_gRPC_Communication.md
