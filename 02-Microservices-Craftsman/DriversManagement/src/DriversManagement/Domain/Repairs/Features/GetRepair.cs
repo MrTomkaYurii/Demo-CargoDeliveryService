@@ -25,7 +25,7 @@ public static class GetRepair
 
         public async Task<RepairDto> Handle(Query request, CancellationToken cancellationToken)
         {
-            await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanReadRepair);
+            // [AUTH-DISABLED] await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanReadRepair);
 
             var result = await _repairRepository.GetById(request.RepairId, cancellationToken: cancellationToken);
             return result.ToRepairDto();

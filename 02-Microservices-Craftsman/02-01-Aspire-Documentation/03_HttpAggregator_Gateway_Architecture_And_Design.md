@@ -1,12 +1,13 @@
 # 🛡️ 03. Архітектура Gateway Aggregator: Проєктування та Реалізація Сервісу Агрегації
 
 > **Розділ курсу:** `02-Microservices-Craftsman` • **Модуль:** `02-01-Aspire-Documentation`  
-> **Стек:** .NET 10, C# 13, ASP.NET Core Web API, `IHttpClientFactory`, Typed HttpClients, `Task.WhenAll`, Polly v8, OpenTelemetry  
+> **Стек:** .NET 10, ASP.NET Core Web API, `IHttpClientFactory`, Typed HttpClients, `Task.WhenAll`, Polly v8 (`Microsoft.Extensions.Http.Resilience`), Aspire Service Discovery, OpenTelemetry  
 > **Цільова аудиторія:** Архітектори розподілених систем, Senior/Lead .NET інженери, викладачі та студенти курсів мікросервісної архітектури  
 > **Офіційна документація Microsoft:**  
 > - [Architecting Container-based Applications: API Gateways](https://learn.microsoft.com/dotnet/architecture/microservices/architect-microservice-container-applications/direct-client-to-microservice-communication-versus-the-api-gateway-pattern)  
 > - [Make HTTP requests using IHttpClientFactory in ASP.NET Core](https://learn.microsoft.com/aspnet/core/fundamentals/http-requests)  
 > - [Enterprise Integration Patterns: Scatter-Gather (Hohpe & Woolf)](https://www.enterpriseintegrationpatterns.com/patterns/messaging/BroadcastAggregate.html)
+> - [Azure Architecture Center: Gateway Aggregation pattern](https://learn.microsoft.com/azure/architecture/patterns/gateway-aggregation)
 
 ---
 
@@ -16,13 +17,14 @@
 - [2. Патерн Gateway Aggregator та патерни інтеграції підприємства (EIP Scatter-Gather)](#section-2)
 - [3. Матриця розмежування архітектурних стилів: YARP vs BFF vs Gateway Aggregator](#section-3)
 - [4. Економіка затримок: Математичний аналіз RTT послідовних та паралельних викликів](#section-4)
-- [5. Архітектура нового проєкту CargoDelivery.HttpAggregator](#section-5)
+- [5. Архітектура проєкту CargoDelivery.HttpAggregator](#section-5)
 - [6. Проєктування типізованих HTTP-клієнтів та керування сокетами через IHttpClientFactory](#section-6)
 - [7. Реалізація патерну Scatter-Gather у ShipmentAggregatorService (Fan-Out / Fan-In)](#section-7)
 - [8. Патерн Graceful Degradation (Часткова деградація) та ізоляція відмов](#section-8)
 - [9. Контролери та лабораторний полігон симуляції відмов (SimulationController)](#section-9)
-- [10. Архітектурна матриця: Антипатерни vs Еталонні практики](#section-10)
-- [11. Практичні завдання та контрольні запитання для самоперевірки](#section-11)
+- [10. Внутрішні (service-to-service) API: окремий контур для агрегатора](#section-10)
+- [11. Архітектурна матриця: Антипатерни vs Еталонні практики](#section-11)
+- [12. Практичні завдання та контрольні запитання для самоперевірки](#section-12)
 
 ---
 
@@ -54,6 +56,7 @@ flowchart TD
    * Клієнт змушений виконувати $N$ послідовних або квазі-паралельних HTTP-запитів через публічну мережу Інтернет або мобільні стільникові канали (WAN).
    * Кожен Round-Trip Time (RTT) через WAN займає від 50 до 200 мілісекунд через фізичну відстань, рукостискання TLS, проходження через маршрутизатори інтернет-провайдерів.
    * У результаті загальний час завантаження одного екрана перевищує $400-600\text{ мс}$, що порушує вимоги до сучасного UX (Core Web Vitals, Responsive UI).
+   * Браузер до того ж обмежує кількість одночасних з'єднань до одного хоста (для HTTP/1.1 — 6), тож «паралельність» на клієнті теж не безмежна.
 
 2. **Витік внутрішніх доменних моделей та надмірне зачеплення (Coupling Leakage):**
    * Клієнтський застосунок стає жорстко прив'язаним до внутрішньої декомпозиції бекенду, внутрішніх URL-шляхів, схем автентифікації та форматів DTO кожного з трьох сервісів.
@@ -64,7 +67,7 @@ flowchart TD
    * Збільшується вектор потенційної атаки (Attack Surface).
 
 4. **Проблема надлишковості та недостатності даних (Over-fetching & Under-fetching):**
-   * Клієнт отримує з `DriversManagement` 30 полів водія (включаючи паспорти, домашні адреси, дату проходження медичного огляду), хоча на зведеному екрані диспетчера потрібні лише `FullName`, `Phone` та `VehiclePlate`. Це марнує мобільний трафік і пам'ять пристрою.
+   * Клієнт отримує з `DriversManagement` 30 полів водія (включаючи паспорти, домашні адреси, дату проходження медичного огляду), хоча на зведеному екрані диспетчера потрібні лише `FullName`, `LicenseNumber` та `CompanyName`. Це марнує мобільний трафік, пам'ять пристрою і — що важливіше — **розкриває персональні дані**, яких клієнту бачити не треба.
 
 ---
 
@@ -81,7 +84,7 @@ flowchart TD
 flowchart TD
     Client["💻 Диспетчерський термінал"] -->|"Єдиний запит через WAN<br/>GET /api/v1/shipment-summary/{id}"| Agg["🛡️ CargoDelivery.HttpAggregator<br/>(Gateway Aggregator)"]
     
-    subgraph PrivateNet ["🔒 Приватна висоbase-латентна мережа (LAN / Aspire Mesh / k8s)"]
+    subgraph PrivateNet ["🔒 Приватна низьколатентна мережа (LAN / Aspire / k8s)"]
         Agg -->|"⚡ Fan-Out (Паралельно)"| DM["🚚 DriversManagement"]
         Agg -->|"⚡ Fan-Out (Паралельно)"| CO["📦 CargoOrderingService"]
         Agg -->|"⚡ Fan-Out (Паралельно)"| DB["📝 DriversBlogManagement"]
@@ -101,6 +104,14 @@ flowchart TD
 2. **Адаптація контракту під користувацький сценарій (Tailored Contract):** Формується спеціальний зведений DTO (`ShipmentSummaryDto`), який містить лише ті атрибути, що необхідні конкретному бізнес-процесу.
 3. **Шар запобігання пошкодженню (Anti-Corruption Layer — ACL):** Агрегатор виступає буфером. Зміни внутрішніх контрактів бекенду адаптуються всередині агрегатора, не вимагаючи оновлення коду фронтенду.
 4. **Централізована реалізація стійкості (Resilience Boundary):** Всі тайм-аути, політики повторних спроб (Retry) та автоматичне розмикання ланцюга (Circuit Breaker) інкапсулюються в агрегаторі.
+
+### Ціна патерну (про що часто забувають)
+| Недолік | Як він проявляється | Як пом'якшуємо |
+| :--- | :--- | :--- |
+| Ще один мережевий «хоп» | +1–3 мс у LAN на кожен запит | Паралельний Fan-Out з лишком компенсує цю ціну |
+| Ще одна точка відмови | Якщо агрегатор лежить — екрана немає | Кілька реплік за балансувальником, `/health` для оркестратора |
+| Ризик «розподіленого моноліту» | Агрегатор обростає бізнес-логікою всіх доменів | Агрегатор лише **компонує** дані; бізнес-правила живуть у сервісах-власниках |
+| Зв'язність за часом (temporal coupling) | Агрегатор чекає на всі джерела | Таймаути + Graceful Degradation для некритичних джерел |
 
 ---
 
@@ -122,6 +133,8 @@ flowchart TD
 | **Аутентифікація та Авторизація** | Перевірка TLS-сертифікатів, валідація JWT-підпису, Rate Limiting за IP. | Перевірка бізнес-ролей, валідація доступу до конкретної сутності (`DriverId`). | Захист сесій через SameSite Cookies, обмін Cookie на JWT токен (BFF Token Handler). |
 | **Кількість екземплярів / сервісів** | Зазвичай єдиний вхідний вузол (Edge Ingress) на весь кластер. | Може бути кілька агрегаторів для різних бізнес-доменів (Logistics, Billing, CRM). | Окремий сервіс для кожного типу клієнта (`Web.BFF`, `Mobile.BFF`, `Partner.BFF`). |
 
+> 🔁 **У нашому рішенні є обидва підходи.** `CargoDelivery.HttpAggregator` — виділений Gateway Aggregator (цей гайд). А в `DriversManagement` живе вбудований BFF-ендпоінт `GET /api/v1/driver-dashboard/{id}` ([DriverDashboardController.cs#L49](../DriversManagement/src/DriversManagement/Controllers/v1/DriverDashboardController.cs#L49)), розібраний у [02_Patterns_Synchronous_HttpClient_Aggregator_BFF.md](../02-02-Communication-Documentation/02_Patterns_Synchronous_HttpClient_Aggregator_BFF.md). Порівняння двох реалізацій — гарна вправа: BFF читає водія з **власної** БД, а агрегатор — по мережі.
+
 ### Архітектурний стек у реальній системі:
 
 ```mermaid
@@ -138,9 +151,9 @@ flowchart TD
     end
     
     subgraph CoreMicroservices ["🚚 Внутрішні бізнес-мікросервіси"]
-        Agg -->|"gRPC / HTTP"| DM["🚚 DriversManagement"]
-        Agg -->|"HTTP"| CO["📦 CargoOrderingService"]
-        Agg -->|"HTTP"| DB["📝 DriversBlogManagement"]
+        Agg -->|"HTTP /api/internal/drivers"| DM["🚚 DriversManagement"]
+        Agg -->|"HTTP /api/internal/deliveries"| CO["📦 CargoOrderingService"]
+        Agg -->|"HTTP /api/internal/postaboutdrivers"| DB["📝 DriversBlogManagement"]
     end
 ```
 
@@ -191,62 +204,74 @@ gantt
     Driver Validation LAN (47ms)   :50, 97
     Fan-Out - Orders LAN (67ms)    :97, 164
     Fan-Out - Blog LAN (42ms)      :97, 139
-    WAN Egress (50ms)              :164, 214
+    WAN Egress (50ms)              :164, 216
 ```
 
 > 📊 **Результат оптимізації:**  
-> Застосування патерну Gateway Aggregator з паралельним `Task.WhenAll` скорочує сумарний час очікування диспетчера більш ніж **вдвічі** (з $450\text{ мс}$ до $214\text{ мс}$), повністю ліквідуючи затримку повторних WAN-рукостискань.
+> Застосування патерну Gateway Aggregator з паралельним `Task.WhenAll` скорочує сумарний час очікування диспетчера більш ніж **вдвічі** (з $450\text{ мс}$ до $216\text{ мс}$), повністю ліквідуючи затримку повторних WAN-рукостискань.
+
+### Узагальнення: закон «найповільнішої гілки»
+Для $N$ незалежних викликів час паралельного Fan-Out дорівнює **максимуму**, а не сумі: $T = \max_i(t_i)$. Але це ж і пастка — *хвостова латентність* (tail latency). Якщо кожен сервіс у 1% випадків відповідає повільно (p99), то ймовірність, що **хоча б один** із $N$ буде повільним, дорівнює $1 - 0.99^N$: для $N=3$ це ≈3%, для $N=20$ — вже ≈18%. Саме тому для кожної гілки потрібен власний таймаут (див. §8 і [гайд 06](06_ServiceDiscovery_Resilience_Polly_HttpClient.md)).
+
+> 🔬 **Реальні виміри на стенді:** `GET /api/v1/shipment-summary/{id}` з даними з усіх трьох сервісів — ≈0.45–0.55 с на «холодному» першому запиті (встановлення TLS-з'єднань, JIT) і десятки мілісекунд на «теплих» повторних.
 
 ---
 
 <a id="section-5"></a>
-## 5. Архітектура нового проєкту CargoDelivery.HttpAggregator
+## 5. Архітектура проєкту CargoDelivery.HttpAggregator
 
 Для забезпечення чистоти архітектури, ізоляції демонстраційних ендпоінтів та уникнення захаращення доменного коду водіїв у рішенні створено виділений проєкт:
 
 > 📍 **Файл проєкту:**  
-> [CargoDelivery.HttpAggregator.csproj](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/02-Microservices-Craftsman/CargoDelivery.HttpAggregator/CargoDelivery.HttpAggregator.csproj)
+> [CargoDelivery.HttpAggregator.csproj](../CargoDelivery.HttpAggregator/CargoDelivery.HttpAggregator.csproj)
 
 ### Структура файлової системи проєкту:
 
 ```
 CargoDelivery.HttpAggregator/
 ├── Controllers/
-│   ├── ShipmentSummaryController.cs   <-- Головний контролер агрегації
-│   └── SimulationController.cs        <-- Лабораторний полігон збоїв
+│   ├── ShipmentSummaryController.cs   <-- Головний контролер агрегації (200 / 404 / 503)
+│   ├── ResilienceDemoController.cs    <-- Лабораторія Polly: /retry, /timeout, /circuit-breaker
+│   └── SimulationController.cs        <-- Полігон збоїв: /slow, /flaky, /error, /ok
 ├── Domain/
 │   ├── Clients/                       <-- Типізовані клієнти IHttpClientFactory
 │   │   ├── IDriverApiClient.cs / DriverApiClient.cs
 │   │   ├── ICargoOrderApiClient.cs / CargoOrderApiClient.cs
-│   │   └── IDriverBlogApiClient.cs / DriverBlogApiClient.cs
+│   │   ├── IDriverBlogApiClient.cs / DriverBlogApiClient.cs
+│   │   └── ISimulationApiClient.cs / SimulationApiClient.cs   <-- іменовані клієнти лабораторії
 │   ├── Dtos/                          <-- Контракти даних агрегації
 │   │   ├── ShipmentSummaryDto.cs      <-- Композитний DTO диспетчера
 │   │   ├── AggregatedDriverDto.cs
 │   │   ├── AggregatedCargoOrderDto.cs
-│   │   └── AggregatedBlogNoteDto.cs
+│   │   ├── AggregatedBlogNoteDto.cs
+│   │   └── ResilienceDemoResultDto.cs
 │   └── Services/                      <-- Прикладна бізнес-оркестрація
 │       ├── IShipmentAggregatorService.cs
 │       └── ShipmentAggregatorService.cs
-├── Program.cs                         <-- DI контейнер та підключення ServiceDefaults
-└── appsettings.json
+├── Properties/launchSettings.json     <-- Фіксовані порти: https 57390, http 57391
+├── CargoDelivery.HttpAggregator.http  <-- Готові запити для всіх лабораторних
+└── Program.cs                         <-- DI контейнер та підключення ServiceDefaults
 ```
 
 ### Оркестрація в AppHost
 
-У файлі [AppHost.cs](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/02-Microservices-Craftsman/CargoDelivery.AppHost/AppHost.cs) агрегатор зареєстрований як повноцінний вузол графу розподіленої системи з декларативними залежностями:
+У файлі [AppHost.cs#L116-L123](../Aspire/CargoDelivery.AppHost/AppHost.cs#L116-L123) агрегатор зареєстрований як повноцінний вузол графу розподіленої системи з декларативними залежностями:
 
 ```csharp
 var httpAggregator = builder.AddProject<Projects.CargoDelivery_HttpAggregator>("httpaggregator")
-    .WithReference(driversManagement)
-    .WithReference(cargoOrderingService)
-    .WithReference(driversBlogManagement)
-    .WaitFor(driversManagement)
-    .WaitFor(cargoOrderingService);
+    .WithReference(driversApi)
+    .WithReference(cargoApi)
+    .WithReference(blogApi)
+    .WithHttpHealthCheck("/health")
+    .WaitFor(driversApi)
+    .WaitFor(cargoApi)
+    .WaitFor(blogApi);
 ```
 
 #### Семантика налаштування:
-1. `WithReference(service)`: Впроваджує конфігурацію Service Discovery. Aspire автоматично передає агрегатору змінні оточення `services__driversmanagement__http__0`, що дозволяє `HttpClient` розв'язувати логічні імена сервісів.
-2. `WaitFor(service)`: Формує орієнтований ациклічний граф (DAG) запуску. Агрегатор переходить у стан виконання лише після успішного підтвердження готовності (Readiness) сервісів водіїв та замовлень.
+1. `WithReference(service)`: Впроваджує конфігурацію Service Discovery. Aspire автоматично передає агрегатору змінні оточення `services__driversmanagement__https__0` тощо, що дозволяє `HttpClient` розв'язувати логічні імена сервісів.
+2. `WaitFor(service)`: Формує орієнтований ациклічний граф (DAG) запуску. Агрегатор переходить у стан виконання лише після того, як сервіси водіїв, замовлень і блогу стали `Healthy` (їхній `/health` відповів 200).
+3. `WithHttpHealthCheck("/health")`: дає змогу Aspire (і будь-кому, хто колись зробить `.WaitFor(httpAggregator)`) знати, коли сам агрегатор готовий.
 
 ---
 
@@ -254,39 +279,42 @@ var httpAggregator = builder.AddProject<Projects.CargoDelivery_HttpAggregator>("
 ## 6. Проєктування типізованих HTTP-клієнтів та керування сокетами через IHttpClientFactory
 
 ### Проблема сокетного голодування (Socket Exhaustion)
-У ранніх версіях .NET розробники створювали клієнт через `using var client = new HttpClient()`. При інтенсивному навантаженні сокети операційної системи залишалися в стані `TIME_WAIT` протягом 4 хвилин, вичерпуючи ліміт ефемерних портів ОС Windows/Linux (`SocketException: Only one usage of each socket address is normally permitted`). З іншого боку, використання єдиного `static HttpClient` призводило до ігнорування змін DNS-записів під час масштабування контейнерів.
+У ранніх версіях .NET розробники створювали клієнт через `using var client = new HttpClient()`. При інтенсивному навантаженні закриті з'єднання залишалися в стані `TIME_WAIT` (у Windows за замовчуванням до 4 хвилин), вичерпуючи ліміт ефемерних портів ОС (`SocketException: Only one usage of each socket address is normally permitted`). З іншого боку, використання єдиного `static HttpClient` призводило до ігнорування змін DNS-записів під час масштабування контейнерів.
 
 ### Рішення: Typed HttpClients в ASP.NET Core
 У `CargoDelivery.HttpAggregator` кожен клієнт реалізовано як типізований клас, життєвим циклом пулу з'єднань якого керує `IHttpClientFactory`:
 
-> 📍 **Реєстрація у [Program.cs](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/02-Microservices-Craftsman/CargoDelivery.HttpAggregator/Program.cs):**
+> 📍 **Реєстрація у [Program.cs#L45-L64](../CargoDelivery.HttpAggregator/Program.cs#L45):**
 
 ```csharp
-// Реєстрація типізованих HTTP-клієнтів з використанням Service Discovery імен
+// Логічні імена сервісів з AppHost + схема "https+http" (спершу HTTPS, потім HTTP).
+// Стандартний конвеєр Polly вже доданий ГЛОБАЛЬНО через builder.AddServiceDefaults().
 builder.Services.AddHttpClient<IDriverApiClient, DriverApiClient>(client =>
-{
-    // Логічне ім'я сервісу, яке автоматично резолвиться через Aspire Service Discovery
-    client.BaseAddress = new Uri("http://driversmanagement");
-});
+    client.BaseAddress = new Uri("https+http://driversmanagement"));
 
 builder.Services.AddHttpClient<ICargoOrderApiClient, CargoOrderApiClient>(client =>
-{
-    client.BaseAddress = new Uri("http://cargoorderingservice");
-});
+    client.BaseAddress = new Uri("https+http://cargoorderingservice"));
 
+// Блог — НЕКРИТИЧНА залежність: замінюємо глобальний конвеєр на короткий бюджет часу
 builder.Services.AddHttpClient<IDriverBlogApiClient, DriverBlogApiClient>(client =>
-{
-    client.BaseAddress = new Uri("http://driversblogmanagement");
-});
+        client.BaseAddress = new Uri("https+http://driversblogmanagement"))
+    .RemoveAllResilienceHandlers()
+    .AddStandardResilienceHandler(options =>
+    {
+        options.AttemptTimeout.Timeout = TimeSpan.FromSeconds(1);
+        options.Retry.MaxRetryAttempts = 1;
+        options.Retry.Delay = TimeSpan.FromMilliseconds(200);
+        options.TotalRequestTimeout.Timeout = TimeSpan.FromSeconds(3);
+    });
 ```
+
+> 🐞 **Що було виправлено.** Раніше кожен клієнт: (1) читав адресу вручну з `builder.Configuration["services:...:http:0"]`, оминаючи Service Discovery, і (2) додавав `.AddStandardResilienceHandler()` **поверх** глобального з ServiceDefaults. Через подвійний конвеєр при недоступному сервісі запит агрегатора висів рівно 30 с і повертав 500 (див. [гайд 06](06_ServiceDiscovery_Resilience_Polly_HttpClient.md#section-4)).
 
 ### Деконструкція коду типізованого клієнта DriverApiClient
 
-> 📍 **Файл:** [DriverApiClient.cs](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/02-Microservices-Craftsman/CargoDelivery.HttpAggregator/Domain/Clients/DriverApiClient.cs)
+> 📍 **Файл:** [DriverApiClient.cs](../CargoDelivery.HttpAggregator/Domain/Clients/DriverApiClient.cs) — ключові рядки [#L47](../CargoDelivery.HttpAggregator/Domain/Clients/DriverApiClient.cs#L47) (виклик), [#L52](../CargoDelivery.HttpAggregator/Domain/Clients/DriverApiClient.cs#L52) (404), [#L59](../CargoDelivery.HttpAggregator/Domain/Clients/DriverApiClient.cs#L59) (інші помилки)
 
 ```csharp
-namespace CargoDelivery.HttpAggregator.Domain.Clients;
-
 public sealed class DriverApiClient : IDriverApiClient
 {
     private readonly HttpClient _httpClient;
@@ -294,44 +322,64 @@ public sealed class DriverApiClient : IDriverApiClient
 
     public DriverApiClient(HttpClient httpClient, ILogger<DriverApiClient> logger)
     {
-        _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _httpClient = httpClient;
+        _logger = logger;
     }
 
     public async Task<AggregatedDriverDto?> GetDriverByIdAsync(Guid driverId, CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("Надсилання запиту GET до DriversManagement для водія {DriverId}", driverId);
-        
-        // Виклик виконується за відносним шляхом; BaseAddress встановлено на 'http://driversmanagement'
-        var response = await _httpClient.GetAsync($"api/drivers/{driverId}", cancellationToken);
 
-        // Обробка очікуваного доменного результату 404 без викидання важкого винятку
-        if (response.StatusCode == HttpStatusCode.NotFound)
+        try
         {
-            _logger.LogWarning("Водія з ID {DriverId} не знайдено у сервісі DriversManagement (404)", driverId);
-            return null;
+            // Внутрішній (service-to-service) ендпоінт повертає компактну картку водія
+            var response = await _httpClient.GetAsync($"api/internal/drivers/{driverId}", cancellationToken);
+
+            // 404 — очікуваний БІЗНЕС-результат, а не збій: обробляємо без винятку
+            if (response.StatusCode == HttpStatusCode.NotFound)
+            {
+                _logger.LogWarning("Водія {DriverId} не знайдено в DriversManagement (404)", driverId);
+                return null;
+            }
+
+            // Для інших неуспішних кодів (500, 503 після всіх повторів...) кидаємо HttpRequestException
+            response.EnsureSuccessStatusCode();
+
+            // Потокова десеріалізація System.Text.Json напряму з мережевого Stream
+            return await response.Content.ReadFromJsonAsync<AggregatedDriverDto>(cancellationToken: cancellationToken);
         }
-
-        // Викидає HttpRequestException для статусів 5xx/4xx (активуючи Retry-політику Polly)
-        response.EnsureSuccessStatusCode();
-
-        // Стрімінгова асинхронна десеріалізація через System.Text.Json без проміжного виділення string в пам'яті
-        return await response.Content.ReadFromJsonAsync<AggregatedDriverDto>(cancellationToken: cancellationToken);
+        catch (HttpRequestException ex)
+        {
+            _logger.LogError(ex, "Мережевий збій при зверненні до DriversManagement для водія {DriverId}", driverId);
+            throw;
+        }
     }
 }
 ```
 
 #### Ключові інженерні акценти реалізації:
-1. **Інжекція `HttpClient`:** Екземпляр `HttpClient` створюється контейнером як `Transient`, але його внутрішній обробник `SocketsHttpHandler` береться з пулу `IHttpClientFactory` з автоматичною ротацією кожні 2 хвилини для оновлення DNS.
-2. **Обробка `HttpStatusCode.NotFound`:** Ми не викликаємо `EnsureSuccessStatusCode()` сліпо. Статус 404 є валідним бізнес-результатом («водія не існує»), тому ми повертаємо `null`. Це захищає від створення непотрібних важких винятків (`HttpRequestException`), які створюють навантаження на Garbage Collector.
-3. **Ефективне читання через `ReadFromJsonAsync`:** Десеріалізатор працює безпосередньо з вхідним байтовим потоком відповіді (`Stream`), мінімізуючи алокацію тимчасових рядків у пам'яті (LOH/GC Gen 0).
+1. **Інжекція `HttpClient`:** Екземпляр `HttpClient` створюється контейнером як `Transient`, але його внутрішній ланцюжок обробників (`HttpMessageHandler`: Service Discovery → Polly → `SocketsHttpHandler`) береться з пулу `IHttpClientFactory` і за замовчуванням оновлюється кожні 2 хвилини (`HandlerLifetime`), щоб підхоплювати зміни DNS.
+2. **Обробка `HttpStatusCode.NotFound`:** Ми не викликаємо `EnsureSuccessStatusCode()` сліпо. Статус 404 є валідним бізнес-результатом («водія не існує»), тому ми повертаємо `null`. Це захищає від створення непотрібних винятків (`HttpRequestException`) і від марних повторів: стандартний Retry Polly повторює лише транзієнтні коди (408, 429, 5xx), 404 він пропускає одразу.
+3. **Ефективне читання через `ReadFromJsonAsync`:** Десеріалізатор працює безпосередньо з вхідним байтовим потоком відповіді (`Stream`), мінімізуючи алокацію тимчасових рядків у пам'яті.
+4. **`GetFromJsonAsync` як скорочення.** У [CargoOrderApiClient.cs#L43](../CargoDelivery.HttpAggregator/Domain/Clients/CargoOrderApiClient.cs#L43) і [DriverBlogApiClient.cs#L39](../CargoDelivery.HttpAggregator/Domain/Clients/DriverBlogApiClient.cs#L39) використано `GetFromJsonAsync<T>()` = `GetAsync` + `EnsureSuccessStatusCode` + `ReadFromJsonAsync` одним викликом — там 404 не має окремої семантики.
+
+### Ланцюжок обробників одного HTTP-виклику
+
+```mermaid
+flowchart LR
+    Code["DriverApiClient.GetAsync()"] --> SDH["ServiceDiscovery handler<br/>https+http://driversmanagement → https://localhost:5001"]
+    SDH --> Polly["Polly Standard Pipeline<br/>RateLimiter → TotalTimeout → Retry → CircuitBreaker → AttemptTimeout"]
+    Polly --> OTel["DiagnosticsHandler<br/>(спан CLIENT + traceparent)"]
+    OTel --> Sock["SocketsHttpHandler<br/>(пул TCP/TLS з'єднань)"]
+    Sock --> Net["🌐 DriversManagement"]
+```
 
 ---
 
 <a id="section-7"></a>
 ## 7. Реалізація патерну Scatter-Gather у ShipmentAggregatorService (Fan-Out / Fan-In)
 
-Центральним ядром агрегатора є сервіс [ShipmentAggregatorService.cs](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/02-Microservices-Craftsman/CargoDelivery.HttpAggregator/Domain/Services/ShipmentAggregatorService.cs).
+Центральним ядром агрегатора є сервіс [ShipmentAggregatorService.cs](../CargoDelivery.HttpAggregator/Domain/Services/ShipmentAggregatorService.cs).
 
 ### Покроковий алгоритм роботи сервісу:
 
@@ -351,12 +399,12 @@ sequenceDiagram
     rect rgb(240, 248, 255)
         Note over Svc,DM: Фаза 1: Валідація кореня агрегації (Guard Check)
         Svc->>DM: GetDriverByIdAsync(driverId, ct)
-        DM-->>Svc: AggregatedDriverDto (200 OK)
+        DM-->>Svc: AggregatedDriverDto (200 OK) або null (404)
     end
     
     rect rgb(245, 255, 245)
         Note over Svc,DB: Фаза 2: Паралельний Scatter / Fan-Out
-        par Запит активних замовлень
+        par Запит доставок водія
             Svc->>CO: GetActiveOrdersByDriverIdAsync(driverId, ct)
         and Безпечний запит дорожніх заміток блогу
             Svc->>DB: SafeFetchRoadNotesAsync(...)
@@ -376,42 +424,38 @@ sequenceDiagram
 
 ### Детальний розбір реалізації методу злиття
 
-> 📍 **Вихідний код:** [ShipmentAggregatorService.cs](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/02-Microservices-Craftsman/CargoDelivery.HttpAggregator/Domain/Services/ShipmentAggregatorService.cs)
+> 📍 **Вихідний код:** [ShipmentAggregatorService.cs#L42-L94](../CargoDelivery.HttpAggregator/Domain/Services/ShipmentAggregatorService.cs#L42) — Guard Check [#L49](../CargoDelivery.HttpAggregator/Domain/Services/ShipmentAggregatorService.cs#L49), Fan-Out [#L63-L67](../CargoDelivery.HttpAggregator/Domain/Services/ShipmentAggregatorService.cs#L63), Fan-In [#L72](../CargoDelivery.HttpAggregator/Domain/Services/ShipmentAggregatorService.cs#L72), композиція [#L79](../CargoDelivery.HttpAggregator/Domain/Services/ShipmentAggregatorService.cs#L79)
 
 ```csharp
-public async Task<ShipmentSummaryDto?> GetShipmentSummaryAsync(Guid driverId, CancellationToken cancellationToken = default)
+public async Task<ShipmentSummaryDto> GetShipmentSummaryAsync(Guid driverId, CancellationToken cancellationToken = default)
 {
     _logger.LogInformation("Початок агрегації рейсу для водія {DriverId}", driverId);
 
-    // КРОК 1. Валідація кореневої сутності
-    // Водій є стрижневим доменом. Якщо його не існує, опитувати решту сервісів немає сенсу!
+    // КРОК 1: Перевірка водія (ПОСЛІДОВНИЙ бар'єр, Guard Check).
     var driver = await _driverApiClient.GetDriverByIdAsync(driverId, cancellationToken);
-    if (driver is null)
+    if (driver == null)
     {
-        _logger.LogWarning("Агрегацію скасовано: водія {DriverId} не знайдено", driverId);
-        return null;
+        _logger.LogWarning("Водія {DriverId} не знайдено при агрегації. Повертаємо 404.", driverId);
+        throw new KeyNotFoundException($"Водія з ID {driverId} не знайдено в системі DriversManagement.");
     }
 
-    // Прапорець для відстеження часткової відмови другорядних компонентів
-    var isDegraded = false;
+    // Прапорець часткової деградації
+    bool isDegraded = false;
 
-    // КРОК 2. Паралельний Fan-Out (Scatter)
-    // Зверніть увагу: ми НЕ викликаємо await негайно, а запускаємо асинхронні завдання!
+    // КРОК 2: Паралельний Fan-Out (Scatter) — задачі лише ЗАПУСКАЮТЬСЯ, без await
     var ordersTask = _cargoOrderApiClient.GetActiveOrdersByDriverIdAsync(driverId, cancellationToken);
-    
-    var roadNotesTask = SafeFetchRoadNotesAsync(
-        fetchAction: () => _driverBlogApiClient.GetRoadNotesByDriverIdAsync(driverId, cancellationToken),
-        onFailure: () => isDegraded = true
-    );
 
-    // КРОК 3. Синхронізація Fan-In (Gather) через Task.WhenAll
-    // Очікуємо завершення обох асинхронних операцій паралельно
-    await Task.WhenAll(ordersTask, roadNotesTask);
+    var blogNotesTask = SafeFetchRoadNotesAsync(
+        () => _driverBlogApiClient.GetRoadNotesByDriverIdAsync(driverId, cancellationToken),
+        onFailure: () => isDegraded = true);
 
-    var orders = await ordersTask;
-    var notes = await roadNotesTask;
+    // КРОК 3: Fan-In (Gather) через Task.WhenAll
+    await Task.WhenAll(ordersTask, blogNotesTask);
 
-    // КРОК 4. Побудова композитного результату
+    var orders = await ordersTask;   // задачі вже завершені — миттєвий результат
+    var notes = await blogNotesTask;
+
+    // КРОК 4: Композиція підсумкового DTO
     return new ShipmentSummaryDto
     {
         DriverId = driverId,
@@ -419,11 +463,13 @@ public async Task<ShipmentSummaryDto?> GetShipmentSummaryAsync(Guid driverId, Ca
         ActiveOrders = orders,
         RoadNotes = notes,
         IsDegraded = isDegraded,
-        AggregationStatus = isDegraded ? "Degraded (Blog unavailable)" : "Complete",
+        AggregationStatus = isDegraded ? "Partial (Degraded)" : "Complete",
         AggregatedAtUtc = DateTime.UtcNow
     };
 }
 ```
+
+> 🧩 **Чому «не знайдено» — це виняток `KeyNotFoundException`, а не `null`?** Сервіс повертає ненульовий `ShipmentSummaryDto`, а відсутність водія сигналізує доменним винятком, який контролер транслює в 404 ([ShipmentSummaryController.cs#L59](../CargoDelivery.HttpAggregator/Controllers/ShipmentSummaryController.cs#L59)). Це свідомий вибір між двома стилями: у HTTP-клієнті ([DriverApiClient.cs#L52](../CargoDelivery.HttpAggregator/Domain/Clients/DriverApiClient.cs#L52)) 404 — це нормальне значення `null` (без винятку), а на рівні прикладного сервісу «водія немає» — це порушення передумови операції. Юніт-тест [ShipmentAggregatorServiceTests.cs#L106](../CargoDelivery.HttpAggregator.Tests/UnitTests/ShipmentAggregatorServiceTests.cs#L106) фіксує цю поведінку і перевіряє, що замовлення та блог **не викликались**.
 
 ### Чому `await Task.WhenAll(t1, t2)` краще за послідовний виклик?
 Якщо виконати:
@@ -431,7 +477,15 @@ public async Task<ShipmentSummaryDto?> GetShipmentSummaryAsync(Guid driverId, Ca
 var orders = await _cargoOrderApiClient.GetActiveOrdersByDriverIdAsync(...);
 var notes = await _driverBlogApiClient.GetRoadNotesByDriverIdAsync(...);
 ```
-Другий запит навіть не розпочне встановлення TCP-з'єднання, доки перший повністю не отримає всі байти та не десеріалізує відповідь. При паралельному виклику обидва запити відправляються одночасно через окремі сокети пулу `SocketsHttpHandler`, а процесорні ядра сервера ефективно утилізують механізм асинхронних портів завершення вводу-виводу (IOCP - I/O Completion Ports).
+Другий запит навіть не розпочне відправку, доки перший повністю не отримає всі байти та не десеріалізує відповідь. При паралельному виклику обидва запити відправляються одночасно (через окремі з'єднання пулу `SocketsHttpHandler` або мультиплексовано через HTTP/2), а потоки пулу під час очікування не блокуються — завершення I/O операційна система повідомляє асинхронно (на Windows через IOCP — I/O Completion Ports, на Linux через epoll).
+
+### Тонкощі `Task.WhenAll`, які варто знати
+| Ситуація | Поведінка |
+| :--- | :--- |
+| Одна задача впала | `Task.WhenAll` чекає завершення **всіх** задач, потім завершується з помилкою; `await` перекидає **перший** виняток (решта лежать у `task.Exception.InnerExceptions`) |
+| Обидві впали | `await` знову кидає лише перший; щоб побачити всі — перевіряйте `whenAllTask.Exception` |
+| Клієнт закрив з'єднання | Спрацьовує `cancellationToken` → обидва HTTP-виклики скасовуються → `OperationCanceledException` (його `SafeFetchRoadNotesAsync` свідомо **не** перехоплює — [#L111](../CargoDelivery.HttpAggregator/Domain/Services/ShipmentAggregatorService.cs#L111)) |
+| Захоплений прапорець `isDegraded` | Змінюється в іншій гілці виконання, але читається **після** `await Task.WhenAll` — `await` гарантує видимість змін (memory barrier), тож гонитви немає |
 
 ---
 
@@ -441,10 +495,13 @@ var notes = await _driverBlogApiClient.GetRoadNotesByDriverIdAsync(...);
 У мікросервісній архітектурі діє фундаментальне правило: **«Відмова одного некритичного сервісу не повинна призводити до збою всієї бізнес-операції»**.
 
 У нашому сценарії:
-* **Критична залежність (Hard Dependency):** `DriversManagement` (дані про водія) та `CargoOrderingService` (вантажні замовлення). Без них диспетчер не може відправити машину в рейс.
+* **Критична залежність (Hard Dependency):** `DriversManagement` (дані про водія) та `CargoOrderingService` (вантажні замовлення). Без них диспетчер не може відправити машину в рейс. При їх недоступності агрегатор чесно повертає **503 Service Unavailable** (ProblemDetails), а не вигадані дані.
 * **Некритична залежність (Soft Dependency):** `DriversBlogManagement` (нотатки водія про стан дороги, погоду та враження). Якщо сервіс блогу падає через навантаження або перезапуск бази даних, диспетчер все одно повинен мати можливість працювати з водієм і вантажем!
 
+> 🐞 **Що було виправлено.** Раніше `CargoOrderApiClient` при будь-якій помилці повертав **вигаданий** рейс «Терміновий медичний вантаж Київ → Львів». Для критичної залежності це небезпечно: диспетчер бачив «дані», яких не існує. Тепер виняток прокидається, і контролер відповідає 503 ([ShipmentSummaryController.cs#L64-L73](../CargoDelivery.HttpAggregator/Controllers/ShipmentSummaryController.cs#L64)).
+
 ### Реалізація механізму безпечного виконання `SafeFetchRoadNotesAsync`
+> 📍 [ShipmentAggregatorService.cs#L103-L118](../CargoDelivery.HttpAggregator/Domain/Services/ShipmentAggregatorService.cs#L103)
 
 ```csharp
 private async Task<List<AggregatedBlogNoteDto>> SafeFetchRoadNotesAsync(
@@ -455,10 +512,10 @@ private async Task<List<AggregatedBlogNoteDto>> SafeFetchRoadNotesAsync(
     {
         return await fetchAction();
     }
-    catch (Exception ex)
+    catch (Exception ex) when (ex is not OperationCanceledException)
     {
-        // 1. Фіксуємо інцидент у логах OpenTelemetry з рівнем Warning (не Error, бо збій опрацьований!)
-        _logger.LogWarning(ex, "DriversBlogManagement тимчасово недоступний. Застосовано патерн Graceful Degradation.");
+        // 1. Warning, а не Error: збій передбачений і опрацьований
+        _logger.LogWarning(ex, "Мікросервіс DriversBlogManagement недоступний. Застосовано Graceful Degradation.");
         
         // 2. Сповіщаємо агрегатор про перехід у режим деградації
         onFailure();
@@ -468,6 +525,14 @@ private async Task<List<AggregatedBlogNoteDto>> SafeFetchRoadNotesAsync(
     }
 }
 ```
+
+### Деградація має бути ШВИДКОЮ: бюджет часу для м'якої залежності
+Перехопити виняток мало — важливо, **коли** він з'явиться. Якщо блог «завис» (порт приймає з'єднання, але не відповідає — саме так поводиться зупинений через дашборд Aspire сервіс), стандартний конвеєр Polly чекатиме до 30 с. Тому клієнт блогу має короткий бюджет: спроба 1 с, 1 повтор, загалом ≤ 3 с ([Program.cs#L55-L64](../CargoDelivery.HttpAggregator/Program.cs#L55)).
+
+| Вимір на стенді (блог зупинено) | До виправлення | Після |
+| :--- | :--- | :--- |
+| Відповідь агрегатора | 200, `isDegraded: true` | 200, `isDegraded: true` |
+| Час відповіді | **≈ 30 с** | **≈ 2.2 с** |
 
 ### Діаграма станів результату агрегації (State Machine)
 
@@ -479,10 +544,13 @@ stateDiagram-v2
         [*] --> QueryDriverService
         QueryDriverService --> DriverFound: 200 OK
         QueryDriverService --> DriverMissing: 404 Not Found
+        QueryDriverService --> DriverServiceDown: 5xx / Timeout після повторів
     }
 
-    DriverMissing --> 404_NotFound: Повернення 404 до UI
-    404_NotFound --> [*]
+    DriverMissing --> NotFound404: Повернення 404 до UI
+    NotFound404 --> [*]
+    DriverServiceDown --> Unavailable503: ProblemDetails 503
+    Unavailable503 --> [*]
 
     DriverFound --> ParallelExecution: Старт Task.WhenAll
 
@@ -493,179 +561,230 @@ stateDiagram-v2
         state FetchBlogNotes {
             [*] --> CallBlogService
             CallBlogService --> BlogSuccess: 200 OK
-            CallBlogService --> BlogFailed: Timeout / 503
+            CallBlogService --> BlogFailed: Timeout / 503 (≤3 с)
             BlogFailed --> FallbackEmptyList: LogWarning & IsDegraded = true
         }
     }
 
     ParallelExecution --> CompleteResult: Усі сервіси відповіли успішно
     ParallelExecution --> DegradedResult: Блог повернув fallback
+    ParallelExecution --> Unavailable503: Замовлення недоступні
 
-    CompleteResult --> 200_OK_Complete: Status = "Complete", IsDegraded = false
-    DegradedResult --> 200_OK_Degraded: Status = "Degraded", IsDegraded = true
+    CompleteResult --> OK200Complete: Status = "Complete", IsDegraded = false
+    DegradedResult --> OK200Degraded: Status = "Partial (Degraded)", IsDegraded = true
 
-    200_OK_Complete --> [*]
-    200_OK_Degraded --> [*]
+    OK200Complete --> [*]
+    OK200Degraded --> [*]
 ```
 
 ### Інтерфейсний ефект для користувача
-Коли `DriversBlogManagement` не працює, клієнтський додаток диспетчера отримує наступний JSON:
+Коли `DriversBlogManagement` не працює, клієнтський додаток диспетчера отримує наступний JSON (реальна відповідь стенду; структура DTO — [ShipmentSummaryDto.cs](../CargoDelivery.HttpAggregator/Domain/Dtos/ShipmentSummaryDto.cs)):
 
 ```json
 {
-  "driverId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+  "driverId": "2dc25740-aeb6-438a-be60-bc451562120e",
   "driver": {
-    "fullName": "Тарас Григорович Шевченко",
-    "email": "shevchenko@cargodelivery.ua",
-    "phoneNumber": "+380501234567"
+    "id": "2dc25740-aeb6-438a-be60-bc451562120e",
+    "fullName": "Тарас Коваленко",
+    "licenseNumber": "DL-994421",
+    "companyName": null,
+    "status": "Active"
   },
   "activeOrders": [
     {
-      "orderId": "7cb4a2b1-1234-4a56-8abc-9def01234567",
-      "cargoDescription": "Будівельні матеріали",
-      "destinationAddress": "м. Львів, вул. Городоцька, 15"
+      "orderId": "ee4bfc67-66c5-4302-9869-425514fefaf3",
+      "cargoDescription": "Будівельні матеріали, 18 палет",
+      "pickupAddress": "Київ, вул. Промислова, 12",
+      "destinationAddress": "Львів, вул. Городоцька, 15",
+      "deliveryDate": "2026-10-10",
+      "status": "InTransit"
     }
   ],
   "roadNotes": [],
   "isDegraded": true,
-  "aggregationStatus": "Degraded (Blog unavailable)",
-  "aggregatedAtUtc": "2026-10-09T02:00:00Z"
+  "aggregationStatus": "Partial (Degraded)",
+  "aggregatedAtUtc": "2026-10-09T00:33:12.0000000Z"
 }
 ```
 Фронтенд малює жовтий бейдж: `⚠️ Замітки водія тимчасово недоступні`, але **робота логістичного хабу не паралізується!**
+
+> 📈 **Деградація — це сигнал для моніторингу.** `IsDegraded` варто рахувати як метрику (частка деградованих відповідей). Якщо вона довго тримається вище порогу, це привід для алерту, навіть коли HTTP-статуси «зелені». Саме такі SLO (Service Level Objectives) відрізняють «працює» від «працює добре».
 
 ---
 
 <a id="section-9"></a>
 ## 9. Контролери та лабораторний полігон симуляції відмов (SimulationController)
 
-Щоб у практичних роботах наочно досліджувати можливості .NET Aspire, трасування OpenTelemetry та поведінку resilience-пайплайнів Polly, у проєкті реалізовано два контролери.
+Щоб у практичних роботах наочно досліджувати можливості .NET Aspire, трасування OpenTelemetry та поведінку resilience-пайплайнів Polly, у проєкті реалізовано три контролери.
 
 ### 1. Робочий контролер агрегатора: ShipmentSummaryController
 
-> 📍 **Файл:** [ShipmentSummaryController.cs](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/02-Microservices-Craftsman/CargoDelivery.HttpAggregator/Controllers/ShipmentSummaryController.cs)
+> 📍 **Файл:** [ShipmentSummaryController.cs](../CargoDelivery.HttpAggregator/Controllers/ShipmentSummaryController.cs) — ендпоінт [#L46](../CargoDelivery.HttpAggregator/Controllers/ShipmentSummaryController.cs#L46)
 
 ```csharp
 [ApiController]
 [Route("api/v1/shipment-summary")]
-[Produces("application/json")]
 public sealed class ShipmentSummaryController : ControllerBase
 {
-    private readonly IShipmentAggregatorService _aggregatorService;
-    private readonly ILogger<ShipmentSummaryController> _logger;
-
-    public ShipmentSummaryController(
-        IShipmentAggregatorService aggregatorService,
-        ILogger<ShipmentSummaryController> logger)
-    {
-        _aggregatorService = aggregatorService;
-        _logger = logger;
-    }
+    // ... конструктор з IShipmentAggregatorService та ILogger
 
     [HttpGet("{driverId:guid}")]
     [ProducesResponseType(typeof(ShipmentSummaryDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<ShipmentSummaryDto>> GetShipmentSummary(
-        Guid driverId,
+    [ProducesResponseType(StatusCodes.Status503ServiceUnavailable)]
+    public async Task<ActionResult<ShipmentSummaryDto>> GetSummary(
+        [FromRoute] Guid driverId,
         CancellationToken cancellationToken)
     {
-        _logger.LogInformation("Отримано HTTP GET запит зведення рейсу для водія {DriverId}", driverId);
-        
-        var summary = await _aggregatorService.GetShipmentSummaryAsync(driverId, cancellationToken);
-        if (summary is null)
+        try
         {
-            return NotFound(new { Message = $"Водія з ідентифікатором {driverId} не знайдено." });
+            var summary = await _aggregatorService.GetShipmentSummaryAsync(driverId, cancellationToken);
+            return Ok(summary);
         }
-
-        return Ok(summary);
+        catch (KeyNotFoundException ex)
+        {
+            _logger.LogWarning("{Message}", ex.Message);
+            return NotFound(new { message = ex.Message });
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TimeoutRejectedException or BrokenCircuitException)
+        {
+            // Жорстка залежність недоступна → стандартизований ProblemDetails (RFC 9457) зі статусом 503
+            _logger.LogError(ex, "Критична залежність недоступна під час агрегації для водія {DriverId}", driverId);
+            return Problem(
+                statusCode: StatusCodes.Status503ServiceUnavailable,
+                title: "Критичний мікросервіс тимчасово недоступний",
+                detail: $"{ex.GetType().Name}: {ex.Message}");
+        }
     }
 }
 ```
 
+| Виняток | Хто його кидає | HTTP-відповідь |
+| :--- | :--- | :--- |
+| `KeyNotFoundException` | `ShipmentAggregatorService` (водія немає) | 404 |
+| `HttpRequestException` | `EnsureSuccessStatusCode()` після вичерпання повторів | 503 |
+| `TimeoutRejectedException` | Polly: спрацював `TotalRequestTimeout` | 503 |
+| `BrokenCircuitException` | Polly: Circuit Breaker розімкнений (Fail-Fast) | 503 |
+
 ### 2. Лабораторний контролер симуляції: SimulationController
 
-> 📍 **Файл:** [SimulationController.cs](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/02-Microservices-Craftsman/CargoDelivery.HttpAggregator/Controllers/SimulationController.cs)
+> 📍 **Файл:** [SimulationController.cs](../CargoDelivery.HttpAggregator/Controllers/SimulationController.cs)
 
 Цей контролер є керованим полігоном для створення контрольованих збоїв у розподіленій системі:
+
+| Ендпоінт | Рядок | Поведінка |
+| :--- | :--- | :--- |
+| `GET api/simulation/slow?delaySeconds=5` | [#L22](../CargoDelivery.HttpAggregator/Controllers/SimulationController.cs#L22) | Відповідає із затримкою (за замовчуванням 5 с) — для таймаутів |
+| `GET api/simulation/flaky?failUntil=2` | [#L29](../CargoDelivery.HttpAggregator/Controllers/SimulationController.cs#L29) | Перші `failUntil` викликів — 503, наступний — 200 і скидання лічильника |
+| `GET api/simulation/error` | [#L51](../CargoDelivery.HttpAggregator/Controllers/SimulationController.cs#L51) | Завжди 503 — для Circuit Breaker |
+| `GET api/simulation/ok` | [#L60](../CargoDelivery.HttpAggregator/Controllers/SimulationController.cs#L60) | Завжди 200 — використовується у функціональному тесті |
 
 ```csharp
 [ApiController]
 [Route("api/simulation")]
 public sealed class SimulationController : ControllerBase
 {
-    private static int _flakyCounter = 0;
+    private static int _flakyAttemptCounter = 0;
 
-    // Симуляція високої латентності для перевірки Polly TimeoutStrategy
     [HttpGet("slow")]
-    public async Task<IActionResult> SlowEndpoint([FromQuery] int delaySeconds = 3, CancellationToken cancellationToken = default)
+    public async Task<IActionResult> SimulateSlowCall([FromQuery] int delaySeconds = 5, CancellationToken cancellationToken = default)
     {
         await Task.Delay(TimeSpan.FromSeconds(delaySeconds), cancellationToken);
-        return Ok(new { Status = "Slow response completed", DelaySeconds = delaySeconds });
+        return Ok(new { status = "Recovered", delayedBySeconds = delaySeconds });
     }
 
-    // Симуляція транзієнтних збоїв: перші N спроб повертають 503, наступна — успіх
     [HttpGet("flaky")]
-    public IActionResult FlakyEndpoint([FromQuery] int failUntil = 2)
+    public IActionResult SimulateFlakyCall([FromQuery] int failUntil = 2)
     {
-        var current = Interlocked.Increment(ref _flakyCounter);
+        var current = Interlocked.Increment(ref _flakyAttemptCounter);   // потокобезпечний лічильник
         if (current <= failUntil)
         {
             return StatusCode(StatusCodes.Status503ServiceUnavailable, new
             {
-                Error = "Транзієнтний збій",
-                Attempt = current,
-                RequiredAttempts = failUntil + 1
+                attempt = current,
+                error = "Тимчасовий збій сервісу (503 Service Unavailable). Очікується повтор від Polly."
             });
         }
 
-        Interlocked.Exchange(ref _flakyCounter, 0); // Скидання для наступного експерименту
-        return Ok(new { Status = "Success after retries", CompletedAtAttempt = current });
+        Interlocked.Exchange(ref _flakyAttemptCounter, 0); // Скидання для наступного експерименту
+        return Ok(new { attempt = current, message = "Успіх після повторних спроб Polly!" });
     }
 
-    // Симуляція стабільної відмови для тестування Circuit Breaker (розмикання ланцюга)
     [HttpGet("error")]
-    public IActionResult AlwaysError()
-    {
-        return StatusCode(StatusCodes.Status503ServiceUnavailable, new
-        {
-            Error = "Фатальна відмова сервісу для тестування розмикача Circuit Breaker"
-        });
-    }
+    public IActionResult SimulatePersistentError() =>
+        StatusCode(StatusCodes.Status503ServiceUnavailable, new { error = "Критична помилка сервера ..." });
 
-    // Еталонний ендпоінт для перевірки функціональних тестів
     [HttpGet("ok")]
-    public IActionResult AlwaysOk() => Ok(new { Status = "Healthy" });
+    public IActionResult SimulateSuccess() => Ok("Healthy");
 }
 ```
+
+> ⚠️ `_flakyAttemptCounter` — `static`, тобто спільний для всіх запитів процесу. Якщо два студенти одночасно викликають `/flaky`, їхні спроби перемішаються. Для навчального стенду це прийнятно; у реальній системі такий стан тримали б окремо для кожного «сценарію» (наприклад, за ключем у заголовку).
+
+### 3. Лабораторія стійкості: ResilienceDemoController
+> 📍 [ResilienceDemoController.cs](../CargoDelivery.HttpAggregator/Controllers/ResilienceDemoController.cs) — `/retry` [#L52](../CargoDelivery.HttpAggregator/Controllers/ResilienceDemoController.cs#L52), `/timeout` [#L92](../CargoDelivery.HttpAggregator/Controllers/ResilienceDemoController.cs#L92), `/circuit-breaker` [#L145](../CargoDelivery.HttpAggregator/Controllers/ResilienceDemoController.cs#L145)
+
+Контролер робить **реальні** HTTP-виклики до `SimulationController` того ж агрегатора через окремі іменовані клієнти з «навчальними» параметрами Polly. Детальний розбір і заміри — у [гайді 06, §6–8](06_ServiceDiscovery_Resilience_Polly_HttpClient.md#section-6).
+
+> 🐞 **Що було виправлено.** Раніше демо зверталось до `api/simulation/*` у сервісі **блогу**, де такого контролера немає — кожен виклик закінчувався 404 і статусом `Exhausted`. Тепер демо адресує власний `SimulationController` агрегатора.
 
 ---
 
 <a id="section-10"></a>
-## 10. Архітектурна матриця: Антипатерни vs Еталонні практики
+## 10. Внутрішні (service-to-service) API: окремий контур для агрегатора
+
+Публічні контролери Craftsman (`/api/drivers`, `/api/deliveries`, `/api/postaboutdrivers`) розраховані на **користувачів**: вони повертають повні DTO з пагінацією і (в оригіналі) вимагають JWT користувача. Агрегатору ж потрібна вузька вибірка «по водію» від імені **сервісу**. Тому кожен сервіс має окремий внутрішній ендпоінт:
+
+| Сервіс | Ендпоінт | Файл | Що повертає |
+| :--- | :--- | :--- | :--- |
+| DriversManagement | `GET api/internal/drivers/{id}` | [InternalDriversController.cs#L43](../DriversManagement/src/DriversManagement/Controllers/v1/InternalDriversController.cs#L43) | Компактну картку водія або 404 |
+| CargoOrderingService | `GET api/internal/deliveries?driverId=` | [InternalDeliveriesController.cs#L46](../CargoOrderingService/src/CargoOrderingService/Controllers/v1/InternalDeliveriesController.cs#L46) | Доставки, призначені водієві |
+| DriversBlogManagement | `GET api/internal/postaboutdrivers?driverId=` | [InternalPostAboutDriversController.cs#L45](../DriversBlogManagement/src/DriversBlogManagement/Controllers/v1/InternalPostAboutDriversController.cs#L45) | До 10 останніх постів з коротким анонсом |
+
+Плюс два **демо-сіди** для лабораторних (публічне API не вміє прив'язати доставку чи пост до водія): `POST api/internal/deliveries/demo-seed?driverId=` ([#L78](../CargoOrderingService/src/CargoOrderingService/Controllers/v1/InternalDeliveriesController.cs#L78)) і `POST api/internal/postaboutdrivers/demo-seed?driverId=` ([#L78](../DriversBlogManagement/src/DriversBlogManagement/Controllers/v1/InternalPostAboutDriversController.cs#L78)).
+
+### Чому окремий контур — це добра практика
+1. **Принцип мінімально необхідних даних:** внутрішня картка водія не містить паспорта чи адреси — навіть якщо агрегатор скомпрометовано, ці дані з нього не витечуть.
+2. **Незалежна еволюція:** публічний контракт для фронтенду і внутрішній контракт для сервісів змінюються з різною швидкістю і з різними гарантіями сумісності.
+3. **Різна модель безпеки:** користувацький JWT (хто людина?) проти сервісної ідентичності (хто цей сервіс?).
+
+> 🔐 **Безпека в навчальному стенді та в продакшні.** Внутрішні ендпоінти позначені `[AllowAnonymous]`, а авторизація публічних контролерів вимкнена (маркер `[AUTH-DISABLED]`), бо Keycloak у стенді не запускається. У продакшні внутрішній контур захищають інакше, ніж зовнішній: (1) мережеві політики — ендпоінт недоступний з Ingress; (2) mTLS між сервісами (service mesh); (3) OAuth2 **Client Credentials** — агрегатор отримує власний токен зі scope на кшталт `drivers.read`.
+
+---
+
+<a id="section-11"></a>
+## 11. Архітектурна матриця: Антипатерни vs Еталонні практики
 
 | Область | ❌ Помилковий антипатерн | 🟢 Еталонна архітектурна практика |
 | :--- | :--- | :--- |
 | **Управління життєвим циклом HttpClient** | `using var client = new HttpClient();` у кожному методі (Socket Exhaustion) або глобальний статичний синглтон (DNS Stale). | Реєстрація типізованих клієнтів через `AddHttpClient<TClient, TImpl>` під керуванням `IHttpClientFactory`. |
 | **Паралелізм у Gateway** | Послідовний виклик `await client1; await client2;` (Сумування всіх затримок). | Запуск незалежних асинхронних задач та їх об'єднання через `Task.WhenAll`. |
 | **Обробка винятків другорядних сервісів** | Відсутність `try-catch`: відмова сервісу коментарів спричиняє 500 Internal Server Error для всього екрана. | Патерн **Graceful Degradation**: логування події, повернення значення за замовчуванням та виставлення прапорця `IsDegraded`. |
-| **Адресація мікросервісів** | Жорстко прописані IP-адреси та порти (`http://192.168.1.55:5001`) у коді або конфігураціях. | Використання логічних імен Service Discovery (`http://driversmanagement`), розв'язуваних .NET Aspire. |
+| **Обробка збоїв критичних сервісів** | Повернення «заглушки» з вигаданими даними. | Чесний `503` з ProblemDetails — клієнт знає, що треба повторити пізніше. |
+| **Час деградації** | Некритична залежність з бюджетом 30 с — «деградація», яка триває пів хвилини. | Окремий короткий бюджет часу (1 с на спробу, ≤3 с загалом) для м'яких залежностей. |
+| **Адресація мікросервісів** | Жорстко прописані IP-адреси та порти (`http://192.168.1.55:5001`) або ручне читання `services:x:http:0` з конфігурації. | Логічні імена Service Discovery (`https+http://driversmanagement`), розв'язувані .NET Aspire. |
+| **Polly-конвеєр** | `.AddStandardResilienceHandler()` поверх глобального з ServiceDefaults (вкладені повтори). | Один конвеєр на клієнт; для змін — `RemoveAllResilienceHandlers()` + власні параметри. |
 | **Робота зі статус-кодом 404** | Викидання `HttpRequestException` та перехоплення винятку через важкий `catch`. | Явна перевірка `if (response.StatusCode == HttpStatusCode.NotFound) return null;` без генерації винятків. |
 | **Відповідальність Gateway** | Розміщення важкої бізнес-логіки розрахунку заробітної плати водія всередині агрегатора. | Агрегатор займається **виключно композицією, фільтрацією та адаптацією** транспортних моделей. |
 
 ---
 
-<a id="section-11"></a>
-## 11. Практичні завдання та контрольні запитання для самоперевірки
+<a id="section-12"></a>
+## 12. Практичні завдання та контрольні запитання для самоперевірки
 
 ### 🎯 Контрольні запитання:
 1. Чому спроба написати агрегацію бізнес-даних безпосередньо у зворотній проксі (наприклад, YARP) порушує принцип єдиної відповідальності (SRP) та знижує загальну пропускну здатність системи?
 2. Яка різниця між поведінкою винятків у `Task.WhenAll` при падінні одного із завдань порівняно з падінням обох завдань? Як `await` розгортає `AggregateException`?
-3. Чому перевірка існування водія у `ShipmentAggregatorService` виконується послідовно перед запуском `Task.WhenAll`, а не паралельно разом із замовленнями?
+3. Чому перевірка існування водія у `ShipmentAggregatorService` виконується послідовно перед запуском `Task.WhenAll`, а не паралельно разом із замовленнями? Коли варто було б зробити навпаки?
 4. Які переваги надає прапорець `IsDegraded` для інтерфейсу користувача та моніторингу SLO/SLA системи?
+5. Чому для критичної залежності «заглушка з вигаданими даними» гірша за помилку 503?
+6. Порахуйте ймовірність того, що хоча б одна з 5 паралельних гілок перевищить свій p99, якщо всі гілки незалежні.
 
 ### 🛠️ Практичне лабораторне завдання:
+Усі запити є у файлі [CargoDelivery.HttpAggregator.http](../CargoDelivery.HttpAggregator/CargoDelivery.HttpAggregator.http) (Visual Studio / Rider — вбудовано, VS Code — розширення REST Client).
 1. Запустіть рішення через `CargoDelivery.AppHost`.
-2. Відкрийте Aspire Dashboard (`http://localhost:18888`) та знайдіть ресурс `httpaggregator`.
-3. Виконайте GET-запит до ендпоінту `api/simulation/flaky?failUntil=2` через Swagger або `curl`.
-4. Зверніть увагу на зміну кількості спроб у логах та трасуваннях OpenTelemetry.
-5. Зупиніть сервіс `DriversBlogManagement` у дашборді та виконайте запит на отримання рейсу `GET /api/v1/shipment-summary/{id}`. Переконайтеся, що агрегатор повернув статус 200 OK з позначкою `isDegraded: true`.
+2. Створіть водія (запит 1️⃣), додайте демо-доставку і демо-пост (3️⃣, 4️⃣).
+3. Викличте `GET /api/v1/shipment-summary/{id}` (7️⃣) і переконайтеся, що `aggregationStatus` = `Complete`, а `activeOrders` і `roadNotes` заповнені.
+4. Відкрийте Aspire Dashboard (`https://localhost:17048`) → **Traces** і знайдіть трейс `httpaggregator: GET api/v1/shipment-summary/{driverId:guid}`. Переконайтеся, що спани до `cargoorderingservice` і `driversblogmanagement` починаються одночасно.
+5. Зупиніть ресурс `driversblogmanagement` у дашборді (кнопка ■) та повторіть запит. Переконайтеся, що агрегатор повернув `200 OK` з `isDegraded: true` приблизно за 2 с. Запустіть блог знову (▶) і переконайтеся, що статус повернувся до `Complete`.
+6. Зупиніть `cargoorderingservice` і переконайтеся, що агрегатор повертає `503` з ProblemDetails (`TimeoutRejectedException … 00:00:30`). Зверніть увагу на час: ≈30 с — це стандартний бюджет Polly для критичної залежності. Подумайте, чи прийнятно для диспетчера чекати пів хвилини, і який бюджет ви б обрали.

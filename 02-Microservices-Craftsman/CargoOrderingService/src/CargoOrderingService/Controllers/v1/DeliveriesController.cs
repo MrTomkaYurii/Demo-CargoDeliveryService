@@ -28,7 +28,7 @@ public sealed class DeliveriesController: ControllerBase
     /// <summary>
     /// Gets a list of all Deliveries.
     /// </summary>
-    [Authorize]
+    // [AUTH-DISABLED] [Authorize]
     [HttpGet(Name = "GetDeliveries")]
     public async Task<IActionResult> GetDeliveries([FromQuery] DeliveryParametersDto deliveryParametersDto)
     {
@@ -58,7 +58,7 @@ public sealed class DeliveriesController: ControllerBase
     /// <summary>
     /// Gets a list of all Deliveries.
     /// </summary>
-    [Authorize]
+    // [AUTH-DISABLED] [Authorize]
     [HttpGet("all", Name = "GetAllDeliveries")]
     public async Task<IActionResult> GetAllDeliveries()
     {
@@ -71,7 +71,7 @@ public sealed class DeliveriesController: ControllerBase
     /// <summary>
     /// Gets a single Delivery by ID.
     /// </summary>
-    [Authorize]
+    // [AUTH-DISABLED] [Authorize]
     [HttpGet("{deliveryId:guid}", Name = "GetDelivery")]
     public async Task<ActionResult<DeliveryDto>> GetDelivery(Guid deliveryId)
     {
@@ -84,7 +84,7 @@ public sealed class DeliveriesController: ControllerBase
     /// <summary>
     /// Creates a new Delivery record.
     /// </summary>
-    [Authorize]
+    // [AUTH-DISABLED] [Authorize]
     [HttpPost(Name = "AddDelivery")]
     public async Task<ActionResult<DeliveryDto>> AddDelivery([FromBody]DeliveryForCreationDto deliveryForCreation)
     {
@@ -100,7 +100,7 @@ public sealed class DeliveriesController: ControllerBase
     /// <summary>
     /// Updates an entire existing Delivery.
     /// </summary>
-    [Authorize]
+    // [AUTH-DISABLED] [Authorize]
     [HttpPut("{deliveryId:guid}", Name = "UpdateDelivery")]
     public async Task<IActionResult> UpdateDelivery(Guid deliveryId, DeliveryForUpdateDto delivery)
     {
@@ -113,7 +113,7 @@ public sealed class DeliveriesController: ControllerBase
     /// <summary>
     /// Deletes an existing Delivery record.
     /// </summary>
-    [Authorize]
+    // [AUTH-DISABLED] [Authorize]
     [HttpDelete("{deliveryId:guid}", Name = "DeleteDelivery")]
     public async Task<ActionResult> DeleteDelivery(Guid deliveryId)
     {

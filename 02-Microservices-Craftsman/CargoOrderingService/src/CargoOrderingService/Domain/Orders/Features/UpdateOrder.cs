@@ -30,7 +30,7 @@ public static class UpdateOrder
 
         public async Task Handle(Command request, CancellationToken cancellationToken)
         {
-            await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanUpdateOrder);
+            // [AUTH-DISABLED] await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanUpdateOrder);
 
             var orderToUpdate = await _orderRepository.GetById(request.OrderId, cancellationToken: cancellationToken);
             var orderToAdd = request.UpdatedOrderData.ToOrderForUpdate();

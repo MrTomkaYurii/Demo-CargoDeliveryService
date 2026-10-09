@@ -30,7 +30,7 @@ public static class UpdateInspection
 
         public async Task Handle(Command request, CancellationToken cancellationToken)
         {
-            await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanUpdateInspection);
+            // [AUTH-DISABLED] await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanUpdateInspection);
 
             var inspectionToUpdate = await _inspectionRepository.GetById(request.InspectionId, cancellationToken: cancellationToken);
             var inspectionToAdd = request.UpdatedInspectionData.ToInspectionForUpdate();

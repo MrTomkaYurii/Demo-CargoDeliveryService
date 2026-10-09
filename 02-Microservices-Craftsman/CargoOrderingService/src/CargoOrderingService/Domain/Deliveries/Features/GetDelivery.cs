@@ -25,7 +25,7 @@ public static class GetDelivery
 
         public async Task<DeliveryDto> Handle(Query request, CancellationToken cancellationToken)
         {
-            await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanReadDelivery);
+            // [AUTH-DISABLED] await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanReadDelivery);
 
             var result = await _deliveryRepository.GetById(request.DeliveryId, cancellationToken: cancellationToken);
             return result.ToDeliveryDto();

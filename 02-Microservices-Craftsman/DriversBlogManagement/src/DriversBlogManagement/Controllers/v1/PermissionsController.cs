@@ -23,18 +23,18 @@ public sealed class PermissionsController: ControllerBase
     /// <summary>
     /// Gets a list of all available permissions.
     /// </summary>
-    [Authorize]
+    // [AUTH-DISABLED] [Authorize]
     [HttpGet(Name = "GetPermissions")]
     public List<string> GetPermissions()
     {
-        _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanGetPermissions);
+        // [AUTH-DISABLED] _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanGetPermissions);
         return Permissions.List();
     }
 
     /// <summary>
     /// Gets a list of the current user's assigned permissions.
     /// </summary>
-    [Authorize]
+    // [AUTH-DISABLED] [Authorize]
     [HttpGet("mine", Name = "GetAssignedPermissions")]
     public async Task<List<string>> GetAssignedPermissions()
     {

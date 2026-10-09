@@ -1,5 +1,6 @@
 namespace CargoOrderingService.Databases;
 
+using System.Linq;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
@@ -28,7 +29,30 @@ public class MigrationHostedService<TDbContext> : IHostedService
 
             await using var scope = _scopeFactory.CreateAsyncScope();
             var context = scope.ServiceProvider.GetRequiredService<TDbContext>();
-            await context.Database.MigrateAsync(cancellationToken);
+
+            // ====================================================================================
+            // 🗄️ СТРАТЕГІЯ ІНІЦІАЛІЗАЦІЇ СХЕМИ БД ПІД ЧАС СТАРТУ СЕРВІСУ
+            // ------------------------------------------------------------------------------------
+            // Aspire AppHost щоразу піднімає НОВИЙ контейнер SQL Server без томів даних
+            // (.WithDataVolume() не використовується), тому на старті база порожня і її схему
+            // потрібно створити автоматично:
+            //   1. Якщо у збірці є EF Core міграції — застосовуємо їх (MigrateAsync). Це
+            //      еталонний підхід: історія змін схеми зберігається в __EFMigrationsHistory.
+            //   2. Якщо міграцій немає (наприклад, у CargoOrderingService) — створюємо схему
+            //      напряму з поточної моделі (EnsureCreatedAsync). Без цього MigrateAsync
+            //      створив би лише порожню БД без жодної таблиці.
+            // ⚠️ Не змішуйте ці підходи на ОДНІЙ базі: EnsureCreated не веде історію міграцій,
+            // і подальший MigrateAsync впаде з помилкою "There is already an object named ...".
+            // Саме так виникають проблеми зі "старими" базами, створеними раніше іншим способом.
+            // ====================================================================================
+            if (context.Database.GetMigrations().Any())
+            {
+                await context.Database.MigrateAsync(cancellationToken);
+            }
+            else
+            {
+                await context.Database.EnsureCreatedAsync(cancellationToken);
+            }
 
             _logger.LogInformation("Migrations complete for {DbContext}", typeof(TDbContext).Name);
         }

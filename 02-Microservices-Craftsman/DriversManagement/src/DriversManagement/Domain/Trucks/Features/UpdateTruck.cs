@@ -30,7 +30,7 @@ public static class UpdateTruck
 
         public async Task Handle(Command request, CancellationToken cancellationToken)
         {
-            await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanUpdateTruck);
+            // [AUTH-DISABLED] await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanUpdateTruck);
 
             var truckToUpdate = await _truckRepository.GetById(request.TruckId, cancellationToken: cancellationToken);
             var truckToAdd = request.UpdatedTruckData.ToTruckForUpdate();

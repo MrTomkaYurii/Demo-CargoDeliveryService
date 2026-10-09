@@ -30,8 +30,8 @@ public static class AddUser
 
         public async Task<UserDto> Handle(Command request, CancellationToken cancellationToken)
         {
-            if(!request.SkipPermissions)
-                await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanAddUsers);
+            // [AUTH-DISABLED] if(!request.SkipPermissions)
+                // [AUTH-DISABLED] await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanAddUsers);
 
             var userToAdd = request.UserToAdd.ToUserForCreation();
             var user = User.Create(userToAdd);

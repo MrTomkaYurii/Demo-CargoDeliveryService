@@ -20,7 +20,7 @@
 * **База даних та ORM:** Microsoft SQL Server, Entity Framework Core 8.0 (`CargoOrderingServiceDbContext`).
 * **Асинхронна комунікація (MassTransit + RabbitMQ):**
   * **Споживач подій (Consumer):** Слухає події `IDriverCreated` та `IDriverUpdated` від `DriversManagement` для оновлення локальної таблиці `Drivers`.
-  * **Видавець подій (Publisher):** Публікує доменні події створення та зміни статусу замовлення (`IOrderCreated`, `IOrderAssignedToDriver`).
+  * **Видавець подій (Publisher):** Публікує доменну подію створення замовлення `IOrderCreated` в обмінник `order-created` (контракт `IOrderAssignedToDriver` описаний у SharedKernel, але поки не публікується; підписників на `IOrderCreated` теж поки немає).
 * **Діагностика та оркестрація (.NET 10 + .NET Aspire):**
   * Підключено `CargoDelivery.ServiceDefaults` з нативним OTLP експортером телеметрії та Service Discovery.
 
@@ -45,9 +45,12 @@
 
 | Контролер | Маршрут | Призначення |
 | :--- | :--- | :--- |
-| `OrdersController` | `/api/v1/orders` | Створення та облік замовлень на перевезення вантажів |
-| `DeliveriesController` | `/api/v1/deliveries` | Управління доставками, відстеження статусів виконання |
-| `UsersController` / `RolesController` | `/api/v1/users`, `/api/v1/roles` | Користувачі та контроль доступу |
+| `OrdersController` | `/api/orders` | Створення та облік замовлень на перевезення вантажів (публікує `IOrderCreated`) |
+| `DeliveriesController` | `/api/deliveries` | Управління доставками, відстеження статусів виконання |
+| `InternalDeliveriesController` | `/api/internal/deliveries?driverId=` | Внутрішній ендпоінт для агрегаторів + `POST .../demo-seed?driverId=` для лабораторних |
+| `UsersController` / `RolesController` | `/api/users`, `/api/roles` | Користувачі та контроль доступу |
+
+> ℹ️ У цьому сервісі немає EF-міграцій — схема створюється при старті через `EnsureCreatedAsync()` (див. `Databases/MigrationHostedService.cs`).
 
 ---
 

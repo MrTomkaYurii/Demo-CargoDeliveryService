@@ -26,7 +26,7 @@ public static class DeleteCompany
 
         public async Task Handle(Command request, CancellationToken cancellationToken)
         {
-            await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanDeleteCompany);
+            // [AUTH-DISABLED] await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanDeleteCompany);
 
             var recordToDelete = await _companyRepository.GetById(request.CompanyId, cancellationToken: cancellationToken);
             _companyRepository.Remove(recordToDelete);

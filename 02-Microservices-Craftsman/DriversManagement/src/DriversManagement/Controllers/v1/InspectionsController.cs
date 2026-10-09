@@ -28,7 +28,7 @@ public sealed class InspectionsController: ControllerBase
     /// <summary>
     /// Gets a list of all Inspections.
     /// </summary>
-    [Authorize]
+    // [AUTH-DISABLED] [Authorize]
     [HttpGet(Name = "GetInspections")]
     public async Task<IActionResult> GetInspections([FromQuery] InspectionParametersDto inspectionParametersDto)
     {
@@ -58,7 +58,7 @@ public sealed class InspectionsController: ControllerBase
     /// <summary>
     /// Gets a list of all Inspections.
     /// </summary>
-    [Authorize]
+    // [AUTH-DISABLED] [Authorize]
     [HttpGet("all", Name = "GetAllInspections")]
     public async Task<IActionResult> GetAllInspections()
     {
@@ -71,7 +71,7 @@ public sealed class InspectionsController: ControllerBase
     /// <summary>
     /// Gets a single Inspection by ID.
     /// </summary>
-    [Authorize]
+    // [AUTH-DISABLED] [Authorize]
     [HttpGet("{inspectionId:guid}", Name = "GetInspection")]
     public async Task<ActionResult<InspectionDto>> GetInspection(Guid inspectionId)
     {
@@ -84,7 +84,7 @@ public sealed class InspectionsController: ControllerBase
     /// <summary>
     /// Creates a new Inspection record.
     /// </summary>
-    [Authorize]
+    // [AUTH-DISABLED] [Authorize]
     [HttpPost(Name = "AddInspection")]
     public async Task<ActionResult<InspectionDto>> AddInspection([FromBody]InspectionForCreationDto inspectionForCreation)
     {
@@ -100,7 +100,7 @@ public sealed class InspectionsController: ControllerBase
     /// <summary>
     /// Updates an entire existing Inspection.
     /// </summary>
-    [Authorize]
+    // [AUTH-DISABLED] [Authorize]
     [HttpPut("{inspectionId:guid}", Name = "UpdateInspection")]
     public async Task<IActionResult> UpdateInspection(Guid inspectionId, InspectionForUpdateDto inspection)
     {
@@ -113,7 +113,7 @@ public sealed class InspectionsController: ControllerBase
     /// <summary>
     /// Deletes an existing Inspection record.
     /// </summary>
-    [Authorize]
+    // [AUTH-DISABLED] [Authorize]
     [HttpDelete("{inspectionId:guid}", Name = "DeleteInspection")]
     public async Task<ActionResult> DeleteInspection(Guid inspectionId)
     {

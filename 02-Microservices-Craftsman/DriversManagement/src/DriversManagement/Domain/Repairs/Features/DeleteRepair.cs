@@ -26,7 +26,7 @@ public static class DeleteRepair
 
         public async Task Handle(Command request, CancellationToken cancellationToken)
         {
-            await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanDeleteRepair);
+            // [AUTH-DISABLED] await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanDeleteRepair);
 
             var recordToDelete = await _repairRepository.GetById(request.RepairId, cancellationToken: cancellationToken);
             _repairRepository.Remove(recordToDelete);

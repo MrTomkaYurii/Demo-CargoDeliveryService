@@ -25,7 +25,7 @@ public static class GetOrder
 
         public async Task<OrderDto> Handle(Query request, CancellationToken cancellationToken)
         {
-            await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanReadOrder);
+            // [AUTH-DISABLED] await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanReadOrder);
 
             var result = await _orderRepository.GetById(request.OrderId, cancellationToken: cancellationToken);
             return result.ToOrderDto();

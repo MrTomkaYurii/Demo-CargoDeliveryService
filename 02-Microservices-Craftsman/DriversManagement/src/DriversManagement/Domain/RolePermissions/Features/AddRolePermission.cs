@@ -30,7 +30,7 @@ public static class AddRolePermission
 
         public async Task<RolePermissionDto> Handle(Command request, CancellationToken cancellationToken)
         {
-            await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanAddRolePermissions);
+            // [AUTH-DISABLED] await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanAddRolePermissions);
 
             var rolePermissionToAdd = request.RolePermissionToAdd.ToRolePermissionForCreation();
             var rolePermission = RolePermission.Create(rolePermissionToAdd);

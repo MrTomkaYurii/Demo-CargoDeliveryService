@@ -1,33 +1,57 @@
-﻿syntax = "proto3";
+// ====================================================================================
+// ⚡ gRPC-КОНТРАКТ (Protocol Buffers v3): DriverRpc
+// ------------------------------------------------------------------------------------
+// ЄДИНЕ ДЖЕРЕЛО ПРАВДИ (Contract-First) для синхронного бінарного зв'язку
+// DriversManagement (клієнт) → DriversBlogManagement (сервер).
+//
+// ЯК ЦЕЙ ФАЙЛ ПЕРЕТВОРЮЄТЬСЯ НА C#-КОД:
+// - DriversBlogManagement.csproj:  <Protobuf ... GrpcServices="Both" />
+//   → генерується базовий клас DriverRpc.DriverRpcBase (його наслідує DriverRpcService).
+// - DriversManagement.csproj:      <Protobuf Include="..\..\..\DriversBlogManagement\...\Driver.proto"
+//                                            GrpcServices="Client" Link="Protos\Driver.proto" />
+//   → генерується лише клієнт DriverRpc.DriverRpcClient.
+// Обидва сервіси компілюють ОДИН І ТОЙ САМИЙ файл, тож розбіжність контракту виявиться
+// ще під час збірки, а не в продакшні.
+//
+// ПРАВИЛА ЕВОЛЮЦІЇ КОНТРАКТУ (зворотна сумісність):
+// - НІКОЛИ не змінюйте номер (тег) наявного поля і не перевикористовуйте номери видалених
+//   полів (позначайте їх як `reserved 4;`).
+// - Нові поля додавайте з новими номерами — старі клієнти їх просто проігнорують.
+// ====================================================================================
 
+syntax = "proto3";
+
+// Простір імен C# для згенерованих класів (DriverRpc, DriverWithPostsRequest, ...)
 option csharp_namespace = "DriversBlogManagement";
 
-// Определение сообщения для запроса на получение водителя с постами
+// Запит: отримати водія разом із його постами.
+// "= 1" — це НЕ значення за замовчуванням, а НОМЕР ПОЛЯ (тег) у бінарному форматі.
 message DriverWithPostsRequest {
-  string driver_id = 1;
+  string driver_id = 1; // GUID водія у вигляді рядка (у Protobuf немає вбудованого типу Guid)
 }
 
-// Определение сервиса gRPC для работы с водителями
+// Опис gRPC-сервісу: одна унарна (запит → відповідь) віддалена процедура.
+// На транспорті це HTTP/2 POST на шлях /DriverRpc/GetDriverWithPosts.
 service DriverRpc {
-  // Метод для получения информации о водителе и его постах
+  // Повертає дані водія з локальної (тіньової) копії блогу та його пости
   rpc GetDriverWithPosts(DriverWithPostsRequest) returns (DriverWithPostsResponse);
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
-// Responce Messages
+// Повідомлення-відповіді (Response Messages)
 //////////////////////////////////////////////////////////////////////////////////////////////
 
-// Определение сообщения для ответа на запрос с информацией о водителе и его постах
+// Відповідь: водій та колекція його постів
 message DriverWithPostsResponse {
   string driver_id = 1;
   string first_name = 2;
   string last_name = 3;
-  repeated PostAboutDriverResponse posts = 4;
+  repeated PostAboutDriverResponse posts = 4; // repeated = список (у C# — RepeatedField<T>)
 }
-// Определение сообщения для поста о водителе
+
+// Один пост про водія
 message PostAboutDriverResponse {
   string id = 1;
   string title = 2;
   string content = 3;
 }
-

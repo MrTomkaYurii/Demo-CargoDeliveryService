@@ -46,10 +46,12 @@
 
 | Компонент | Маршрут / Протокол | Призначення |
 | :--- | :--- | :--- |
-| `PostAboutDriversController` | `/api/v1/postaboutdrivers` | CRUD публікацій про водіїв та рейси |
-| `CommentsController` | `/api/v1/comments` | Коментарі до публікацій у блозі |
-| `LikesController` | `/api/v1/likes` | Оцінки (лайки/дизлайки) до постів |
-| `BlogUsersController` | `/api/v1/blogusers` | Профілі користувачів блогу |
+| `PostAboutDriversController` | `/api/postaboutdrivers` | CRUD публікацій про водіїв та рейси |
+| `InternalPostAboutDriversController` | `/api/internal/postaboutdrivers?driverId=` | Внутрішній ендпоінт для агрегаторів + `POST .../demo-seed?driverId=` для лабораторних |
+| `CommentsController` | `/api/comments` | Коментарі до публікацій у блозі |
+| `LikesController` | `/api/likes` | Оцінки (лайки/дизлайки) до постів |
+| `BlogUsersController` | `/api/blogusers` | Профілі користувачів блогу |
+| `DriversController` | `/api/drivers` | Тіньові водії, репліковані з DriversManagement через RabbitMQ |
 | **`DriverRpcService`** | **gRPC HTTP/2 (`/DriverRpc/*`)** | **Внутрішній RPC-ендпоінт віддаленого виклику для `DriversManagement`** |
 
 ---

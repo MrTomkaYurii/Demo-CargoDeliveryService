@@ -29,7 +29,7 @@ public static class GetRolePermissionList
 
         public async Task<PagedList<RolePermissionDto>> Handle(Query request, CancellationToken cancellationToken)
         {
-            await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanReadRolePermissions);
+            // [AUTH-DISABLED] await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanReadRolePermissions);
 
             var collection = _rolePermissionRepository.Query().AsNoTracking();
 

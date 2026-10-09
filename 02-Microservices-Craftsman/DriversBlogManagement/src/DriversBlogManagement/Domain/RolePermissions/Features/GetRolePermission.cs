@@ -25,7 +25,7 @@ public static class GetRolePermission
 
         public async Task<RolePermissionDto> Handle(Query request, CancellationToken cancellationToken)
         {
-            await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanReadRolePermissions);
+            // [AUTH-DISABLED] await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanReadRolePermissions);
 
             var result = await _rolePermissionRepository.GetById(request.RolePermissionId, cancellationToken: cancellationToken);
             return result.ToRolePermissionDto();

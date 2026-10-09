@@ -26,7 +26,7 @@ public static class DeleteTruck
 
         public async Task Handle(Command request, CancellationToken cancellationToken)
         {
-            await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanDeleteTruck);
+            // [AUTH-DISABLED] await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanDeleteTruck);
 
             var recordToDelete = await _truckRepository.GetById(request.TruckId, cancellationToken: cancellationToken);
             _truckRepository.Remove(recordToDelete);

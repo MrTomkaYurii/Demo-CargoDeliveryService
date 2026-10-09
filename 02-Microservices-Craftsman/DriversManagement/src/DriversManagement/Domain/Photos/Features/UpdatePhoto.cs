@@ -30,7 +30,7 @@ public static class UpdatePhoto
 
         public async Task Handle(Command request, CancellationToken cancellationToken)
         {
-            await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanUpdatePhoto);
+            // [AUTH-DISABLED] await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanUpdatePhoto);
 
             var photoToUpdate = await _photoRepository.GetById(request.PhotoId, cancellationToken: cancellationToken);
             var photoToAdd = request.UpdatedPhotoData.ToPhotoForUpdate();

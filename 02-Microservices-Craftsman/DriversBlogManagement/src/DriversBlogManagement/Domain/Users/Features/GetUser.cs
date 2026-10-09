@@ -25,7 +25,7 @@ public static class GetUser
 
         public async Task<UserDto> Handle(Query request, CancellationToken cancellationToken)
         {
-            await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanReadUsers);
+            // [AUTH-DISABLED] await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanReadUsers);
 
             var result = await _userRepository.GetById(request.UserId, cancellationToken: cancellationToken);
             return result.ToUserDto();

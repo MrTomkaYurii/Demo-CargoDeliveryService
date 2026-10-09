@@ -28,7 +28,7 @@ public sealed class OrdersController: ControllerBase
     /// <summary>
     /// Gets a list of all Orders.
     /// </summary>
-    [Authorize]
+    // [AUTH-DISABLED] [Authorize]
     [HttpGet(Name = "GetOrders")]
     public async Task<IActionResult> GetOrders([FromQuery] OrderParametersDto orderParametersDto)
     {
@@ -58,7 +58,7 @@ public sealed class OrdersController: ControllerBase
     /// <summary>
     /// Gets a list of all Orders.
     /// </summary>
-    [Authorize]
+    // [AUTH-DISABLED] [Authorize]
     [HttpGet("all", Name = "GetAllOrders")]
     public async Task<IActionResult> GetAllOrders()
     {
@@ -71,7 +71,7 @@ public sealed class OrdersController: ControllerBase
     /// <summary>
     /// Gets a single Order by ID.
     /// </summary>
-    [Authorize]
+    // [AUTH-DISABLED] [Authorize]
     [HttpGet("{orderId:guid}", Name = "GetOrder")]
     public async Task<ActionResult<OrderDto>> GetOrder(Guid orderId)
     {
@@ -84,7 +84,7 @@ public sealed class OrdersController: ControllerBase
     /// <summary>
     /// Creates a new Order record.
     /// </summary>
-    [Authorize]
+    // [AUTH-DISABLED] [Authorize]
     [HttpPost(Name = "AddOrder")]
     public async Task<ActionResult<OrderDto>> AddOrder([FromBody]OrderForCreationDto orderForCreation)
     {
@@ -100,7 +100,7 @@ public sealed class OrdersController: ControllerBase
     /// <summary>
     /// Updates an entire existing Order.
     /// </summary>
-    [Authorize]
+    // [AUTH-DISABLED] [Authorize]
     [HttpPut("{orderId:guid}", Name = "UpdateOrder")]
     public async Task<IActionResult> UpdateOrder(Guid orderId, OrderForUpdateDto order)
     {
@@ -113,7 +113,7 @@ public sealed class OrdersController: ControllerBase
     /// <summary>
     /// Deletes an existing Order record.
     /// </summary>
-    [Authorize]
+    // [AUTH-DISABLED] [Authorize]
     [HttpDelete("{orderId:guid}", Name = "DeleteOrder")]
     public async Task<ActionResult> DeleteOrder(Guid orderId)
     {

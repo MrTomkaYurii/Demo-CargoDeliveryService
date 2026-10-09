@@ -19,7 +19,10 @@
 * **Патерн CQRS:** Реалізація команд і запитів через **MediatR 12.2.0** з валідацією запитів через **FluentValidation**.
 * **База даних та ORM:** Microsoft SQL Server, Entity Framework Core 8.0, авто-міграції.
 * **Синхронна комунікація (gRPC Client):**
-  * Використовує клієнт `DriverRpcClient` для виклику `DriversBlogManagement` за протоколом HTTP/2 Protobuf для отримання постів водія.
+  * Використовує клієнт `DriverRpcClient` для виклику `DriversBlogManagement` за протоколом HTTP/2 Protobuf для отримання постів водія. Клієнт генерується з `Driver.proto` (`GrpcServices="Client"`) — **без** посилання на проєкт блогу.
+* **Синхронна комунікація (HTTP BFF):**
+  * `GET /api/v1/driver-dashboard/{id}` паралельно опитує `CargoOrderingService` і `DriversBlogManagement` через їхні внутрішні ендпоінти `api/internal/*` (`Task.WhenAll` + Graceful Degradation).
+  * `GET /api/internal/drivers/{id}` — компактна картка водія для `CargoDelivery.HttpAggregator`.
 * **Асинхронна комунікація (MassTransit + RabbitMQ):**
   * Публікує події `IDriverCreated` та `IDriverUpdated` із `SharedKernel` у шину RabbitMQ (Fanout Exchanges).
 * **Діагностика та оркестрація (.NET 10 + .NET Aspire):**
@@ -46,14 +49,18 @@
 
 | Контролер | Маршрут | Призначення |
 | :--- | :--- | :--- |
-| `DriversController` | `/api/v1/drivers` | CRUD водіїв, отримання зведених профілів (включно з gRPC викликом блогу) |
-| `CompaniesController` | `/api/v1/companies` | Управління логістичними компаніями та перевізниками |
-| `TrucksController` | `/api/v1/trucks` | Облік вантажного автопарку (моделі, номери, вантажопідйомність) |
-| `RepairsController` | `/api/v1/repairs` | Реєстрація ремонтних робіт та замін автозапчастин |
-| `InspectionsController` | `/api/v1/inspections` | Планові та позачергові технічні огляди вантажівок |
-| `ExpencesController` | `/api/v1/expences` | Фіксація витрат на паливо, митні збори та амортизацію |
-| `PhotosController` | `/api/v1/photos` | Завантаження та облік фотографій транспорту і водіїв |
-| `UsersController` / `RolesController` | `/api/v1/users`, `/api/v1/roles` | Управління користувачами та рольовими правами доступу |
+| `DriversController` | `/api/drivers` | CRUD водіїв, отримання зведених профілів (включно з gRPC викликом блогу) |
+| `DriverDashboardController` | `/api/v1/driver-dashboard/{id}` | BFF-агрегація: водій + вантажівка + доставки + пости |
+| `InternalDriversController` | `/api/internal/drivers/{id}` | Внутрішня (service-to-service) картка водія для агрегатора |
+| `CompaniesController` | `/api/companies` | Управління логістичними компаніями та перевізниками |
+| `TrucksController` | `/api/trucks` | Облік вантажного автопарку (моделі, номери, вантажопідйомність) |
+| `RepairsController` | `/api/repairs` | Реєстрація ремонтних робіт та замін автозапчастин |
+| `InspectionsController` | `/api/inspections` | Планові та позачергові технічні огляди вантажівок |
+| `ExpencesController` | `/api/expences` | Фіксація витрат на паливо, митні збори та амортизацію |
+| `PhotosController` | `/api/photos` | Завантаження та облік фотографій транспорту і водіїв |
+| `UsersController` / `RolesController` | `/api/users`, `/api/roles` | Управління користувачами та рольовими правами доступу |
+
+> ℹ️ Версія API (1.0) передається не в шляху, а через API Versioning (за замовчуванням 1.0). Авторизацію для навчального стенду вимкнено (маркер `// [AUTH-DISABLED]`).
 
 ---
 

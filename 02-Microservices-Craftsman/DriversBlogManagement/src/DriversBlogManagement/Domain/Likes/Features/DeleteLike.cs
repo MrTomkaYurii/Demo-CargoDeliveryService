@@ -26,7 +26,7 @@ public static class DeleteLike
 
         public async Task Handle(Command request, CancellationToken cancellationToken)
         {
-            await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanDeleteLike);
+            // [AUTH-DISABLED] await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanDeleteLike);
 
             var recordToDelete = await _likeRepository.GetById(request.LikeId, cancellationToken: cancellationToken);
             _likeRepository.Remove(recordToDelete);

@@ -30,7 +30,7 @@ public static class UpdateLike
 
         public async Task Handle(Command request, CancellationToken cancellationToken)
         {
-            await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanUpdateLike);
+            // [AUTH-DISABLED] await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanUpdateLike);
 
             var likeToUpdate = await _likeRepository.GetById(request.LikeId, cancellationToken: cancellationToken);
             var likeToAdd = request.UpdatedLikeData.ToLikeForUpdate();

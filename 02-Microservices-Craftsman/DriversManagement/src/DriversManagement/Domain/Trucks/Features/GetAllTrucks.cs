@@ -30,7 +30,7 @@ public static class GetAllTrucks
 
         public async Task<List<TruckDto>> Handle(Query request, CancellationToken cancellationToken)
         {
-            await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanReadTrucks);
+            // [AUTH-DISABLED] await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanReadTrucks);
 
             return _truckRepository.Query()
                 .AsNoTracking()

@@ -26,7 +26,7 @@ public static class DeleteBlogUser
 
         public async Task Handle(Command request, CancellationToken cancellationToken)
         {
-            await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanDeleteUser);
+            // [AUTH-DISABLED] await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanDeleteUser);
 
             var recordToDelete = await _blogUserRepository.GetById(request.BlogUserId, cancellationToken: cancellationToken);
             _blogUserRepository.Remove(recordToDelete);

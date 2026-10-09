@@ -28,7 +28,7 @@ public sealed class PhotosController: ControllerBase
     /// <summary>
     /// Gets a list of all Photos.
     /// </summary>
-    [Authorize]
+    // [AUTH-DISABLED] [Authorize]
     [HttpGet(Name = "GetPhotos")]
     public async Task<IActionResult> GetPhotos([FromQuery] PhotoParametersDto photoParametersDto)
     {
@@ -58,7 +58,7 @@ public sealed class PhotosController: ControllerBase
     /// <summary>
     /// Gets a list of all Photos.
     /// </summary>
-    [Authorize]
+    // [AUTH-DISABLED] [Authorize]
     [HttpGet("all", Name = "GetAllPhotos")]
     public async Task<IActionResult> GetAllPhotos()
     {
@@ -71,7 +71,7 @@ public sealed class PhotosController: ControllerBase
     /// <summary>
     /// Gets a single Photo by ID.
     /// </summary>
-    [Authorize]
+    // [AUTH-DISABLED] [Authorize]
     [HttpGet("{photoId:guid}", Name = "GetPhoto")]
     public async Task<ActionResult<PhotoDto>> GetPhoto(Guid photoId)
     {
@@ -84,7 +84,7 @@ public sealed class PhotosController: ControllerBase
     /// <summary>
     /// Creates a new Photo record.
     /// </summary>
-    [Authorize]
+    // [AUTH-DISABLED] [Authorize]
     [HttpPost(Name = "AddPhoto")]
     public async Task<ActionResult<PhotoDto>> AddPhoto([FromBody]PhotoForCreationDto photoForCreation)
     {
@@ -100,7 +100,7 @@ public sealed class PhotosController: ControllerBase
     /// <summary>
     /// Updates an entire existing Photo.
     /// </summary>
-    [Authorize]
+    // [AUTH-DISABLED] [Authorize]
     [HttpPut("{photoId:guid}", Name = "UpdatePhoto")]
     public async Task<IActionResult> UpdatePhoto(Guid photoId, PhotoForUpdateDto photo)
     {
@@ -113,7 +113,7 @@ public sealed class PhotosController: ControllerBase
     /// <summary>
     /// Deletes an existing Photo record.
     /// </summary>
-    [Authorize]
+    // [AUTH-DISABLED] [Authorize]
     [HttpDelete("{photoId:guid}", Name = "DeletePhoto")]
     public async Task<ActionResult> DeletePhoto(Guid photoId)
     {

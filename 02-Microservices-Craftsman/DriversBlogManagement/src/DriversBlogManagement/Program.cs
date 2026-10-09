@@ -1,5 +1,6 @@
 using Destructurama;
 using Serilog;
+using Serilog.Extensions.Logging;
 using Hangfire;
 using Hellang.Middleware.ProblemDetails;
 using DriversBlogManagement.Extensions.Application;
@@ -11,13 +12,25 @@ using Microsoft.Extensions.Hosting;
 
 var builder = WebApplication.CreateBuilder(args);
 
+    // ====================================================================================
+    // 📝 SERILOG + OPENTELEMETRY: ЯК ЛОГИ ПОТРАПЛЯЮТЬ В ASPIRE DASHBOARD
+    // ------------------------------------------------------------------------------------
+    // builder.Host.UseSerilog() ЗАМІНЮЄ всі стандартні провайдери логування Microsoft.
+    // Серед них і провайдер OpenTelemetry, який підключає AddServiceDefaults() — тому без
+    // додаткових кроків логи сервісу видно лише в "Console logs", а вкладка
+    // "Structured logs" в Aspire Dashboard порожня.
+    // Рішення: LoggerProviderCollection + WriteTo.Providers(...) — Serilog пише як у консоль
+    // (за appsettings), так і в усі зареєстровані ILoggerProvider (у т.ч. OTLP-експортер).
+    // ====================================================================================
+    var serilogProviders = new LoggerProviderCollection();
     Log.Logger = new LoggerConfiguration()
         .ReadFrom.Configuration(builder.Configuration)
         .Enrich.WithProperty("ApplicationName", builder.Environment.ApplicationName)
         .Destructure.UsingAttributes()
+        .WriteTo.Providers(serilogProviders)
         .CreateLogger();
 
-    builder.Host.UseSerilog();
+    builder.Host.UseSerilog(providers: serilogProviders);
     builder.ConfigureServices();
 
 var app = builder.Build();
@@ -49,7 +62,9 @@ app.MapDefaultEndpoints();
     app.UseSerilogRequestLogging();
     app.UseRouting();
 
-    app.UseAuthentication();
+    // [AUTH-DISABLED] Автентифікацію (JWT/Keycloak) вимкнено для навчального стенду — див. InfrastructureServiceExtension.
+    // [AUTH-DISABLED] app.UseAuthentication();
+    // UseAuthorization залишено: без атрибутів [Authorize] нічого не блокує, але знадобиться, якщо авторизацію повернуть.
     app.UseAuthorization();
 
     app.MapControllers();

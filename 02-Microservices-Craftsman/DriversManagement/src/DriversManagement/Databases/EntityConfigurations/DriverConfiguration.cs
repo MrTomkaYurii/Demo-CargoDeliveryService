@@ -1,6 +1,8 @@
 namespace DriversManagement.Databases.EntityConfigurations;
 
+using DriversManagement.Domain.Companies;
 using DriversManagement.Domain.Drivers;
+using DriversManagement.Domain.Photos;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -12,12 +14,19 @@ public sealed class DriverConfiguration : IEntityTypeConfiguration<Driver>
     public void Configure(EntityTypeBuilder<Driver> builder)
     {
         // Relationship Marker -- Deleting or modifying this comment could cause incomplete relationship scaffolding
+        // ⚠️ ВИПРАВЛЕНО: Craftsman згенерував зв'язок "один-до-одного" зі СПІЛЬНИМ первинним ключем
+        // (HasForeignKey<Driver>(s => s.Id)), тобто Driver.Id мусив дорівнювати Id Company/Photo.
+        // На практиці це унеможливлювало вставку: EF Core під час fix-up підміняв Id нового
+        // запису (або ловив порушення FK). Тепер залежною стороною є Company та Photo, а зв'язок
+        // тримає окрема опційна колонка driver_id (snake_case від тіньової властивості DriverId).
         builder.HasOne(x => x.Company)
             .WithOne(x => x.Driver)
-            .HasForeignKey<Driver>(s => s.Id);
+            .HasForeignKey<Company>("DriverId")
+            .IsRequired(false);
         builder.HasOne(x => x.Photo)
             .WithOne(x => x.Driver)
-            .HasForeignKey<Driver>(s => s.Id);
+            .HasForeignKey<Photo>("DriverId")
+            .IsRequired(false);
 
         // Property Marker -- Deleting or modifying this comment could cause incomplete relationship scaffolding
         

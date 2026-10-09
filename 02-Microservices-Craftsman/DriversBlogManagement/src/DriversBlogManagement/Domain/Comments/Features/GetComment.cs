@@ -25,7 +25,7 @@ public static class GetComment
 
         public async Task<CommentDto> Handle(Query request, CancellationToken cancellationToken)
         {
-            await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanReadComment);
+            // [AUTH-DISABLED] await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanReadComment);
 
             var result = await _commentRepository.GetById(request.CommentId, cancellationToken: cancellationToken);
             return result.ToCommentDto();

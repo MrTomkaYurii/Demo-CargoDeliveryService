@@ -1,6 +1,7 @@
 namespace DriversBlogManagement.Databases.EntityConfigurations;
 
 using DriversBlogManagement.Domain.BlogUsers;
+using DriversBlogManagement.Domain.PostAboutDrivers;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -12,9 +13,15 @@ public sealed class BlogUserConfiguration : IEntityTypeConfiguration<BlogUser>
     public void Configure(EntityTypeBuilder<BlogUser> builder)
     {
         // Relationship Marker -- Deleting or modifying this comment could cause incomplete relationship scaffolding
+        // ⚠️ ВИПРАВЛЕНО: Craftsman згенерував зв'язок "один-до-одного" зі СПІЛЬНИМ первинним ключем
+        // (HasForeignKey<BlogUser>(s => s.Id)), тобто BlogUser.Id мусив дорівнювати Id PostAboutDriver.
+        // На практиці це унеможливлювало вставку: EF Core під час fix-up підміняв Id нового
+        // запису (або ловив порушення FK). Тепер залежною стороною є PostAboutDriver, а зв'язок
+        // тримає окрема опційна колонка blog_user_id (snake_case від тіньової властивості BlogUserId).
         builder.HasOne(x => x.PostAboutDriver)
             .WithOne(x => x.BlogUser)
-            .HasForeignKey<BlogUser>(s => s.Id);
+            .HasForeignKey<PostAboutDriver>("BlogUserId")
+            .IsRequired(false);
 
         // Property Marker -- Deleting or modifying this comment could cause incomplete relationship scaffolding
         

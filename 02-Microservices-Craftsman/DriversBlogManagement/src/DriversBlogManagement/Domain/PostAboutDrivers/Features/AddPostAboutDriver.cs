@@ -30,7 +30,7 @@ public static class AddPostAboutDriver
 
         public async Task<PostAboutDriverDto> Handle(Command request, CancellationToken cancellationToken)
         {
-            await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanAddPostAboutDriver);
+            // [AUTH-DISABLED] await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanAddPostAboutDriver);
 
             var postAboutDriverToAdd = request.PostAboutDriverToAdd.ToPostAboutDriverForCreation();
             var postAboutDriver = PostAboutDriver.Create(postAboutDriverToAdd);

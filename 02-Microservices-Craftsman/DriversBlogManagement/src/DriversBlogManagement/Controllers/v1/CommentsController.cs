@@ -28,7 +28,7 @@ public sealed class CommentsController: ControllerBase
     /// <summary>
     /// Gets a list of all Comments.
     /// </summary>
-    [Authorize]
+    // [AUTH-DISABLED] [Authorize]
     [HttpGet(Name = "GetComments")]
     public async Task<IActionResult> GetComments([FromQuery] CommentParametersDto commentParametersDto)
     {
@@ -58,7 +58,7 @@ public sealed class CommentsController: ControllerBase
     /// <summary>
     /// Gets a list of all Comments.
     /// </summary>
-    [Authorize]
+    // [AUTH-DISABLED] [Authorize]
     [HttpGet("all", Name = "GetAllComments")]
     public async Task<IActionResult> GetAllComments()
     {
@@ -71,7 +71,7 @@ public sealed class CommentsController: ControllerBase
     /// <summary>
     /// Gets a single Comment by ID.
     /// </summary>
-    [Authorize]
+    // [AUTH-DISABLED] [Authorize]
     [HttpGet("{commentId:guid}", Name = "GetComment")]
     public async Task<ActionResult<CommentDto>> GetComment(Guid commentId)
     {
@@ -84,7 +84,7 @@ public sealed class CommentsController: ControllerBase
     /// <summary>
     /// Creates a new Comment record.
     /// </summary>
-    [Authorize]
+    // [AUTH-DISABLED] [Authorize]
     [HttpPost(Name = "AddComment")]
     public async Task<ActionResult<CommentDto>> AddComment([FromBody]CommentForCreationDto commentForCreation)
     {
@@ -100,7 +100,7 @@ public sealed class CommentsController: ControllerBase
     /// <summary>
     /// Updates an entire existing Comment.
     /// </summary>
-    [Authorize]
+    // [AUTH-DISABLED] [Authorize]
     [HttpPut("{commentId:guid}", Name = "UpdateComment")]
     public async Task<IActionResult> UpdateComment(Guid commentId, CommentForUpdateDto comment)
     {
@@ -113,7 +113,7 @@ public sealed class CommentsController: ControllerBase
     /// <summary>
     /// Deletes an existing Comment record.
     /// </summary>
-    [Authorize]
+    // [AUTH-DISABLED] [Authorize]
     [HttpDelete("{commentId:guid}", Name = "DeleteComment")]
     public async Task<ActionResult> DeleteComment(Guid commentId)
     {

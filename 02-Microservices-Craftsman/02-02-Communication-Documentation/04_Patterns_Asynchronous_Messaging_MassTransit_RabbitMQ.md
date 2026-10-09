@@ -1,23 +1,32 @@
 # 📬 04. Патерни асинхронного обміну подіями: MassTransit, RabbitMQ та Eventual Consistency
 
 > **Блок 2:** `02-Microservices-Craftsman`  
-> **Технологічний стек:** .NET 10, MassTransit 8.1.3, RabbitMQ (AMQP 0-9-1, Fanout Exchanges, Quorum Queues, Lazy Queues), SharedKernel, InMemory Fallback Bus.
+> **Технологічний стек:** .NET 10, MassTransit 8.1.3, RabbitMQ 4.x (AMQP 0-9-1, Fanout Exchanges, Quorum Queues), SharedKernel, InMemory Fallback Bus, OpenTelemetry.  
+> **Як читати посилання:** `Файл.cs#L42` відкриває файл на потрібному рядку (VS Code Markdown Preview — `Ctrl+Shift+V`).
 
 ---
 
 ## 1. Теоретична концепція: Подієво-орієнтована архітектура (Event-Driven Architecture)
 
-У синхронних моделях (розглянутих у [Гайді 02: HTTP Gateway Aggregator](02_Patterns_Synchronous_HttpClient_Aggregator_BFF.md) та [Гайді 03: gRPC](03_Patterns_Synchronous_gRPC_Communication.md)) клієнт або зухвалий сервіс **блокується й чекає**, поки віддалений сервіс завершить обчислення та надішле відповідь.
+У синхронних моделях (розглянутих у [Гайді 02: HTTP Gateway Aggregator](02_Patterns_Synchronous_HttpClient_Aggregator_BFF.md) та [Гайді 03: gRPC](03_Patterns_Synchronous_gRPC_Communication.md)) клієнт або викликаючий сервіс **блокується й чекає**, поки віддалений сервіс завершить обчислення та надішле відповідь.
 
 Якщо цільовий сервіс недоступний, перезавантажується, виконує міграцію бази даних або тимчасово перевантажений:
 * Синхронний запит зазнає збою (Exception / HTTP 500 / 504 Gateway Timeout).
 * Починається каскадний колапс суміжних підсистем (**Cascading Failure**).
 * Сервіси стають жорстко прив'язаними один до одного за часом виконання (**Temporal Coupling**).
 
-**Подієво-орієнтована архітектура (EDA)** повністю вирішує цю проблему за допомогою **часового та просторового розв'язання (Temporal & Spatial Decoupling)**:
-1. **Факт у минулому часі:** Сервіс-джерело публікує факт події, що вже сталася в його бізнес-домені (`DriverCreated`, `DriverUpdated`, `OrderCreated`).
-2. **Гарантія брокера:** Брокер повідомлень (**RabbitMQ**) негайно зберігає повідомлення на диск у захищену чергу та повертає підтвердження публікації.
+**Подієво-орієнтована архітектура (EDA)** вирішує цю проблему за допомогою **часового та просторового розв'язання (Temporal & Spatial Decoupling)**:
+1. **Факт у минулому часі:** Сервіс-джерело публікує факт події, що вже сталася в його бізнес-домені (`DriverCreated`, `DriverUpdated`, `OrderCreated`). Подія — це не прохання «зроби», а повідомлення «сталося».
+2. **Гарантія брокера:** Брокер повідомлень (**RabbitMQ**) приймає повідомлення, записує його в чергу (кворум-черга — на диск) і підтверджує публікацію (publisher confirm).
 3. **Автономність споживачів:** Сервіси-підписники вичитують події у власному темпі, коли вони готові, без необхідності тримати пряме з'єднання з видавцем.
+
+### Команда vs Подія
+| | Command (`Send`) | Event (`Publish`) |
+| :--- | :--- | :--- |
+| Семантика | «Зроби X» — наказ конкретному виконавцю | «X сталося» — факт для всіх зацікавлених |
+| Скільки отримувачів | Рівно один | Нуль, один або багато |
+| Хто знає адресата | Відправник | Ніхто — маршрутизацію робить брокер |
+| У проєкті | — | `IDriverCreated`, `IDriverUpdated`, `IOrderCreated` |
 
 ```mermaid
 sequenceDiagram
@@ -25,7 +34,7 @@ sequenceDiagram
     
     rect rgb(38, 25, 25)
         note over Client,SyncServer: ❌ 1. Синхронна взаємодія (REST / gRPC) — Часове блокування (Temporal Coupling)
-        Client->>SyncServer: Виклик: POST /api/v1/drivers (або gRPC)
+        Client->>SyncServer: Виклик: POST /api/drivers (або gRPC)
         activate Client
         activate SyncServer
         note over SyncServer: Сервер виконує бізнес-логіку,<br/>запис у базу даних тощо...
@@ -40,10 +49,10 @@ sequenceDiagram
         Producer->>Broker: Публікація: Publish<IDriverCreated>(event)
         activate Producer
         activate Broker
-        Broker-->>Producer: Basic.Ack (Подія збережена в Quorum Queue)
+        Broker-->>Producer: Publisher confirm (повідомлення прийнято брокером)
         deactivate Broker
         deactivate Producer
-        note over Producer: 🚀 Продюсер миттєво вільний!<br/>Диспетчер отримує 201 Created за 10мс.
+        note over Producer: 🚀 Продюсер вільний!<br/>Диспетчер отримує 201 Created.
 
         note over Broker,Consumer: Асинхронна доставка (у власному темпі підписника)
         Broker->>Consumer: Push повідомлення з черги: ConsumeContext(IDriverCreated)
@@ -65,7 +74,7 @@ sequenceDiagram
 
 ## 3. Модель протоколу AMQP 0-9-1 та топологія RabbitMQ
 
-RabbitMQ працює за стандартом **AMQP 0-9-1** (Advanced Message Queuing Protocol). У цьому протоколі повідомлення **ніколи не надсилаються безпосередньо в чергу** — вони завжди надсилаються в **Обмінник (Exchange)**:
+RabbitMQ працює за стандартом **AMQP 0-9-1** (Advanced Message Queuing Protocol). У цьому протоколі продюсер публікує повідомлення не в чергу, а в **Обмінник (Exchange)**; обмінник за правилами **прив'язок (Bindings)** розкладає копії по чергах:
 
 ```mermaid
 flowchart LR
@@ -78,8 +87,8 @@ flowchart LR
         Ex1[["Exchange: driver-created<br/>(Type: Fanout)"]]
         Ex2[["Exchange: driver-updated<br/>(Type: Fanout)"]]
 
-        Q1[("Queue: sync-updated-driver<br/>(Quorum Queue / Lazy)")]
-        Q2[("Queue: ordering-sync-driver<br/>(Quorum Queue / Lazy)")]
+        Q1[("Queue: sync-updated-driver<br/>(Quorum Queue)")]
+        Q2[("Queue: ordering-sync-driver<br/>(Quorum Queue)")]
 
         Ex1 -->|Binding| Q1
         Ex2 -->|Binding| Q1
@@ -100,6 +109,10 @@ flowchart LR
     P -->|IDriverUpdated| Ex2
 ```
 
+> 💡 **Одна черга на сервіс, а не на подію.** Обидві події водія потрапляють в одну чергу споживача (`sync-updated-driver` прив'язана і до `driver-created`, і до `driver-updated`). Перевага: порядок «створено → оновлено» для одного водія зберігається в межах однієї черги. Якби події йшли в різні черги, оновлення могло б бути оброблене раніше за створення.
+
+> 🔁 **Масштабування споживачів (Competing Consumers).** Якщо запустити дві репліки CargoOrderingService, обидві читатимуть **ту саму** чергу `ordering-sync-driver`, і RabbitMQ роздасть повідомлення між ними (кожне — лише одній репліці). А різні сервіси мають **різні** черги — тому кожен сервіс отримує свою копію. Так один Fanout дає і «широкомовлення між сервісами», і «балансування всередині сервісу».
+
 ### Чому обрано саме тип обмінника Fanout?
 | Тип Exchange | Механізм маршрутизації | Коли застосовується | Чому Fanout у нашому проєкті? |
 | :--- | :--- | :--- | :--- |
@@ -108,25 +121,33 @@ flowchart LR
 | **Topic** | Збіг за маскою із зірочками (`cargo.eu.*`, `orders.#`). | Складні ієрархічні фільтри маршрутизації. | Надлишковий для загальних доменних подій створення/оновлення. |
 | **Headers** | Маршрутизація за заголовками AMQP, а не за Routing Key. | Специфічні метадані (формати, мови). | Рідко використовується на практиці через накладні витрати. |
 
+> 🧭 **Як побачити топологію наживо:** відкрийте Management UI RabbitMQ (посилання в рядку `rabbitmq` дашборду Aspire, логін `guest`, пароль — параметр `rabbitmq-password` у вкладці *Parameters*) → вкладки *Exchanges* і *Queues*.
+
 ---
 
-## 4. Кворум-черги (Quorum Queues) та оптимізація Lazy Queues
+## 4. Кворум-черги (Quorum Queues) та міф про Lazy Queues
 
-У конфігурації обох споживачів (`ordering-sync-driver` та `sync-updated-driver`) застосовано налаштування корпоративного рівня:
+У конфігурації обох споживачів (`ordering-sync-driver` та `sync-updated-driver`) застосовано кворум-черги ([SyncPatientEndpointRegistration.cs#L39](../DriversBlogManagement/src/DriversBlogManagement/Extensions/Services/ConsumerRegistrations/SyncPatientEndpointRegistration.cs#L39), [SyncDriverInOrderingEndpointRegistration.cs#L39](../CargoOrderingService/src/CargoOrderingService/Extensions/Services/ConsumerRegistrations/SyncDriverInOrderingEndpointRegistration.cs#L39)):
 
 ```csharp
 re.SetQuorumQueue();
-re.SetQueueArgument("declare", "lazy");
 ```
 
 ### 1. Що дає `SetQuorumQueue()`?
-* **Raft Consensus:** Quorum Queues базуються на консенсусному алгоритмі **Raft** (на відміну від застарілих Mirrored Queues).
-* **Стійкість до втрати даних:** Повідомлення реплікується на кворум вузлів кластера RabbitMQ. Навіть при аварійній зупинці або перезавантаженні брокера жодна подія про створення чи зміну водія не загубиться.
-* **FIFO порядок:** Гарантується суворий порядок збереження черги.
+* **Raft Consensus:** Quorum Queues базуються на консенсусному алгоритмі **Raft** (на відміну від застарілих Mirrored Queues, які видалено в RabbitMQ 4.0).
+* **Стійкість до втрати даних:** Повідомлення реплікується на кворум вузлів кластера RabbitMQ (більшість з N) і записується на диск. Навіть при аварійній зупинці одного вузла брокера жодна підтверджена подія про створення чи зміну водія не загубиться.
+* **FIFO порядок:** Повідомлення доставляються в порядку надходження (з поправкою на повторні доставки після збоїв споживача).
+* **Poison message handling:** кворум-черги рахують кількість повторних доставок (`x-delivery-count`) і можуть обмежувати її (`x-delivery-limit`).
 
-### 2. Що дає `lazy` аргумент (`SetQueueArgument("declare", "lazy")`)?
-* **Зниження навантаження на RAM:** Повідомлення одразу записуються на диск та вивантажуються з оперативної пам'яті брокера, якщо черга не вичитується миттєво.
-* **Передбачуваність під піковими навантаженнями:** Брокер не відчуває раптового вичерпання RAM (OOM Killer) при масовому надходженні тисяч замовлень чи водіїв.
+> ℹ️ У локальному стенді RabbitMQ — це **один** контейнер, тож реплікації між вузлами немає; кворум-черга все одно працює (кворум з одного вузла) і зберігає повідомлення на диску.
+
+### 2. Міф про `lazy` (`SetQueueArgument("declare", "lazy")`) — виправлено
+Раніше в реєстрації споживачів був рядок `re.SetQueueArgument("declare", "lazy")`, а документація стверджувала, що він вмикає «ліниві» черги. Насправді:
+* Аргументу з ім'ям `declare` у RabbitMQ **не існує** — брокер просто ігнорував його.
+* «Ліниві» черги вмикались аргументом `x-queue-mode: lazy` і лише для **класичних** черг; починаючи з RabbitMQ 3.12 класичні черги й так поводяться «ліниво», а в 4.x цей режим не має сенсу.
+* **Кворум-черги** за дизайном пишуть повідомлення на диск і тримають у пам'яті лише невеликий «хвіст», тож проблему OOM під піковим навантаженням вони вирішують і без окремого прапорця.
+
+Рядок видалено з коду з поясненням у коментарі — [SyncPatientEndpointRegistration.cs](../DriversBlogManagement/src/DriversBlogManagement/Extensions/Services/ConsumerRegistrations/SyncPatientEndpointRegistration.cs#L41).
 
 ---
 
@@ -147,36 +168,38 @@ sequenceDiagram
     participant Blog as 📝 DriversBlogManagement (Consumer)
     participant Ord as 📦 CargoOrderingService (Consumer)
 
-    Dispatcher->>DM: POST /api/v1/drivers (Створення водія)
-    DM->>DM_DB: INSERT INTO Drivers та CommitChanges()
-    DM_DB-->>DM: 200 OK (Водія збережено локально)
+    Dispatcher->>DM: POST /api/drivers (Створення водія)
+    DM->>DM_DB: INSERT INTO drivers та CommitChanges()
+    DM_DB-->>DM: OK (Водія збережено локально)
 
     %% Асинхронна публікація події
     rect rgb(20, 35, 60)
-        note over DM,Broker: Асинхронна публікація доменної події
+        note over DM,Broker: Публікація доменної події
         DM->>Bus: Publish(IDriverCreated)
         Bus->>Broker: Basic.Publish -> exchange "driver-created"
-        Broker-->>Bus: Basic.Ack (Повідомлення прийнято брокером)
-        DM-->>Dispatcher: 201 Created (Миттєва відповідь диспетчеру!)
+        Broker-->>Bus: Publisher confirm (Повідомлення прийнято брокером)
+        DM-->>Dispatcher: 201 Created (Відповідь диспетчеру)
     end
 
     %% Брокер розмножує повідомлення
-    Broker->>Q_Blog: Дублювання у чергу блогу
-    Broker->>Q_Ord: Дублювання у чергу замовлень
+    Broker->>Q_Blog: Копія у чергу блогу
+    Broker->>Q_Ord: Копія у чергу замовлень
 
     %% Асинхронне вичитування підписниками
     par Споживач Блогу
         Q_Blog->>Blog: ConsumeContext(IDriverCreated)
         Blog->>Blog: Перевірка ідемпотентності (if not exists)
-        Blog->>Blog: INSERT INTO Shadow Drivers (EF Core)
+        Blog->>Blog: INSERT INTO drivers (тіньова копія, той самий Id)
         Blog-->>Q_Blog: Basic.Ack (Повідомлення видалено з черги)
     and Споживач Замовлень
         Q_Ord->>Ord: ConsumeContext(IDriverCreated)
         Ord->>Ord: Перевірка ідемпотентності (if not exists)
-        Ord->>Ord: INSERT INTO Shadow Drivers (EF Core)
+        Ord->>Ord: INSERT INTO drivers (тіньова копія, той самий Id)
         Ord-->>Q_Ord: Basic.Ack (Повідомлення видалено з черги)
     end
 ```
+
+**Реальний трейс стенду** (Aspire Dashboard → Traces → `driversmanagement: POST api/drivers`, ≈1 с): `POST api/drivers` → `send driver-created` → `ordering-sync-driver receive` / `process` і `sync-updated-driver receive` / `process`. У *Structured logs* записи `==>> [MassTransit Blog] …` і `==>> [MassTransit Ordering] …` мають той самий TraceId.
 
 ---
 
@@ -194,21 +217,29 @@ stateDiagram-v2
     note right of Acknowledged: Надсилається Basic.Ack.<br/>Повідомлення видаляється з черги.
 
     Processing --> RetrySchedule: Виняток (DbUpdateException / Timeout)
-    note right of RetrySchedule: MassTransit застосовує політики повторів (Retry)<br/>Негайний повтор або Exponential Backoff
+    note right of RetrySchedule: UseMessageRetry — ще 3 спроби<br/>з паузами 0.2 → 1 → 3 с (у пам'яті споживача)
 
     RetrySchedule --> Processing: Повторна спроба обробки
     RetrySchedule --> ErrorQueue: Вичерпано ліміт спроб (Poison Message)
-    note right of ErrorQueue: Повідомлення переміщується в чергу помилок<br/>ordering-sync-driver_error<br/>для подальшого аналізу інженерами.
+    note right of ErrorQueue: Повідомлення переміщується в чергу помилок<br/>ordering-sync-driver_error / sync-updated-driver_error<br/>(+ публікується Fault&lt;T&gt;) для аналізу інженерами.
 
     Acknowledged --> [*]
     ErrorQueue --> [*]
 ```
 
+> 🐞 **Що було виправлено.** Діаграма описувала повтори, але в коді їх не було: MassTransit **за замовчуванням не повторює** обробку — перший же виняток відправляв повідомлення в `_error`. Тепер у кожній реєстрації споживача є `re.UseMessageRetry(r => r.Intervals(200, 1000, 3000))` — [SyncPatientEndpointRegistration.cs#L52](../DriversBlogManagement/src/DriversBlogManagement/Extensions/Services/ConsumerRegistrations/SyncPatientEndpointRegistration.cs#L52), [SyncDriverInOrderingEndpointRegistration.cs#L50](../CargoOrderingService/src/CargoOrderingService/Extensions/Services/ConsumerRegistrations/SyncDriverInOrderingEndpointRegistration.cs#L50).
+
+| Механізм | Де живе повтор | Коли застосовувати |
+| :--- | :--- | :--- |
+| `UseMessageRetry` (Immediate / Intervals / Exponential) | У пам'яті процесу споживача, повідомлення лишається «Unacked» | Короткі транзієнтні збої (секунди) |
+| `UseDelayedRedelivery` (Second-Level Retry) | Повідомлення повертається в брокер із затримкою | Довгі збої (хвилини: БД на обслуговуванні) |
+| Черга `_error` + ручний/автоматичний replay | Окрема черга помилок | Помилки в даних, баги — потрібна людина |
+
 ---
 
 ## 6. Проблема подвійного запису (Dual-Write Problem) та Eventual Consistency
 
-У розподілених системах без розподілених двофазних блокуючих транзакцій (2PC / WS-AtomicTransaction) існує класична проблема:
+У розподілених системах без розподілених двофазних блокуючих транзакцій (2PC / WS-AtomicTransaction) існує класична проблема ([AddDriver.cs#L81-L85](../DriversManagement/src/DriversManagement/Domain/Drivers/Features/AddDriver.cs#L81)):
 
 ```csharp
 // 1. Локальна транзакція
@@ -219,13 +250,28 @@ await _publishEndpoint.Publish<IDriverCreated>(message, cancellationToken);
 ```
 
 ### Що може піти не так?
-1. База даних зафіксувала водія, але сервер аварійно вимкнувся прямо перед `Publish`. У результаті: водій існує в `DriversManagement`, але жоден інший мікросервіс ніколи не дізнається про це.
-2. `Publish` виконано першим, але `CommitChanges` впав через порушення констрейнта. У результаті: підписники отримали подію про водія, якого насправді не існує (**Ghost Entity**).
+1. База даних зафіксувала водія, але сервер аварійно вимкнувся прямо перед `Publish` (або брокер був недоступний). У результаті: водій існує в `DriversManagement`, але жоден інший мікросервіс ніколи не дізнається про це.
+2. Якщо поміняти порядок — `Publish` першим, а `CommitChanges` впаде через порушення констрейнта, — підписники отримають подію про водія, якого насправді не існує (**Ghost Entity**).
 
 ### Як це вирішується в нашому проєкті?
-* **Принцип Eventual Consistency (Кінцева узгодженість):** База даних є первинним джерелом правди. Повідомлення публікується **після** успішного фіксування транзакції `_unitOfWork.CommitChanges`.
-* **Ідемпотентність споживачів:** Усі споживачі перевіряють наявність сутності перед вставкою (`if (existingDriver == null)`), що запобігає збоям при випадкових повторах повідомлень.
-* **Перспектива розвитку — Transactional Outbox Pattern:** У наступних ітераціях можна увімкнути нативний `AddEntityFrameworkOutbox<TContext>()` від MassTransit, який зберігає повідомлення у спеціальну таблицю `OutboxMessages` в тій самій транзакції EF Core, а фоновий воркер MassTransit гарантовано пересилає їх у RabbitMQ.
+* **Принцип Eventual Consistency (Кінцева узгодженість):** База даних є первинним джерелом правди. Повідомлення публікується **після** успішного фіксування транзакції `_unitOfWork.CommitChanges`. Це прибирає «привидів», але не прибирає ризик втрати події (сценарій 1).
+* **Ідемпотентність споживачів:** Усі споживачі перевіряють наявність сутності перед вставкою (`if (existingDriver == null)` — [SyncDriver.cs#L63](../DriversBlogManagement/src/DriversBlogManagement/Domain/SyncDriver.cs#L63), [SyncDriverInOrdering.cs#L58](../CargoOrderingService/src/CargoOrderingService/Domain/Drivers/Consumers/SyncDriverInOrdering.cs#L58)), що запобігає дублікатам при повторній доставці (семантика *At-least-once delivery*).
+* **Перспектива розвитку — Transactional Outbox Pattern:** нативний `AddEntityFrameworkOutbox<TContext>()` від MassTransit зберігає повідомлення у спеціальну таблицю в **тій самій** транзакції EF Core, що й водія, а фоновий процес гарантовано пересилає їх у RabbitMQ. Тоді обидва записи або відбуваються разом, або не відбуваються взагалі.
+
+```mermaid
+flowchart LR
+    subgraph Now["Зараз: Commit → Publish"]
+        A1["INSERT drivers"] --> A2["COMMIT"] --> A3["Publish → RabbitMQ"]
+        A3 -.->|"процес упав тут = подія втрачена"| X1["❌"]
+    end
+    subgraph Outbox["Transactional Outbox"]
+        B1["INSERT drivers + INSERT outbox_message"] --> B2["COMMIT (атомарно)"] --> B3["Фоновий доставник → RabbitMQ (з повторами)"]
+    end
+```
+
+### Наслідки Eventual Consistency для UI та API
+* Між `201 Created` у DriversManagement і появою тіньового водія в блозі/замовленнях минає час (на стенді — <1 с). Якщо в цей проміжок викликати `demo-seed` або gRPC `GetDriverWithPosts`, отримаєте `404` / `NotFound` — це **нормально** для асинхронної архітектури, а не баг.
+* Тому gRPC-клієнт трактує `NotFound` від блогу як «постів поки немає» і не ламає профіль водія.
 
 ---
 
@@ -235,10 +281,10 @@ await _publishEndpoint.Publish<IDriverCreated>(message, cancellationToken);
 
 Контракти повідомлень містяться у легкому проєкті `SharedKernel` без залежностей від баз даних:
 
-> 📍 **Шлях до файлу:** `SharedKernel/DriverCreated.cs`  
+> 📍 **Шлях до файлу:** `SharedKernel/DriverCreated.cs` — інтерфейс [#L26](../SharedKernel/DriverCreated.cs#L26)  
 > 📝 *У файлі наведено докладні покрокові коментарі українською мовою.*
 
-[👉 **Перейти до файлу (клікніть тут)**](../SharedKernel/DriverCreated.cs)
+[👉 **Перейти до файлу (клікніть тут)**](../SharedKernel/DriverCreated.cs#L26)
 
 ```csharp
 public interface IDriverCreated
@@ -251,10 +297,9 @@ public interface IDriverCreated
 }
 ```
 
-> 📍 **Шлях до файлу:** `SharedKernel/DriverUpdated.cs`  
-> 📝 *У файлі наведено докладні покрокові коментарі українською мовою.*
+> 📍 **Шлях до файлу:** `SharedKernel/DriverUpdated.cs` — інтерфейс [#L20](../SharedKernel/DriverUpdated.cs#L20)
 
-[👉 **Перейти до файлу (клікніть тут)**](../SharedKernel/DriverUpdated.cs)
+[👉 **Перейти до файлу (клікніть тут)**](../SharedKernel/DriverUpdated.cs#L20)
 
 ```csharp
 public interface IDriverUpdated
@@ -265,10 +310,11 @@ public interface IDriverUpdated
 }
 ```
 
-> 📍 **Шлях до файлу:** `SharedKernel/OrderMessages.cs`  
-> 📝 *У файлі наведено докладні покрокові коментарі українською мовою.*
+> 📍 **Шлях до файлу:** `SharedKernel/OrderMessages.cs` — `IOrderCreated` [#L21](../SharedKernel/OrderMessages.cs#L21), `IOrderAssignedToDriver` [#L56](../SharedKernel/OrderMessages.cs#L56)
 
-[👉 **Перейти до файлу (клікніть тут)**](../SharedKernel/OrderMessages.cs)
+[👉 **Перейти до файлу (клікніть тут)**](../SharedKernel/OrderMessages.cs#L21)
+
+> 💡 **Чому SharedKernel — це нормально, а спільна таблиця — ні?** SharedKernel містить лише **контракти повідомлень** (Published Language у термінах DDD) — маленькі, стабільні, версіоновані. Він не містить сутностей, бізнес-логіки чи доступу до даних. Зміна контракту — це свідома подія для всіх сторін; найбезпечніше еволюціонувати його **додаванням** полів (споживачі ігнорують невідомі).
 
 ---
 
@@ -276,10 +322,10 @@ public interface IDriverUpdated
 
 Коли створюється водій, після збереження агрегату в базі викликається `IPublishEndpoint.Publish`:
 
-> 📍 **Шлях до файлу:** `DriversManagement/src/DriversManagement/Domain/Drivers/Features/AddDriver.cs`  
+> 📍 **Шлях до файлу:** `DriversManagement/src/DriversManagement/Domain/Drivers/Features/AddDriver.cs` — збереження [#L81](../DriversManagement/src/DriversManagement/Domain/Drivers/Features/AddDriver.cs#L81), публікація [#L85](../DriversManagement/src/DriversManagement/Domain/Drivers/Features/AddDriver.cs#L85)  
 > 📝 *У файлі наведено докладні покрокові коментарі українською мовою.*
 
-[👉 **Перейти до файлу (клікніть тут)**](../DriversManagement/src/DriversManagement/Domain/Drivers/Features/AddDriver.cs)
+[👉 **Перейти до файлу (клікніть тут)**](../DriversManagement/src/DriversManagement/Domain/Drivers/Features/AddDriver.cs#L81)
 
 ```csharp
 // Зберігаємо водія в локальній базі даних
@@ -299,10 +345,9 @@ await _publishEndpoint.Publish<IDriverCreated>(new DriverCreated
 
 При оновленні даних водія аналогічно публікується подія `IDriverUpdated`:
 
-> 📍 **Шлях до файлу:** `DriversManagement/src/DriversManagement/Domain/Drivers/Features/UpdateDriver.cs`  
-> 📝 *У файлі наведено докладні покрокові коментарі українською мовою.*
+> 📍 **Шлях до файлу:** `DriversManagement/src/DriversManagement/Domain/Drivers/Features/UpdateDriver.cs` — публікація [#L75](../DriversManagement/src/DriversManagement/Domain/Drivers/Features/UpdateDriver.cs#L75)
 
-[👉 **Перейти до файлу (клікніть тут)**](../DriversManagement/src/DriversManagement/Domain/Drivers/Features/UpdateDriver.cs)
+[👉 **Перейти до файлу (клікніть тут)**](../DriversManagement/src/DriversManagement/Domain/Drivers/Features/UpdateDriver.cs#L75)
 
 ---
 
@@ -310,23 +355,21 @@ await _publishEndpoint.Publish<IDriverCreated>(new DriverCreated
 
 У конфігурації шини ми явно прив'язуємо інтерфейси до імен обмінників типу `Fanout`:
 
-> 📍 **Шлях до файлу:** `DriversManagement/src/DriversManagement/Extensions/Services/ProducerRegistrations/DriverCreatedEndpointRegistration.cs`  
-> 📝 *У файлі наведено докладні покрокові коментарі українською мовою.*
+> 📍 **Шлях до файлу:** `DriversManagement/src/DriversManagement/Extensions/Services/ProducerRegistrations/DriverCreatedEndpointRegistration.cs` — [#L28-L29](../DriversManagement/src/DriversManagement/Extensions/Services/ProducerRegistrations/DriverCreatedEndpointRegistration.cs#L28)
 
-[👉 **Перейти до файлу (клікніть тут)**](../DriversManagement/src/DriversManagement/Extensions/Services/ProducerRegistrations/DriverCreatedEndpointRegistration.cs)
+[👉 **Перейти до файлу (клікніть тут)**](../DriversManagement/src/DriversManagement/Extensions/Services/ProducerRegistrations/DriverCreatedEndpointRegistration.cs#L28)
 
 ```csharp
 public static void DriverCreatedEndpoint(this IRabbitMqBusFactoryConfigurator cfg)
 {
-    cfg.Message<IDriverCreated>(e => e.SetEntityName("driver-created"));
-    cfg.Publish<IDriverCreated>(e => e.ExchangeType = ExchangeType.Fanout);
+    cfg.Message<IDriverCreated>(e => e.SetEntityName("driver-created"));  // назва обмінника
+    cfg.Publish<IDriverCreated>(e => e.ExchangeType = ExchangeType.Fanout); // тип обмінника
 }
 ```
 
-> 📍 **Шлях до файлу:** `DriversManagement/src/DriversManagement/Extensions/Services/ProducerRegistrations/DriverUpdatedEndpointRegistration.cs`  
-> 📝 *У файлі наведено докладні покрокові коментарі українською мовою.*
+> ℹ️ Без `SetEntityName` MassTransit назвав би обмінник за повним ім'ям типу (`SharedKernel.Messages:IDriverCreated`). Явне ім'я робить топологію читабельною і незалежною від простору імен C#.
 
-[👉 **Перейти до файлу (клікніть тут)**](../DriversManagement/src/DriversManagement/Extensions/Services/ProducerRegistrations/DriverUpdatedEndpointRegistration.cs)
+> 📍 **Аналогічно:** [DriverUpdatedEndpointRegistration.cs#L27](../DriversManagement/src/DriversManagement/Extensions/Services/ProducerRegistrations/DriverUpdatedEndpointRegistration.cs#L27) (`driver-updated`), [OrderCreatedEndpointRegistration.cs#L23](../CargoOrderingService/src/CargoOrderingService/Extensions/Services/ProducerRegistrations/OrderCreatedEndpointRegistration.cs#L23) (`order-created`).
 
 ---
 
@@ -334,10 +377,10 @@ public static void DriverCreatedEndpoint(this IRabbitMqBusFactoryConfigurator cf
 
 Клас `SyncDriver` підписаний одночасно на створення та оновлення водіїв:
 
-> 📍 **Шлях до файлу:** `DriversBlogManagement/src/DriversBlogManagement/Domain/SyncDriver.cs`  
+> 📍 **Шлях до файлу:** `DriversBlogManagement/src/DriversBlogManagement/Domain/SyncDriver.cs` — `IDriverCreated` [#L56](../DriversBlogManagement/src/DriversBlogManagement/Domain/SyncDriver.cs#L56), `IDriverUpdated` [#L81](../DriversBlogManagement/src/DriversBlogManagement/Domain/SyncDriver.cs#L81)  
 > 📝 *У файлі наведено докладні покрокові коментарі українською мовою щодо ідемпотентності та тіньових моделей.*
 
-[👉 **Перейти до файлу (клікніть тут)**](../DriversBlogManagement/src/DriversBlogManagement/Domain/SyncDriver.cs)
+[👉 **Перейти до файлу (клікніть тут)**](../DriversBlogManagement/src/DriversBlogManagement/Domain/SyncDriver.cs#L56)
 
 ```csharp
 public sealed class SyncDriver : IConsumer<IDriverCreated>, IConsumer<IDriverUpdated>
@@ -346,7 +389,7 @@ public sealed class SyncDriver : IConsumer<IDriverCreated>, IConsumer<IDriverUpd
     {
         var msg = context.Message;
         var existingDriver = await _db.Drivers.FirstOrDefaultAsync(d => d.Id == msg.DriverId, context.CancellationToken);
-        if (existingDriver == null)
+        if (existingDriver == null)   // ідемпотентність: повторна доставка не створить дубліката
         {
             var driver = Driver.CreateWithId(msg.DriverId, msg.FirstName, msg.LastName);
             await _db.Drivers.AddAsync(driver, context.CancellationToken);
@@ -356,12 +399,26 @@ public sealed class SyncDriver : IConsumer<IDriverCreated>, IConsumer<IDriverUpd
 }
 ```
 
+> 🐞 **Прихована проблема моделі (виправлено).** У блозі `Driver` був налаштований як залежний бік зв'язку «один-до-одного» з `PostAboutDriver` через **спільний первинний ключ**, і за замовчуванням створював порожній пост. При вставці EF Core підміняв `Id` тіньового водія на `Id` цього поста — і ідентифікатор розходився з оригіналом у DriversManagement. Тепер пост має окрему колонку `driver_id` ([DriverConfiguration.cs](../DriversBlogManagement/src/DriversBlogManagement/Databases/EntityConfigurations/DriverConfiguration.cs)), а порожній пост не створюється.
+
 Конфігурація кінцевої точки та зв'язування з обмінниками:
 
-> 📍 **Шлях до файлу:** `DriversBlogManagement/src/DriversBlogManagement/Extensions/Services/ConsumerRegistrations/SyncPatientEndpointRegistration.cs`  
-> 📝 *У файлі наведено докладні покрокові коментарі українською мовою.*
+> 📍 **Шлях до файлу:** `DriversBlogManagement/src/DriversBlogManagement/Extensions/Services/ConsumerRegistrations/SyncPatientEndpointRegistration.cs` — черга [#L33](../DriversBlogManagement/src/DriversBlogManagement/Extensions/Services/ConsumerRegistrations/SyncPatientEndpointRegistration.cs#L33), повтори [#L52](../DriversBlogManagement/src/DriversBlogManagement/Extensions/Services/ConsumerRegistrations/SyncPatientEndpointRegistration.cs#L52), прив'язки [#L58-L65](../DriversBlogManagement/src/DriversBlogManagement/Extensions/Services/ConsumerRegistrations/SyncPatientEndpointRegistration.cs#L58)  
+> 📝 *Назва `SyncPatient...` — спадок шаблону Craftsman; за змістом це реєстрація споживача водіїв.*
 
-[👉 **Перейти до файлу (клікніть тут)**](../DriversBlogManagement/src/DriversBlogManagement/Extensions/Services/ConsumerRegistrations/SyncPatientEndpointRegistration.cs)
+[👉 **Перейти до файлу (клікніть тут)**](../DriversBlogManagement/src/DriversBlogManagement/Extensions/Services/ConsumerRegistrations/SyncPatientEndpointRegistration.cs#L33)
+
+```csharp
+cfg.ReceiveEndpoint("sync-updated-driver", re =>
+{
+    re.ConfigureConsumeTopology = false;                       // топологію задаємо вручну
+    re.SetQuorumQueue();                                       // надійна черга (Raft, диск)
+    re.UseMessageRetry(r => r.Intervals(200, 1000, 3000));    // повтори при транзієнтних збоях
+    re.ConfigureConsumer<SyncDriver>(context);                 // хто обробляє
+    re.Bind("driver-updated", e => e.ExchangeType = ExchangeType.Fanout);
+    re.Bind("driver-created", e => e.ExchangeType = ExchangeType.Fanout);
+});
+```
 
 ---
 
@@ -369,26 +426,28 @@ public sealed class SyncDriver : IConsumer<IDriverCreated>, IConsumer<IDriverUpd
 
 Сервіс замовлень також реплікує водіїв для забезпечення повної автономності при призначенні вантажів:
 
-> 📍 **Шлях до файлу:** `CargoOrderingService/src/CargoOrderingService/Domain/Drivers/Consumers/SyncDriverInOrdering.cs`  
+> 📍 **Шлях до файлу:** `CargoOrderingService/src/CargoOrderingService/Domain/Drivers/Consumers/SyncDriverInOrdering.cs` — [#L52](../CargoOrderingService/src/CargoOrderingService/Domain/Drivers/Consumers/SyncDriverInOrdering.cs#L52) (створення), [#L75](../CargoOrderingService/src/CargoOrderingService/Domain/Drivers/Consumers/SyncDriverInOrdering.cs#L75) (оновлення)  
 > 📝 *У файлі наведено докладні покрокові коментарі українською мовою щодо автономності Bounded Context.*
 
-[👉 **Перейти до файлу (клікніть тут)**](../CargoOrderingService/src/CargoOrderingService/Domain/Drivers/Consumers/SyncDriverInOrdering.cs)
+[👉 **Перейти до файлу (клікніть тут)**](../CargoOrderingService/src/CargoOrderingService/Domain/Drivers/Consumers/SyncDriverInOrdering.cs#L52)
 
-> 📍 **Шлях до файлу:** `CargoOrderingService/src/CargoOrderingService/Extensions/Services/ConsumerRegistrations/SyncDriverInOrderingEndpointRegistration.cs`  
+> 📍 **Шлях до файлу:** `CargoOrderingService/src/CargoOrderingService/Extensions/Services/ConsumerRegistrations/SyncDriverInOrderingEndpointRegistration.cs` — черга [#L33](../CargoOrderingService/src/CargoOrderingService/Extensions/Services/ConsumerRegistrations/SyncDriverInOrderingEndpointRegistration.cs#L33), повтори [#L50](../CargoOrderingService/src/CargoOrderingService/Extensions/Services/ConsumerRegistrations/SyncDriverInOrderingEndpointRegistration.cs#L50)  
 > 📝 *У файлі наведено докладні покрокові коментарі українською мовою.*
 
-[👉 **Перейти до файлу (клікніть тут)**](../CargoOrderingService/src/CargoOrderingService/Extensions/Services/ConsumerRegistrations/SyncDriverInOrderingEndpointRegistration.cs)
+[👉 **Перейти до файлу (клікніть тут)**](../CargoOrderingService/src/CargoOrderingService/Extensions/Services/ConsumerRegistrations/SyncDriverInOrderingEndpointRegistration.cs#L33)
+
+> 💡 Зверніть увагу на обробку `IDriverUpdated` для водія, якого ще немає: споживач **створює** його з події оновлення ([SyncDriverInOrdering.cs#L94](../CargoOrderingService/src/CargoOrderingService/Domain/Drivers/Consumers/SyncDriverInOrdering.cs#L94)). Це захист від ситуації «оновлення прийшло раніше за створення» або «подію створення втрачено» — споживач самовідновлюється з наступної ж події.
 
 ---
 
 ### 7.6. Відмовостійкість та In-Memory Transport Fallback
 
-У файлі конфігурації шини реалізовано інтелектуальний механізм вибору транспорту:
+У файлі конфігурації шини реалізовано механізм вибору транспорту:
 
-> 📍 **Шлях до файлу:** `CargoOrderingService/src/CargoOrderingService/Extensions/Services/MassTransitServiceExtension.cs`  
+> 📍 **Шлях до файлу:** `CargoOrderingService/src/CargoOrderingService/Extensions/Services/MassTransitServiceExtension.cs` — рядок підключення [#L36](../CargoOrderingService/src/CargoOrderingService/Extensions/Services/MassTransitServiceExtension.cs#L36), appsettings-гілка [#L68](../CargoOrderingService/src/CargoOrderingService/Extensions/Services/MassTransitServiceExtension.cs#L68), In-Memory [#L99](../CargoOrderingService/src/CargoOrderingService/Extensions/Services/MassTransitServiceExtension.cs#L99)  
 > 📝 *У файлі наведено докладні покрокові коментарі українською мовою.*
 
-[👉 **Перейти до файлу (клікніть тут)**](../CargoOrderingService/src/CargoOrderingService/Extensions/Services/MassTransitServiceExtension.cs)
+[👉 **Перейти до файлу (клікніть тут)**](../CargoOrderingService/src/CargoOrderingService/Extensions/Services/MassTransitServiceExtension.cs#L36)
 
 ```csharp
 // 1. Якщо передано рядок підключення від Aspire (GetConnectionString("rabbitmq"))
@@ -397,10 +456,12 @@ if (!string.IsNullOrEmpty(rmqConnectionString))
     services.AddMassTransit(mt =>
     {
         mt.AddConsumers(Assembly.GetExecutingAssembly());
-        mt.UsingRabbitMq((context, cfg) => { /* Налаштування підключення та ендпоінтів */ });
+        mt.UsingRabbitMq((context, cfg) => { /* Host з amqp-URI (пароль декодується Uri.UnescapeDataString) + ендпоінти */ });
     });
 }
-// 2. Якщо брокер не налаштований (локальні тести без Docker) — Fallback на швидку пам'ять
+// 2. Класична конфігурація RabbitMq з appsettings (запуск без Aspire)
+else if (rmqOptions != null && !string.IsNullOrEmpty(rmqOptions.Host)) { /* ... */ }
+// 3. Якщо брокер не налаштований (локальні тести без Docker) — Fallback на швидку пам'ять
 else
 {
     services.AddMassTransit(mt =>
@@ -411,10 +472,11 @@ else
 }
 ```
 
-> 📍 **Шлях до файлу:** `DriversManagement/src/DriversManagement/Extensions/Services/MassTransitServiceExtension.cs`  
-> 📝 *У файлі наведено докладні покрокові коментарі українською мовою.*
+> 📍 **Шлях до файлу:** `DriversManagement/src/DriversManagement/Extensions/Services/MassTransitServiceExtension.cs` — [#L36](../DriversManagement/src/DriversManagement/Extensions/Services/MassTransitServiceExtension.cs#L36). У DriversManagement і блозі In-Memory гілки немає: у тестових середовищах (`IntegrationTesting`, `FunctionalTesting`) шина просто не реєструється.
 
-[👉 **Перейти до файлу (клікніть тут)**](../DriversManagement/src/DriversManagement/Extensions/Services/MassTransitServiceExtension.cs)
+[👉 **Перейти до файлу (клікніть тут)**](../DriversManagement/src/DriversManagement/Extensions/Services/MassTransitServiceExtension.cs#L36)
+
+> ⚠️ In-Memory транспорт живе в межах **одного процесу** — повідомлення не виходять за його межі. Тому він придатний лише для тестів одного сервісу; для перевірки взаємодії сервісів потрібен реальний RabbitMQ (його й піднімає Aspire).
 
 ---
 
@@ -424,10 +486,10 @@ else
 | :--- | :--- | :--- | :--- |
 | **Тип взаємодії** | Синхронний Request/Response (Опитування багатьох API) | Синхронний Point-to-Point (Прямий бінарний дзвінок) | Асинхронний Publish/Subscribe (Подієво-орієнтований) |
 | **Транспортний протокол** | HTTP/1.1 або HTTP/2 + JSON | HTTP/2 + Protocol Buffers | AMQP 0-9-1 через TCP сокет |
-| **Часова залежність** | Жорстка: клієнт очікує збирання даних | Жорстка: обидва сервіси мають бути онлайн | **Повна відсутність (Temporal Decoupling)** |
-| **Формат повідомлень** | Текстовий JSON | Бінарний Protobuf | JSON або BSON конверт MassTransit |
-| **Основна сфера застосування** | Backend for Frontend (BFF) для UI/WPF/Web | Міжсервісні надшвидкі операції (RPC) | Реплікація даних, доменні події, саги |
-| **Що стається при збої адресата?** | Часткова деградація (Graceful Degradation) | Помилка `RpcException` / Fallback значення | **Повідомлення надійно зберігається в черзі брокера** |
+| **Часова залежність** | Жорстка: клієнт очікує збирання даних | Жорстка: обидва сервіси мають бути онлайн | **Відсутня (Temporal Decoupling)** |
+| **Формат повідомлень** | Текстовий JSON | Бінарний Protobuf | JSON-конверт MassTransit (тіло + службові заголовки) |
+| **Основна сфера застосування** | Backend for Frontend (BFF) для UI/WPF/Web | Міжсервісні швидкі операції (RPC) | Реплікація даних, доменні події, саги |
+| **Що стається при збої адресата?** | Часткова деградація (Graceful Degradation) | Помилка `RpcException` / Fallback значення | **Повідомлення надійно зберігається в черзі брокера** до появи споживача |
 
 ---
 
@@ -437,29 +499,32 @@ else
 - [x] **Контракти зберігаються в SharedKernel:** Жоден мікросервіс не має прямого посилання на бізнес-збірки іншого.
 - [x] **Сувора ідемпотентність у споживачах:** Кожен метод `Consume()` готовий до повторного отримання повідомлення (семантика *At-least-once delivery*).
 - [x] **Кворум-черги (Quorum Queues) для критичних даних:** Реплікація на базі Raft-консенсусу захищає від збоїв кластера.
-- [x] **Lazy Queues для оптимізації ресурсів:** Запобігає перевантаженню оперативної пам'яті брокера.
+- [x] **Повтори споживача (`UseMessageRetry`):** транзієнтні збої обробляються без втручання людини; «отруйні» повідомлення потрапляють у `_error`.
+- [ ] **Transactional Outbox:** наступний крок, щоб прибрати ризик втрати події між `COMMIT` і `Publish`.
 - [x] **In-Memory Fallback для автоматизованих тестів:** Юніт- та компонентні тести проходять миттєво в пам'яті без необхідності підіймати важкий контейнер RabbitMQ.
+- [x] **Трасування повідомлень:** `AddSource("MassTransit")` у ServiceDefaults — подія видно в одному трейсі з HTTP-запитом.
 
 ---
 
 ## 10. Швидка навігація по вихідному коду
 
 * 📦 **Контракти повідомлень (SharedKernel):**
-  * [👉 **Перейти до DriverCreated.cs**](../SharedKernel/DriverCreated.cs)
-  * [👉 **Перейти до DriverUpdated.cs**](../SharedKernel/DriverUpdated.cs)
-  * [👉 **Перейти до OrderMessages.cs**](../SharedKernel/OrderMessages.cs)
+  * [👉 **Перейти до DriverCreated.cs**](../SharedKernel/DriverCreated.cs#L26)
+  * [👉 **Перейти до DriverUpdated.cs**](../SharedKernel/DriverUpdated.cs#L20)
+  * [👉 **Перейти до OrderMessages.cs**](../SharedKernel/OrderMessages.cs#L21)
 * 🚀 **Продюсери подій (Publishers):**
-  * [👉 **Перейти до AddDriver.cs (DriversManagement)**](../DriversManagement/src/DriversManagement/Domain/Drivers/Features/AddDriver.cs)
-  * [👉 **Перейти до UpdateDriver.cs (DriversManagement)**](../DriversManagement/src/DriversManagement/Domain/Drivers/Features/UpdateDriver.cs)
-  * [👉 **Перейти до DriverCreatedEndpointRegistration.cs**](../DriversManagement/src/DriversManagement/Extensions/Services/ProducerRegistrations/DriverCreatedEndpointRegistration.cs)
-  * [👉 **Перейти до DriverUpdatedEndpointRegistration.cs**](../DriversManagement/src/DriversManagement/Extensions/Services/ProducerRegistrations/DriverUpdatedEndpointRegistration.cs)
-  * [👉 **Перейти до AddOrder.cs (CargoOrderingService)**](../CargoOrderingService/src/CargoOrderingService/Domain/Orders/Features/AddOrder.cs)
+  * [👉 **Перейти до AddDriver.cs (DriversManagement)**](../DriversManagement/src/DriversManagement/Domain/Drivers/Features/AddDriver.cs#L85)
+  * [👉 **Перейти до UpdateDriver.cs (DriversManagement)**](../DriversManagement/src/DriversManagement/Domain/Drivers/Features/UpdateDriver.cs#L75)
+  * [👉 **Перейти до DriverCreatedEndpointRegistration.cs**](../DriversManagement/src/DriversManagement/Extensions/Services/ProducerRegistrations/DriverCreatedEndpointRegistration.cs#L28)
+  * [👉 **Перейти до DriverUpdatedEndpointRegistration.cs**](../DriversManagement/src/DriversManagement/Extensions/Services/ProducerRegistrations/DriverUpdatedEndpointRegistration.cs#L27)
+  * [👉 **Перейти до AddOrder.cs (CargoOrderingService)**](../CargoOrderingService/src/CargoOrderingService/Domain/Orders/Features/AddOrder.cs#L68)
 * 📥 **Споживачі (Consumers):**
-  * [👉 **Перейти до SyncDriver.cs (DriversBlogManagement)**](../DriversBlogManagement/src/DriversBlogManagement/Domain/SyncDriver.cs)
-  * [👉 **Перейти до SyncPatientEndpointRegistration.cs**](../DriversBlogManagement/src/DriversBlogManagement/Extensions/Services/ConsumerRegistrations/SyncPatientEndpointRegistration.cs)
-  * [👉 **Перейти до SyncDriverInOrdering.cs (CargoOrderingService)**](../CargoOrderingService/src/CargoOrderingService/Domain/Drivers/Consumers/SyncDriverInOrdering.cs)
-  * [👉 **Перейти до SyncDriverInOrderingEndpointRegistration.cs**](../CargoOrderingService/src/CargoOrderingService/Extensions/Services/ConsumerRegistrations/SyncDriverInOrderingEndpointRegistration.cs)
+  * [👉 **Перейти до SyncDriver.cs (DriversBlogManagement)**](../DriversBlogManagement/src/DriversBlogManagement/Domain/SyncDriver.cs#L56)
+  * [👉 **Перейти до SyncPatientEndpointRegistration.cs**](../DriversBlogManagement/src/DriversBlogManagement/Extensions/Services/ConsumerRegistrations/SyncPatientEndpointRegistration.cs#L33)
+  * [👉 **Перейти до SyncDriverInOrdering.cs (CargoOrderingService)**](../CargoOrderingService/src/CargoOrderingService/Domain/Drivers/Consumers/SyncDriverInOrdering.cs#L52)
+  * [👉 **Перейти до SyncDriverInOrderingEndpointRegistration.cs**](../CargoOrderingService/src/CargoOrderingService/Extensions/Services/ConsumerRegistrations/SyncDriverInOrderingEndpointRegistration.cs#L33)
 * ⚙️ **Конфігурація шини MassTransit:**
-  * [👉 **Перейти до MassTransitServiceExtension.cs (Ordering)**](../CargoOrderingService/src/CargoOrderingService/Extensions/Services/MassTransitServiceExtension.cs)
-  * [👉 **Перейти до MassTransitServiceExtension.cs (Drivers)**](../DriversManagement/src/DriversManagement/Extensions/Services/MassTransitServiceExtension.cs)
-
+  * [👉 **Перейти до MassTransitServiceExtension.cs (Ordering)**](../CargoOrderingService/src/CargoOrderingService/Extensions/Services/MassTransitServiceExtension.cs#L36)
+  * [👉 **Перейти до MassTransitServiceExtension.cs (Drivers)**](../DriversManagement/src/DriversManagement/Extensions/Services/MassTransitServiceExtension.cs#L36)
+  * [👉 **Перейти до MassTransitServiceExtension.cs (Blog)**](../DriversBlogManagement/src/DriversBlogManagement/Extensions/Services/MassTransitServiceExtension.cs#L36)
+* 🧪 **Готові запити:** [CargoDelivery.HttpAggregator.http](../CargoDelivery.HttpAggregator/CargoDelivery.HttpAggregator.http) (запити 1️⃣–2️⃣)

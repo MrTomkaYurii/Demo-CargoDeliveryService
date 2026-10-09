@@ -28,7 +28,7 @@ public sealed class RolePermissionsController: ControllerBase
     /// <summary>
     /// Gets a list of all RolePermissions.
     /// </summary>
-    [Authorize]
+    // [AUTH-DISABLED] [Authorize]
     [HttpGet(Name = "GetRolePermissions")]
     public async Task<IActionResult> GetRolePermissions([FromQuery] RolePermissionParametersDto rolePermissionParametersDto)
     {
@@ -58,7 +58,7 @@ public sealed class RolePermissionsController: ControllerBase
     /// <summary>
     /// Gets a single RolePermission by ID.
     /// </summary>
-    [Authorize]
+    // [AUTH-DISABLED] [Authorize]
     [HttpGet("{rolePermissionId:guid}", Name = "GetRolePermission")]
     public async Task<ActionResult<RolePermissionDto>> GetRolePermission(Guid rolePermissionId)
     {
@@ -71,7 +71,7 @@ public sealed class RolePermissionsController: ControllerBase
     /// <summary>
     /// Creates a new RolePermission record.
     /// </summary>
-    [Authorize]
+    // [AUTH-DISABLED] [Authorize]
     [HttpPost(Name = "AddRolePermission")]
     public async Task<ActionResult<RolePermissionDto>> AddRolePermission([FromBody]RolePermissionForCreationDto rolePermissionForCreation)
     {
@@ -87,7 +87,7 @@ public sealed class RolePermissionsController: ControllerBase
     /// <summary>
     /// Updates an entire existing RolePermission.
     /// </summary>
-    [Authorize]
+    // [AUTH-DISABLED] [Authorize]
     [HttpPut("{rolePermissionId:guid}", Name = "UpdateRolePermission")]
     public async Task<IActionResult> UpdateRolePermission(Guid rolePermissionId, RolePermissionForUpdateDto rolePermission)
     {
@@ -100,7 +100,7 @@ public sealed class RolePermissionsController: ControllerBase
     /// <summary>
     /// Deletes an existing RolePermission record.
     /// </summary>
-    [Authorize]
+    // [AUTH-DISABLED] [Authorize]
     [HttpDelete("{rolePermissionId:guid}", Name = "DeleteRolePermission")]
     public async Task<ActionResult> DeleteRolePermission(Guid rolePermissionId)
     {

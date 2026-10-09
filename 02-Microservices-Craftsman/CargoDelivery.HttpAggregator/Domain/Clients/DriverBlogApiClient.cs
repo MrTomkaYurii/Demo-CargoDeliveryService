@@ -1,6 +1,5 @@
 namespace CargoDelivery.HttpAggregator.Domain.Clients;
 
-using System.Net;
 using System.Net.Http.Json;
 using CargoDelivery.HttpAggregator.Domain.Dtos;
 using Microsoft.Extensions.Logging;
@@ -10,9 +9,13 @@ using Microsoft.Extensions.Logging;
 /// 📝 DRIVER BLOG API TYPED HTTP CLIENT (.NET 10 & IHttpClientFactory)
 /// ------------------------------------------------------------------------------------
 /// ПРИЗНАЧЕННЯ:
-/// Опитує мікросервіс DriversBlogManagement за адресою "http://driversblogmanagement".
-/// Використовується як для бізнес-отримання нотаток водія, так і для демонстрації
-/// політик Polly (Retry, Timeout, Circuit Breaker).
+/// Опитує мікросервіс DriversBlogManagement за адресою "https+http://driversblogmanagement"
+/// і повертає "дорожні замітки" водія (останні пости блогу).
+///
+/// РОЛЬ В АГРЕГАЦІЇ:
+/// Блог — М'ЯКА (некритична) залежність. Клієнт сам НЕ вирішує, що робити при збої:
+/// він прокидає виняток, а рішення про Graceful Degradation приймає
+/// ShipmentAggregatorService (SafeFetchRoadNotesAsync) — там, де відомий бізнес-контекст.
 /// ====================================================================================
 /// </summary>
 public sealed class DriverBlogApiClient : IDriverBlogApiClient
@@ -33,34 +36,16 @@ public sealed class DriverBlogApiClient : IDriverBlogApiClient
 
         try
         {
-            var response = await _httpClient.GetAsync($"api/postaboutdrivers?driverId={driverId}", cancellationToken);
+            var notes = await _httpClient.GetFromJsonAsync<List<AggregatedBlogNoteDto>>(
+                $"api/internal/postaboutdrivers?driverId={driverId}", cancellationToken);
 
-            if (response.StatusCode == HttpStatusCode.NotFound)
-            {
-                return [];
-            }
-
-            response.EnsureSuccessStatusCode();
-
-            var notes = await response.Content.ReadFromJsonAsync<List<AggregatedBlogNoteDto>>(cancellationToken: cancellationToken);
             return notes ?? [];
         }
         catch (HttpRequestException ex)
         {
-            _logger.LogWarning(ex, "Помилка зв'язку з DriversBlogManagement для водія {DriverId}. Активовано Graceful Degradation.", driverId);
-            // Кидаємо виняток, щоб агрегатор зафіксував факт деградації у ShipmentSummaryService
+            _logger.LogWarning(ex, "Помилка зв'язку з DriversBlogManagement для водія {DriverId}.", driverId);
+            // Прокидаємо виняток, щоб агрегатор зафіксував факт деградації (IsDegraded = true)
             throw;
         }
-    }
-
-    public async Task<string> ExecuteResilienceProbeAsync(string mode, CancellationToken cancellationToken = default)
-    {
-        _logger.LogInformation("Виконання зонду стійкості (Resilience Probe) у режимі '{Mode}'", mode);
-
-        // Звертаємося до ендпоінту симуляції
-        var response = await _httpClient.GetAsync($"api/simulation/{mode}", cancellationToken);
-        response.EnsureSuccessStatusCode();
-
-        return await response.Content.ReadAsStringAsync(cancellationToken);
     }
 }

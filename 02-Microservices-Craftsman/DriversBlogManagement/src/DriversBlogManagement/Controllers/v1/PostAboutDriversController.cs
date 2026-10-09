@@ -28,7 +28,7 @@ public sealed class PostAboutDriversController: ControllerBase
     /// <summary>
     /// Gets a list of all PostAboutDrivers.
     /// </summary>
-    [Authorize]
+    // [AUTH-DISABLED] [Authorize]
     [HttpGet(Name = "GetPostAboutDrivers")]
     public async Task<IActionResult> GetPostAboutDrivers([FromQuery] PostAboutDriverParametersDto postAboutDriverParametersDto)
     {
@@ -58,7 +58,7 @@ public sealed class PostAboutDriversController: ControllerBase
     /// <summary>
     /// Gets a list of all PostAboutDrivers.
     /// </summary>
-    [Authorize]
+    // [AUTH-DISABLED] [Authorize]
     [HttpGet("all", Name = "GetAllPostAboutDrivers")]
     public async Task<IActionResult> GetAllPostAboutDrivers()
     {
@@ -71,7 +71,7 @@ public sealed class PostAboutDriversController: ControllerBase
     /// <summary>
     /// Gets a single PostAboutDriver by ID.
     /// </summary>
-    [Authorize]
+    // [AUTH-DISABLED] [Authorize]
     [HttpGet("{postAboutDriverId:guid}", Name = "GetPostAboutDriver")]
     public async Task<ActionResult<PostAboutDriverDto>> GetPostAboutDriver(Guid postAboutDriverId)
     {
@@ -84,7 +84,7 @@ public sealed class PostAboutDriversController: ControllerBase
     /// <summary>
     /// Creates a new PostAboutDriver record.
     /// </summary>
-    [Authorize]
+    // [AUTH-DISABLED] [Authorize]
     [HttpPost(Name = "AddPostAboutDriver")]
     public async Task<ActionResult<PostAboutDriverDto>> AddPostAboutDriver([FromBody]PostAboutDriverForCreationDto postAboutDriverForCreation)
     {
@@ -100,7 +100,7 @@ public sealed class PostAboutDriversController: ControllerBase
     /// <summary>
     /// Updates an entire existing PostAboutDriver.
     /// </summary>
-    [Authorize]
+    // [AUTH-DISABLED] [Authorize]
     [HttpPut("{postAboutDriverId:guid}", Name = "UpdatePostAboutDriver")]
     public async Task<IActionResult> UpdatePostAboutDriver(Guid postAboutDriverId, PostAboutDriverForUpdateDto postAboutDriver)
     {
@@ -113,7 +113,7 @@ public sealed class PostAboutDriversController: ControllerBase
     /// <summary>
     /// Deletes an existing PostAboutDriver record.
     /// </summary>
-    [Authorize]
+    // [AUTH-DISABLED] [Authorize]
     [HttpDelete("{postAboutDriverId:guid}", Name = "DeletePostAboutDriver")]
     public async Task<ActionResult> DeletePostAboutDriver(Guid postAboutDriverId)
     {

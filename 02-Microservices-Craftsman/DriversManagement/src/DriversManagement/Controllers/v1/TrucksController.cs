@@ -28,7 +28,7 @@ public sealed class TrucksController: ControllerBase
     /// <summary>
     /// Gets a list of all Trucks.
     /// </summary>
-    [Authorize]
+    // [AUTH-DISABLED] [Authorize]
     [HttpGet(Name = "GetTrucks")]
     public async Task<IActionResult> GetTrucks([FromQuery] TruckParametersDto truckParametersDto)
     {
@@ -58,7 +58,7 @@ public sealed class TrucksController: ControllerBase
     /// <summary>
     /// Gets a list of all Trucks.
     /// </summary>
-    [Authorize]
+    // [AUTH-DISABLED] [Authorize]
     [HttpGet("all", Name = "GetAllTrucks")]
     public async Task<IActionResult> GetAllTrucks()
     {
@@ -71,7 +71,7 @@ public sealed class TrucksController: ControllerBase
     /// <summary>
     /// Gets a single Truck by ID.
     /// </summary>
-    [Authorize]
+    // [AUTH-DISABLED] [Authorize]
     [HttpGet("{truckId:guid}", Name = "GetTruck")]
     public async Task<ActionResult<TruckDto>> GetTruck(Guid truckId)
     {
@@ -84,7 +84,7 @@ public sealed class TrucksController: ControllerBase
     /// <summary>
     /// Creates a new Truck record.
     /// </summary>
-    [Authorize]
+    // [AUTH-DISABLED] [Authorize]
     [HttpPost(Name = "AddTruck")]
     public async Task<ActionResult<TruckDto>> AddTruck([FromBody]TruckForCreationDto truckForCreation)
     {
@@ -100,7 +100,7 @@ public sealed class TrucksController: ControllerBase
     /// <summary>
     /// Updates an entire existing Truck.
     /// </summary>
-    [Authorize]
+    // [AUTH-DISABLED] [Authorize]
     [HttpPut("{truckId:guid}", Name = "UpdateTruck")]
     public async Task<IActionResult> UpdateTruck(Guid truckId, TruckForUpdateDto truck)
     {
@@ -113,7 +113,7 @@ public sealed class TrucksController: ControllerBase
     /// <summary>
     /// Deletes an existing Truck record.
     /// </summary>
-    [Authorize]
+    // [AUTH-DISABLED] [Authorize]
     [HttpDelete("{truckId:guid}", Name = "DeleteTruck")]
     public async Task<ActionResult> DeleteTruck(Guid truckId)
     {

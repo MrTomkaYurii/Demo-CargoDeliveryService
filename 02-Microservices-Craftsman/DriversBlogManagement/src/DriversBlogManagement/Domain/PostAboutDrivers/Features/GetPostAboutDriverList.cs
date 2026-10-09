@@ -30,7 +30,7 @@ public static class GetPostAboutDriverList
 
         public async Task<PagedList<PostAboutDriverDto>> Handle(Query request, CancellationToken cancellationToken)
         {
-            await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanReadPostAboutDrivers);
+            // [AUTH-DISABLED] await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanReadPostAboutDrivers);
 
             var collection = _postAboutDriverRepository.Query().AsNoTracking();
 

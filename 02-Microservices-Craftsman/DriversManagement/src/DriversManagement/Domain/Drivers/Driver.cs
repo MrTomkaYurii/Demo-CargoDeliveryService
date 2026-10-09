@@ -53,9 +53,11 @@ public class Driver : BaseEntity
 
     public string EmploymentEndDate { get; private set; }
 
-    public Photo Photo { get; private set; } = Photo.Create(new PhotoForCreation());
+    // Фото та компанія — опційні: раніше тут створювались порожні об'єкти, і кожен новий водій
+    // тягнув за собою "сміттєві" рядки в таблицях photos/companies.
+    public Photo Photo { get; private set; }
 
-    public Company Company { get; private set; } = Company.Create(new CompanyForCreation());
+    public Company Company { get; private set; }
 
     public IReadOnlyCollection<Expence> Expences { get; } = new List<Expence>();
 

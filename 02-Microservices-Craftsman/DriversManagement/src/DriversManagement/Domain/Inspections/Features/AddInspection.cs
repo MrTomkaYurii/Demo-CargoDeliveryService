@@ -30,7 +30,7 @@ public static class AddInspection
 
         public async Task<InspectionDto> Handle(Command request, CancellationToken cancellationToken)
         {
-            await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanAddInspection);
+            // [AUTH-DISABLED] await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanAddInspection);
 
             var inspectionToAdd = request.InspectionToAdd.ToInspectionForCreation();
             var inspection = Inspection.Create(inspectionToAdd);

@@ -26,7 +26,7 @@ public static class DeletePhoto
 
         public async Task Handle(Command request, CancellationToken cancellationToken)
         {
-            await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanDeletePhoto);
+            // [AUTH-DISABLED] await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanDeletePhoto);
 
             var recordToDelete = await _photoRepository.GetById(request.PhotoId, cancellationToken: cancellationToken);
             _photoRepository.Remove(recordToDelete);

@@ -30,7 +30,7 @@ public static class UpdateExpence
 
         public async Task Handle(Command request, CancellationToken cancellationToken)
         {
-            await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanUpdateExpence);
+            // [AUTH-DISABLED] await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanUpdateExpence);
 
             var expenceToUpdate = await _expenceRepository.GetById(request.ExpenceId, cancellationToken: cancellationToken);
             var expenceToAdd = request.UpdatedExpenceData.ToExpenceForUpdate();

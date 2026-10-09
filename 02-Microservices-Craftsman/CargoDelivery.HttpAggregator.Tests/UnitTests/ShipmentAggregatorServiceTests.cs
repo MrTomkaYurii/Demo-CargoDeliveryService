@@ -42,7 +42,7 @@ public sealed class ShipmentAggregatorServiceTests
         };
         var orders = new List<AggregatedCargoOrderDto>
         {
-            new() { OrderId = Guid.NewGuid(), CargoDescription = "Електроніка", WeightKg = 500m, OriginCity = "Київ", DestinationCity = "Одеса", Status = "InTransit" }
+            new() { OrderId = Guid.NewGuid(), CargoDescription = "Електроніка", PickupAddress = "Київ", DestinationAddress = "Одеса", Status = "InTransit" }
         };
         var roadNotes = new List<AggregatedBlogNoteDto>
         {
@@ -81,7 +81,7 @@ public sealed class ShipmentAggregatorServiceTests
         };
         var orders = new List<AggregatedCargoOrderDto>
         {
-            new() { OrderId = Guid.NewGuid(), CargoDescription = "Будівельні матеріали", WeightKg = 3200m, OriginCity = "Дніпро", DestinationCity = "Харків", Status = "Loading" }
+            new() { OrderId = Guid.NewGuid(), CargoDescription = "Будівельні матеріали", PickupAddress = "Дніпро", DestinationAddress = "Харків", Status = "Loading" }
         };
 
         _driverApiClient.GetDriverByIdAsync(driverId, Arg.Any<CancellationToken>()).Returns(driverDto);

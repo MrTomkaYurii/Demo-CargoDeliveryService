@@ -30,7 +30,7 @@ public static class AddRepair
 
         public async Task<RepairDto> Handle(Command request, CancellationToken cancellationToken)
         {
-            await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanAddRepair);
+            // [AUTH-DISABLED] await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanAddRepair);
 
             var repairToAdd = request.RepairToAdd.ToRepairForCreation();
             var repair = Repair.Create(repairToAdd);

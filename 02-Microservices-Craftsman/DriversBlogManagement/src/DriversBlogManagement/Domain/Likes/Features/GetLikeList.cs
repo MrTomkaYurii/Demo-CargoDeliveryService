@@ -30,7 +30,7 @@ public static class GetLikeList
 
         public async Task<PagedList<LikeDto>> Handle(Query request, CancellationToken cancellationToken)
         {
-            await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanReadLikes);
+            // [AUTH-DISABLED] await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanReadLikes);
 
             var collection = _likeRepository.Query().AsNoTracking();
 

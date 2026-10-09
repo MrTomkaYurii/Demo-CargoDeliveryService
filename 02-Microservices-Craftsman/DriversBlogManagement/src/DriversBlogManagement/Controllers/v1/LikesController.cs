@@ -28,7 +28,7 @@ public sealed class LikesController: ControllerBase
     /// <summary>
     /// Gets a list of all Likes.
     /// </summary>
-    [Authorize]
+    // [AUTH-DISABLED] [Authorize]
     [HttpGet(Name = "GetLikes")]
     public async Task<IActionResult> GetLikes([FromQuery] LikeParametersDto likeParametersDto)
     {
@@ -58,7 +58,7 @@ public sealed class LikesController: ControllerBase
     /// <summary>
     /// Gets a list of all Likes.
     /// </summary>
-    [Authorize]
+    // [AUTH-DISABLED] [Authorize]
     [HttpGet("all", Name = "GetAllLikes")]
     public async Task<IActionResult> GetAllLikes()
     {
@@ -71,7 +71,7 @@ public sealed class LikesController: ControllerBase
     /// <summary>
     /// Gets a single Like by ID.
     /// </summary>
-    [Authorize]
+    // [AUTH-DISABLED] [Authorize]
     [HttpGet("{likeId:guid}", Name = "GetLike")]
     public async Task<ActionResult<LikeDto>> GetLike(Guid likeId)
     {
@@ -84,7 +84,7 @@ public sealed class LikesController: ControllerBase
     /// <summary>
     /// Creates a new Like record.
     /// </summary>
-    [Authorize]
+    // [AUTH-DISABLED] [Authorize]
     [HttpPost(Name = "AddLike")]
     public async Task<ActionResult<LikeDto>> AddLike([FromBody]LikeForCreationDto likeForCreation)
     {
@@ -100,7 +100,7 @@ public sealed class LikesController: ControllerBase
     /// <summary>
     /// Updates an entire existing Like.
     /// </summary>
-    [Authorize]
+    // [AUTH-DISABLED] [Authorize]
     [HttpPut("{likeId:guid}", Name = "UpdateLike")]
     public async Task<IActionResult> UpdateLike(Guid likeId, LikeForUpdateDto like)
     {
@@ -113,7 +113,7 @@ public sealed class LikesController: ControllerBase
     /// <summary>
     /// Deletes an existing Like record.
     /// </summary>
-    [Authorize]
+    // [AUTH-DISABLED] [Authorize]
     [HttpDelete("{likeId:guid}", Name = "DeleteLike")]
     public async Task<ActionResult> DeleteLike(Guid likeId)
     {

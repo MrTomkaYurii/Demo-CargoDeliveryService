@@ -28,7 +28,7 @@ public sealed class RepairsController: ControllerBase
     /// <summary>
     /// Gets a list of all Repairs.
     /// </summary>
-    [Authorize]
+    // [AUTH-DISABLED] [Authorize]
     [HttpGet(Name = "GetRepairs")]
     public async Task<IActionResult> GetRepairs([FromQuery] RepairParametersDto repairParametersDto)
     {
@@ -58,7 +58,7 @@ public sealed class RepairsController: ControllerBase
     /// <summary>
     /// Gets a list of all Repairs.
     /// </summary>
-    [Authorize]
+    // [AUTH-DISABLED] [Authorize]
     [HttpGet("all", Name = "GetAllRepairs")]
     public async Task<IActionResult> GetAllRepairs()
     {
@@ -71,7 +71,7 @@ public sealed class RepairsController: ControllerBase
     /// <summary>
     /// Gets a single Repair by ID.
     /// </summary>
-    [Authorize]
+    // [AUTH-DISABLED] [Authorize]
     [HttpGet("{repairId:guid}", Name = "GetRepair")]
     public async Task<ActionResult<RepairDto>> GetRepair(Guid repairId)
     {
@@ -84,7 +84,7 @@ public sealed class RepairsController: ControllerBase
     /// <summary>
     /// Creates a new Repair record.
     /// </summary>
-    [Authorize]
+    // [AUTH-DISABLED] [Authorize]
     [HttpPost(Name = "AddRepair")]
     public async Task<ActionResult<RepairDto>> AddRepair([FromBody]RepairForCreationDto repairForCreation)
     {
@@ -100,7 +100,7 @@ public sealed class RepairsController: ControllerBase
     /// <summary>
     /// Updates an entire existing Repair.
     /// </summary>
-    [Authorize]
+    // [AUTH-DISABLED] [Authorize]
     [HttpPut("{repairId:guid}", Name = "UpdateRepair")]
     public async Task<IActionResult> UpdateRepair(Guid repairId, RepairForUpdateDto repair)
     {
@@ -113,7 +113,7 @@ public sealed class RepairsController: ControllerBase
     /// <summary>
     /// Deletes an existing Repair record.
     /// </summary>
-    [Authorize]
+    // [AUTH-DISABLED] [Authorize]
     [HttpDelete("{repairId:guid}", Name = "DeleteRepair")]
     public async Task<ActionResult> DeleteRepair(Guid repairId)
     {

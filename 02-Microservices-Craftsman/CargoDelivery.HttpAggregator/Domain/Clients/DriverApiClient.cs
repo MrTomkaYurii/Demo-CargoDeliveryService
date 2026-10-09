@@ -11,11 +11,16 @@ using Microsoft.Extensions.Logging;
 /// ------------------------------------------------------------------------------------
 /// ПРИЗНАЧЕННЯ:
 /// Надає типізований доступ до сервісу DriversManagement за логічним іменем:
-/// "http://driversmanagement".
+/// "https+http://driversmanagement" (див. Program.cs).
 ///
 /// ASPIRE SERVICE DISCOVERY & POLLY RESILIENCE:
-/// 1. URL "http://driversmanagement" автоматично підміняється на реальний хост/порт через Service Discovery.
-/// 2. Клієнт захищений конвеєром Polly (Retry, Circuit Breaker, Timeout), підключеним у Program.cs.
+/// 1. Логічне ім'я "driversmanagement" підміняється на реальний хост/порт через Service Discovery.
+/// 2. Клієнт захищений стандартним конвеєром Polly (Retry, Circuit Breaker, Timeout),
+///    який глобально додає ServiceDefaults (ConfigureHttpClientDefaults).
+///
+/// РОЛЬ В АГРЕГАЦІЇ:
+/// Водій — КОРІНЬ агрегації і ЖОРСТКА залежність: без нього зведення не має сенсу.
+/// Тому мережеві збої тут НЕ ковтаються, а прокидаються вище (контролер поверне 503).
 /// ====================================================================================
 /// </summary>
 public sealed class DriverApiClient : IDriverApiClient
@@ -23,6 +28,8 @@ public sealed class DriverApiClient : IDriverApiClient
     private readonly HttpClient _httpClient;
     private readonly ILogger<DriverApiClient> _logger;
 
+    // HttpClient приходить з IHttpClientFactory: сам об'єкт легкий (transient), а важкий
+    // SocketsHttpHandler із пулом з'єднань фабрика перевикористовує і періодично оновлює.
     public DriverApiClient(HttpClient httpClient, ILogger<DriverApiClient> logger)
     {
         _httpClient = httpClient;
@@ -35,32 +42,24 @@ public sealed class DriverApiClient : IDriverApiClient
 
         try
         {
-            var response = await _httpClient.GetAsync($"api/drivers/{driverId}", cancellationToken);
+            // Відносний шлях: BaseAddress уже містить https+http://driversmanagement.
+            // Внутрішній (service-to-service) ендпоінт повертає компактну картку водія.
+            var response = await _httpClient.GetAsync($"api/internal/drivers/{driverId}", cancellationToken);
 
+            // 404 — очікуваний БІЗНЕС-результат ("водія не існує"), а не збій інфраструктури.
+            // Обробляємо його явно, без дорогого винятку. До того ж стандартний Retry Polly
+            // не повторює 404 (повторюються лише транзієнтні 408/429/5xx та мережеві збої).
             if (response.StatusCode == HttpStatusCode.NotFound)
             {
                 _logger.LogWarning("Водія {DriverId} не знайдено в DriversManagement (404)", driverId);
                 return null;
             }
 
+            // Для інших неуспішних кодів (401, 500, 503 після всіх повторів...) кидаємо HttpRequestException
             response.EnsureSuccessStatusCode();
 
-            // Читаємо відповідь або створюємо заглушку, якщо DTO повертається специфічного формату
-            var driver = await response.Content.ReadFromJsonAsync<AggregatedDriverDto>(cancellationToken: cancellationToken);
-            if (driver != null)
-            {
-                return driver;
-            }
-
-            // Fallback десеріалізації з загального формату
-            return new AggregatedDriverDto
-            {
-                Id = driverId,
-                FullName = "Зареєстрований Водій",
-                LicenseNumber = "DL-UNKNOWN",
-                CompanyName = "Cargo Express Logistics",
-                Status = "Active"
-            };
+            // Потокова десеріалізація System.Text.Json напряму з мережевого Stream
+            return await response.Content.ReadFromJsonAsync<AggregatedDriverDto>(cancellationToken: cancellationToken);
         }
         catch (HttpRequestException ex)
         {

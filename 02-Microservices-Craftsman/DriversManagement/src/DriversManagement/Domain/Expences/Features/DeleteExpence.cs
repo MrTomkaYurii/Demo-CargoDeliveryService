@@ -26,7 +26,7 @@ public static class DeleteExpence
 
         public async Task Handle(Command request, CancellationToken cancellationToken)
         {
-            await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanDeleteExpence);
+            // [AUTH-DISABLED] await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanDeleteExpence);
 
             var recordToDelete = await _expenceRepository.GetById(request.ExpenceId, cancellationToken: cancellationToken);
             _expenceRepository.Remove(recordToDelete);

@@ -30,7 +30,7 @@ public static class GetAllComments
 
         public async Task<List<CommentDto>> Handle(Query request, CancellationToken cancellationToken)
         {
-            await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanReadComments);
+            // [AUTH-DISABLED] await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanReadComments);
 
             return _commentRepository.Query()
                 .AsNoTracking()

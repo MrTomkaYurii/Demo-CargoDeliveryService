@@ -25,7 +25,7 @@ public static class GetInspection
 
         public async Task<InspectionDto> Handle(Query request, CancellationToken cancellationToken)
         {
-            await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanReadInspection);
+            // [AUTH-DISABLED] await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanReadInspection);
 
             var result = await _inspectionRepository.GetById(request.InspectionId, cancellationToken: cancellationToken);
             return result.ToInspectionDto();

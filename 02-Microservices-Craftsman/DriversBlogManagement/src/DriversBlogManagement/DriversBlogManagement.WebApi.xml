@@ -94,6 +94,42 @@
             Deletes an existing Driver record.
             </summary>
         </member>
+        <member name="T:DriversBlogManagement.Controllers.v1.InternalPostAboutDriversController">
+             <summary>
+             ====================================================================================
+             🔒 ВНУТРІШНІЙ (SERVICE-TO-SERVICE) API ПОСТІВ ПРО ВОДІЇВ
+             ------------------------------------------------------------------------------------
+             ПРИЗНАЧЕННЯ:
+             Read-only ендпоінт для синхронних HTTP-викликів від агрегаторів
+             (CargoDelivery.HttpAggregator та BFF у DriversManagement): повертає останні пости
+             конкретного водія в компактному вигляді ("дорожні замітки").
+            
+             ЧОМУ НЕ ЗВИЧАЙНИЙ /api/postaboutdrivers?
+             - Публічний контролер захищений [Authorize] + HeimGuard (потрібен JWT користувача).
+             - Публічний список не фільтрує пости за водієм.
+            
+             БЕЗПЕКА:
+             [AllowAnonymous] — спрощення навчального стенду. У продакшні внутрішні API закривають
+             мережевими політиками, mTLS або OAuth2 Client Credentials (токен самого сервісу).
+             ====================================================================================
+             </summary>
+        </member>
+        <member name="M:DriversBlogManagement.Controllers.v1.InternalPostAboutDriversController.GetByDriver(System.Guid,System.Threading.CancellationToken)">
+            <summary>
+            Повертає до 10 останніх постів водія. Приклад: GET api/internal/postaboutdrivers?driverId={guid}
+            </summary>
+        </member>
+        <member name="M:DriversBlogManagement.Controllers.v1.InternalPostAboutDriversController.SeedDemoPost(System.Guid,System.Threading.CancellationToken)">
+            <summary>
+            🧪 ДЕМО-СІД: створює "дорожню замітку" для тіньового водія, щоб агрегатор мав що показати.
+            Приклад: POST api/internal/postaboutdrivers/demo-seed?driverId={guid}
+            <para>
+            Публічне API блогу не вміє прив'язати пост до водія, а в моделі Craftsman зв'язок
+            Driver ↔ PostAboutDriver — "один-до-одного". Тому створюємо (не більше одного) пост і
+            виставляємо тіньовий зовнішній ключ DriverId напряму через EF Core ChangeTracker.
+            </para>
+            </summary>
+        </member>
         <member name="M:DriversBlogManagement.Controllers.v1.LikesController.GetLikes(DriversBlogManagement.Domain.Likes.Dtos.LikeParametersDto)">
             <summary>
             Gets a list of all Likes.
@@ -322,7 +358,7 @@
              ====================================================================================
              </summary>
         </member>
-        <member name="M:DriversBlogManagement.Domain.Drivers.Services.DriverRpcService.#ctor(DriversBlogManagement.Domain.Drivers.Services.DriverRepository)">
+        <member name="M:DriversBlogManagement.Domain.Drivers.Services.DriverRpcService.#ctor(DriversBlogManagement.Domain.Drivers.Services.IDriverRepository)">
             <summary>
             Конструктор інжектує локальний репозиторій блогу для читання постів водія.
             </summary>
@@ -357,13 +393,26 @@
                 визначити ім'я черги та прив'язати її до обмінників.
              2. SetQuorumQueue():
                 Вмикає надійну репліковану чергу Quorum Queue (Raft-консенсус).
-             3. SetQueueArgument("declare", "lazy"):
-                Увімкнення режиму Lazy Queue для оптимального використання пам'яті брокера.
+             3. (Видалено) SetQueueArgument("declare", "lazy") — неіснуючий аргумент RabbitMQ;
+                кворум-черга й так зберігає повідомлення на диску (див. коментар у коді).
              4. Bind("driver-updated", Fanout) &amp; Bind("driver-created", Fanout):
                 Черга підписується на обидва обмінники, забезпечуючи отримання як створених,
                 так і оновлених водіїв через єдиного споживача SyncDriver.
              ====================================================================================
              </summary>
+        </member>
+        <member name="T:DriversBlogManagement.Extensions.Services.OpenTelemetryServiceExtension">
+            <summary>
+            Точка підключення спільних стандартів Aspire (CargoDelivery.ServiceDefaults).
+            <para>
+            Історично Craftsman налаштовував тут OpenTelemetry + Jaeger вручну. Тепер увесь конвеєр
+            спостережуваності (OTLP-логи, метрики, трейси), Health Checks, Service Discovery і
+            стандартний конвеєр Polly для HttpClient підключає ОДИН виклик builder.AddServiceDefaults()
+            (див. Aspire/CargoDelivery.ServiceDefaults/Extensions.cs). Параметри configuration і
+            serviceName залишено для сумісності сигнатури з викликом у WebAppServiceConfiguration:
+            ім'я сервісу в телеметрії тепер задає Aspire через змінну OTEL_SERVICE_NAME.
+            </para>
+            </summary>
         </member>
         <member name="M:DriversBlogManagement.Extensions.Services.WebAppServiceConfiguration.AddBoundaryServices(Microsoft.Extensions.DependencyInjection.IServiceCollection,System.Reflection.Assembly[])">
             <summary>
@@ -382,6 +431,18 @@
         <member name="M:DriversBlogManagement.Migrations.InitialMigration.BuildTargetModel(Microsoft.EntityFrameworkCore.ModelBuilder)">
             <inheritdoc />
         </member>
+        <member name="T:DriversBlogManagement.Migrations.FixPostAboutDriverOneToOneRelationships">
+            <inheritdoc />
+        </member>
+        <member name="M:DriversBlogManagement.Migrations.FixPostAboutDriverOneToOneRelationships.Up(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:DriversBlogManagement.Migrations.FixPostAboutDriverOneToOneRelationships.Down(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:DriversBlogManagement.Migrations.FixPostAboutDriverOneToOneRelationships.BuildTargetModel(Microsoft.EntityFrameworkCore.ModelBuilder)">
+            <inheritdoc />
+        </member>
         <member name="T:DriversBlogManagement.DriverReflection">
             <summary>Holder for reflection information generated from Domain/Drivers/Protos/Driver.proto</summary>
         </member>
@@ -390,15 +451,21 @@
         </member>
         <member name="T:DriversBlogManagement.DriverWithPostsRequest">
             <summary>
-            Определение сообщения для запроса на получение водителя с постами
+            Запит: отримати водія разом із його постами.
+            "= 1" — це НЕ значення за замовчуванням, а НОМЕР ПОЛЯ (тег) у бінарному форматі.
             </summary>
         </member>
         <member name="F:DriversBlogManagement.DriverWithPostsRequest.DriverIdFieldNumber">
             <summary>Field number for the "driver_id" field.</summary>
         </member>
+        <member name="P:DriversBlogManagement.DriverWithPostsRequest.DriverId">
+            <summary>
+            GUID водія у вигляді рядка (у Protobuf немає вбудованого типу Guid)
+            </summary>
+        </member>
         <member name="T:DriversBlogManagement.DriverWithPostsResponse">
             <summary>
-            Определение сообщения для ответа на запрос с информацией о водителе и его постах
+            Відповідь: водій та колекція його постів
             </summary>
         </member>
         <member name="F:DriversBlogManagement.DriverWithPostsResponse.DriverIdFieldNumber">
@@ -413,9 +480,14 @@
         <member name="F:DriversBlogManagement.DriverWithPostsResponse.PostsFieldNumber">
             <summary>Field number for the "posts" field.</summary>
         </member>
+        <member name="P:DriversBlogManagement.DriverWithPostsResponse.Posts">
+            <summary>
+            repeated = список (у C# — RepeatedField&lt;T>)
+            </summary>
+        </member>
         <member name="T:DriversBlogManagement.PostAboutDriverResponse">
             <summary>
-            Определение сообщения для поста о водителе
+            Один пост про водія
             </summary>
         </member>
         <member name="F:DriversBlogManagement.PostAboutDriverResponse.IdFieldNumber">
@@ -429,7 +501,8 @@
         </member>
         <member name="T:DriversBlogManagement.DriverRpc">
             <summary>
-            Определение сервиса gRPC для работы с водителями
+            Опис gRPC-сервісу: одна унарна (запит → відповідь) віддалена процедура.
+            На транспорті це HTTP/2 POST на шлях /DriverRpc/GetDriverWithPosts.
             </summary>
         </member>
         <member name="P:DriversBlogManagement.DriverRpc.Descriptor">
@@ -440,7 +513,7 @@
         </member>
         <member name="M:DriversBlogManagement.DriverRpc.DriverRpcBase.GetDriverWithPosts(DriversBlogManagement.DriverWithPostsRequest,Grpc.Core.ServerCallContext)">
             <summary>
-            Метод для получения информации о водителе и его постах
+            Повертає дані водія з локальної (тіньової) копії блогу та його пости
             </summary>
             <param name="request">The request received from the client.</param>
             <param name="context">The context of the server-side call handler being invoked.</param>
@@ -466,7 +539,7 @@
         </member>
         <member name="M:DriversBlogManagement.DriverRpc.DriverRpcClient.GetDriverWithPosts(DriversBlogManagement.DriverWithPostsRequest,Grpc.Core.Metadata,System.Nullable{System.DateTime},System.Threading.CancellationToken)">
             <summary>
-            Метод для получения информации о водителе и его постах
+            Повертає дані водія з локальної (тіньової) копії блогу та його пости
             </summary>
             <param name="request">The request to send to the server.</param>
             <param name="headers">The initial metadata to send with the call. This parameter is optional.</param>
@@ -476,7 +549,7 @@
         </member>
         <member name="M:DriversBlogManagement.DriverRpc.DriverRpcClient.GetDriverWithPosts(DriversBlogManagement.DriverWithPostsRequest,Grpc.Core.CallOptions)">
             <summary>
-            Метод для получения информации о водителе и его постах
+            Повертає дані водія з локальної (тіньової) копії блогу та його пости
             </summary>
             <param name="request">The request to send to the server.</param>
             <param name="options">The options for the call.</param>
@@ -484,7 +557,7 @@
         </member>
         <member name="M:DriversBlogManagement.DriverRpc.DriverRpcClient.GetDriverWithPostsAsync(DriversBlogManagement.DriverWithPostsRequest,Grpc.Core.Metadata,System.Nullable{System.DateTime},System.Threading.CancellationToken)">
             <summary>
-            Метод для получения информации о водителе и его постах
+            Повертає дані водія з локальної (тіньової) копії блогу та його пости
             </summary>
             <param name="request">The request to send to the server.</param>
             <param name="headers">The initial metadata to send with the call. This parameter is optional.</param>
@@ -494,7 +567,7 @@
         </member>
         <member name="M:DriversBlogManagement.DriverRpc.DriverRpcClient.GetDriverWithPostsAsync(DriversBlogManagement.DriverWithPostsRequest,Grpc.Core.CallOptions)">
             <summary>
-            Метод для получения информации о водителе и его постах
+            Повертає дані водія з локальної (тіньової) копії блогу та його пости
             </summary>
             <param name="request">The request to send to the server.</param>
             <param name="options">The options for the call.</param>
@@ -554,6 +627,26 @@
             <summary>
             Обробляє подію оновлення даних водія (IDriverUpdated).
             </summary>
+        </member>
+        <member name="T:Billing.Extensions.Services.MassTransitServiceExtension">
+             <summary>
+             ====================================================================================
+             📬 РЕЄСТРАЦІЯ ШИНИ MASSTRANSIT (RABBITMQ) У DriversBlogManagement — СТОРОНА СПОЖИВАЧА
+             ------------------------------------------------------------------------------------
+             ПРИЗНАЧЕННЯ:
+             Блог СПОЖИВАЄ події IDriverCreated / IDriverUpdated від DriversManagement і підтримує
+             локальну тіньову (shadow) копію водія — ім'я та прізвище автора під постами.
+             Черга "sync-updated-driver" і її прив'язки до обмінників описані в
+             ConsumerRegistrations/SyncPatientEndpointRegistration.cs, а логіка — у Domain/SyncDriver.cs.
+            
+             ЗВІДКИ БЕРЕТЬСЯ АДРЕСА БРОКЕРА (у порядку пріоритету):
+             1. ConnectionStrings:rabbitmq — рядок підключення, який Aspire AppHost інжектує через
+                .WithReference(rabbitmq) у вигляді amqp://guest:{пароль}@localhost:{порт}.
+             2. Секція RabbitMq в appsettings.json — для запуску сервісу БЕЗ Aspire.
+            
+             У середовищах інтеграційних/функціональних тестів шина не реєструється взагалі.
+             ====================================================================================
+             </summary>
         </member>
     </members>
 </doc>

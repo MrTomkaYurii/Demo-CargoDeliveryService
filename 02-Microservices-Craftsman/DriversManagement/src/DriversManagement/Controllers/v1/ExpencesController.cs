@@ -28,7 +28,7 @@ public sealed class ExpencesController: ControllerBase
     /// <summary>
     /// Gets a list of all Expences.
     /// </summary>
-    [Authorize]
+    // [AUTH-DISABLED] [Authorize]
     [HttpGet(Name = "GetExpences")]
     public async Task<IActionResult> GetExpences([FromQuery] ExpenceParametersDto expenceParametersDto)
     {
@@ -58,7 +58,7 @@ public sealed class ExpencesController: ControllerBase
     /// <summary>
     /// Gets a list of all Expences.
     /// </summary>
-    [Authorize]
+    // [AUTH-DISABLED] [Authorize]
     [HttpGet("all", Name = "GetAllExpences")]
     public async Task<IActionResult> GetAllExpences()
     {
@@ -71,7 +71,7 @@ public sealed class ExpencesController: ControllerBase
     /// <summary>
     /// Gets a single Expence by ID.
     /// </summary>
-    [Authorize]
+    // [AUTH-DISABLED] [Authorize]
     [HttpGet("{expenceId:guid}", Name = "GetExpence")]
     public async Task<ActionResult<ExpenceDto>> GetExpence(Guid expenceId)
     {
@@ -84,7 +84,7 @@ public sealed class ExpencesController: ControllerBase
     /// <summary>
     /// Creates a new Expence record.
     /// </summary>
-    [Authorize]
+    // [AUTH-DISABLED] [Authorize]
     [HttpPost(Name = "AddExpence")]
     public async Task<ActionResult<ExpenceDto>> AddExpence([FromBody]ExpenceForCreationDto expenceForCreation)
     {
@@ -100,7 +100,7 @@ public sealed class ExpencesController: ControllerBase
     /// <summary>
     /// Updates an entire existing Expence.
     /// </summary>
-    [Authorize]
+    // [AUTH-DISABLED] [Authorize]
     [HttpPut("{expenceId:guid}", Name = "UpdateExpence")]
     public async Task<IActionResult> UpdateExpence(Guid expenceId, ExpenceForUpdateDto expence)
     {
@@ -113,7 +113,7 @@ public sealed class ExpencesController: ControllerBase
     /// <summary>
     /// Deletes an existing Expence record.
     /// </summary>
-    [Authorize]
+    // [AUTH-DISABLED] [Authorize]
     [HttpDelete("{expenceId:guid}", Name = "DeleteExpence")]
     public async Task<ActionResult> DeleteExpence(Guid expenceId)
     {

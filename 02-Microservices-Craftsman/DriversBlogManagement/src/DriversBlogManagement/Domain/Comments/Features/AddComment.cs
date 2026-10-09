@@ -30,7 +30,7 @@ public static class AddComment
 
         public async Task<CommentDto> Handle(Command request, CancellationToken cancellationToken)
         {
-            await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanAddComment);
+            // [AUTH-DISABLED] await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanAddComment);
 
             var commentToAdd = request.CommentToAdd.ToCommentForCreation();
             var comment = Comment.Create(commentToAdd);

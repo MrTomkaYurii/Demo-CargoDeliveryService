@@ -27,7 +27,7 @@ public sealed class UsersController: ControllerBase
     /// <summary>
     /// Adds a new role to a user.
     /// </summary>
-    [Authorize]
+    // [AUTH-DISABLED] [Authorize]
     [HttpPut("{userId:guid}/addRole", Name = "AddRole")]
     public async Task<IActionResult> AddRole([FromRoute] Guid userId, [FromBody] string role)
     {
@@ -39,7 +39,7 @@ public sealed class UsersController: ControllerBase
     /// <summary>
     /// Removes a role from a User
     /// </summary>
-    [Authorize]
+    // [AUTH-DISABLED] [Authorize]
     [HttpPut("{userId:guid}/removeRole", Name = "RemoveRole")]
     public async Task<ActionResult> RemoveRole([FromRoute] Guid userId, [FromBody] string role)
     {
@@ -52,7 +52,7 @@ public sealed class UsersController: ControllerBase
     /// <summary>
     /// Gets a list of all Users.
     /// </summary>
-    [Authorize]
+    // [AUTH-DISABLED] [Authorize]
     [HttpGet(Name = "GetUsers")]
     public async Task<IActionResult> GetUsers([FromQuery] UserParametersDto userParametersDto)
     {
@@ -82,7 +82,7 @@ public sealed class UsersController: ControllerBase
     /// <summary>
     /// Gets a single User by ID.
     /// </summary>
-    [Authorize]
+    // [AUTH-DISABLED] [Authorize]
     [HttpGet("{userId:guid}", Name = "GetUser")]
     public async Task<ActionResult<UserDto>> GetUser(Guid userId)
     {
@@ -95,7 +95,7 @@ public sealed class UsersController: ControllerBase
     /// <summary>
     /// Creates a new User record.
     /// </summary>
-    [Authorize]
+    // [AUTH-DISABLED] [Authorize]
     [HttpPost(Name = "AddUser")]
     public async Task<ActionResult<UserDto>> AddUser([FromBody]UserForCreationDto userForCreation)
     {
@@ -111,7 +111,7 @@ public sealed class UsersController: ControllerBase
     /// <summary>
     /// Updates an entire existing User.
     /// </summary>
-    [Authorize]
+    // [AUTH-DISABLED] [Authorize]
     [HttpPut("{userId:guid}", Name = "UpdateUser")]
     public async Task<IActionResult> UpdateUser(Guid userId, UserForUpdateDto user)
     {
@@ -124,7 +124,7 @@ public sealed class UsersController: ControllerBase
     /// <summary>
     /// Deletes an existing User record.
     /// </summary>
-    [Authorize]
+    // [AUTH-DISABLED] [Authorize]
     [HttpDelete("{userId:guid}", Name = "DeleteUser")]
     public async Task<ActionResult> DeleteUser(Guid userId)
     {

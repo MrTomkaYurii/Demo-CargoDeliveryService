@@ -34,6 +34,45 @@
             Deletes an existing Delivery record.
             </summary>
         </member>
+        <member name="T:CargoOrderingService.Controllers.v1.InternalDeliveriesController">
+             <summary>
+             ====================================================================================
+             🔒 ВНУТРІШНІЙ (SERVICE-TO-SERVICE) API ДОСТАВОК
+             ------------------------------------------------------------------------------------
+             ПРИЗНАЧЕННЯ:
+             Легкий read-only ендпоінт для синхронних викликів від інших мікросервісів
+             (CargoDelivery.HttpAggregator та BFF у DriversManagement). Повертає ЛИШЕ доставки
+             конкретного водія у плоскому вигляді, потрібному агрегаторам.
+            
+             ЧОМУ НЕ ЗВИЧАЙНИЙ /api/deliveries?
+             1. Публічний DeliveriesController захищений [Authorize] (JWT від Keycloak) та
+                перевірками дозволів HeimGuard — сервіс-клієнт без токена отримав би 401.
+             2. Публічний ендпоінт повертає ВСІ доставки з пагінацією, без фільтра за водієм.
+            
+             БЕЗПЕКА (важливо розуміти!):
+             [AllowAnonymous] тут — свідоме спрощення для навчального локального стенду Aspire.
+             У продакшні внутрішній API захищають інакше, ніж зовнішній:
+               - мережеві політики (ендпоінт недоступний з Ingress/інтернету);
+               - mTLS між сервісами (service mesh: Istio, Linkerd);
+               - OAuth2 Client Credentials — сервіс отримує власний токен зі scope "deliveries.read".
+             ====================================================================================
+             </summary>
+        </member>
+        <member name="M:CargoOrderingService.Controllers.v1.InternalDeliveriesController.GetByDriver(System.Guid,System.Threading.CancellationToken)">
+            <summary>
+            Повертає доставки водія. Приклад: GET api/internal/deliveries?driverId={guid}
+            </summary>
+        </member>
+        <member name="M:CargoOrderingService.Controllers.v1.InternalDeliveriesController.SeedDemoDelivery(System.Guid,System.Threading.CancellationToken)">
+            <summary>
+            🧪 ДЕМО-СІД: створює доставку, призначену тіньовому водієві, щоб агрегатор мав що показати.
+            Приклад: POST api/internal/deliveries/demo-seed?driverId={guid}
+            <para>
+            Публічне API замовлень не має операції "призначити водія", хоча доменна модель це вміє
+            (Delivery.SetDriver). Цей ендпоінт використовує саме доменний метод — без обходу інваріантів.
+            </para>
+            </summary>
+        </member>
         <member name="M:CargoOrderingService.Controllers.v1.OrdersController.GetOrders(CargoOrderingService.Domain.Orders.Dtos.OrderParametersDto)">
             <summary>
             Gets a list of all Orders.
@@ -267,8 +306,8 @@
              2. SetQuorumQueue():
                 Вмикає Quorum Queues (на базі консенсусу Raft у кластері RabbitMQ 3.8+).
                 Забезпечує реплікацію та стійкість до втрати даних при перезавантаженні брокера.
-             3. SetQueueArgument("declare", "lazy"):
-                Оптимізує використання пам'яті (RAM), скидаючи повідомлення на диск за потреби.
+             3. (Видалено) SetQueueArgument("declare", "lazy") — неіснуючий аргумент RabbitMQ.
+                Кворум-черга й так зберігає повідомлення на диску (див. коментар у коді нижче).
              4. Bind("driver-created", Fanout) &amp; Bind("driver-updated", Fanout):
                 Створює прив'язки (Bindings) між головними обмінниками подій водіїв та цією чергою.
              ====================================================================================
@@ -291,6 +330,19 @@
              - cfg.SyncDriverInOrderingEndpoint(): створює Quorum Queue для підписки на зміни водіїв.
              ====================================================================================
              </summary>
+        </member>
+        <member name="T:CargoOrderingService.Extensions.Services.OpenTelemetryServiceExtension">
+            <summary>
+            Точка підключення спільних стандартів Aspire (CargoDelivery.ServiceDefaults).
+            <para>
+            Історично Craftsman налаштовував тут OpenTelemetry + Jaeger вручну. Тепер увесь конвеєр
+            спостережуваності (OTLP-логи, метрики, трейси), Health Checks, Service Discovery і
+            стандартний конвеєр Polly для HttpClient підключає ОДИН виклик builder.AddServiceDefaults()
+            (див. Aspire/CargoDelivery.ServiceDefaults/Extensions.cs). Параметри configuration і
+            serviceName залишено для сумісності сигнатури з викликом у WebAppServiceConfiguration:
+            ім'я сервісу в телеметрії тепер задає Aspire через змінну OTEL_SERVICE_NAME.
+            </para>
+            </summary>
         </member>
         <member name="T:CargoOrderingService.Extensions.Services.ProducerRegistrations.OrderCreatedEndpointRegistration">
             <summary>

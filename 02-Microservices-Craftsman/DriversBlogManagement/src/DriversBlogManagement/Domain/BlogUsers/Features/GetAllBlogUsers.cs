@@ -30,7 +30,7 @@ public static class GetAllBlogUsers
 
         public async Task<List<BlogUserDto>> Handle(Query request, CancellationToken cancellationToken)
         {
-            await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanReadUsers);
+            // [AUTH-DISABLED] await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanReadUsers);
 
             return _blogUserRepository.Query()
                 .AsNoTracking()

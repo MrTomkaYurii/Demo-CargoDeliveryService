@@ -25,7 +25,7 @@ public static class GetPostAboutDriver
 
         public async Task<PostAboutDriverDto> Handle(Query request, CancellationToken cancellationToken)
         {
-            await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanReadPostAboutDriver);
+            // [AUTH-DISABLED] await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanReadPostAboutDriver);
 
             var result = await _postAboutDriverRepository.GetById(request.PostAboutDriverId, cancellationToken: cancellationToken);
             return result.ToPostAboutDriverDto();

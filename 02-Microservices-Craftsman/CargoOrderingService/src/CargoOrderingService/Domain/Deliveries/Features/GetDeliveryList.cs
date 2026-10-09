@@ -29,7 +29,7 @@ public static class GetDeliveryList
 
         public async Task<PagedList<DeliveryDto>> Handle(Query request, CancellationToken cancellationToken)
         {
-            await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanReadDeliveries);
+            // [AUTH-DISABLED] await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanReadDeliveries);
 
             var collection = _deliveryRepository.Query().AsNoTracking();
 

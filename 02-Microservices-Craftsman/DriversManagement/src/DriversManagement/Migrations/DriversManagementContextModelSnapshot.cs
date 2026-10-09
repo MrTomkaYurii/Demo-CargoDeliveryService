@@ -17,7 +17,7 @@ namespace DriversManagement.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "7.0.11")
+                .HasAnnotation("ProductVersion", "8.0.0")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
@@ -57,6 +57,10 @@ namespace DriversManagement.Migrations
                         .HasColumnType("datetime2")
                         .HasColumnName("created_on");
 
+                    b.Property<Guid?>("DriverId")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("driver_id");
+
                     b.Property<string>("Email")
                         .HasColumnType("nvarchar(max)")
                         .HasColumnName("email");
@@ -80,12 +84,18 @@ namespace DriversManagement.Migrations
                     b.HasKey("Id")
                         .HasName("pk_companies");
 
+                    b.HasIndex("DriverId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_companies_driver_id")
+                        .HasFilter("[driver_id] IS NOT NULL");
+
                     b.ToTable("companies", (string)null);
                 });
 
             modelBuilder.Entity("DriversManagement.Domain.Drivers.Driver", b =>
                 {
                     b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier")
                         .HasColumnName("id");
 
@@ -345,6 +355,10 @@ namespace DriversManagement.Migrations
                         .HasColumnType("datetime2")
                         .HasColumnName("created_on");
 
+                    b.Property<Guid?>("DriverId")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("driver_id");
+
                     b.Property<string>("FileName")
                         .HasColumnType("nvarchar(max)")
                         .HasColumnName("file_name");
@@ -371,6 +385,11 @@ namespace DriversManagement.Migrations
 
                     b.HasKey("Id")
                         .HasName("pk_photos");
+
+                    b.HasIndex("DriverId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_photos_driver_id")
+                        .HasFilter("[driver_id] IS NOT NULL");
 
                     b.ToTable("photos", (string)null);
                 });
@@ -638,25 +657,14 @@ namespace DriversManagement.Migrations
                     b.ToTable("user_roles", (string)null);
                 });
 
-            modelBuilder.Entity("DriversManagement.Domain.Drivers.Driver", b =>
+            modelBuilder.Entity("DriversManagement.Domain.Companies.Company", b =>
                 {
-                    b.HasOne("DriversManagement.Domain.Companies.Company", "Company")
-                        .WithOne("Driver")
-                        .HasForeignKey("DriversManagement.Domain.Drivers.Driver", "Id")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("fk_drivers_companies_company_id");
+                    b.HasOne("DriversManagement.Domain.Drivers.Driver", "Driver")
+                        .WithOne("Company")
+                        .HasForeignKey("DriversManagement.Domain.Companies.Company", "DriverId")
+                        .HasConstraintName("fk_companies_drivers_driver_id");
 
-                    b.HasOne("DriversManagement.Domain.Photos.Photo", "Photo")
-                        .WithOne("Driver")
-                        .HasForeignKey("DriversManagement.Domain.Drivers.Driver", "Id")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("fk_drivers_photos_photo_id");
-
-                    b.Navigation("Company");
-
-                    b.Navigation("Photo");
+                    b.Navigation("Driver");
                 });
 
             modelBuilder.Entity("DriversManagement.Domain.Expences.Expence", b =>
@@ -686,6 +694,16 @@ namespace DriversManagement.Migrations
                     b.Navigation("Truck");
                 });
 
+            modelBuilder.Entity("DriversManagement.Domain.Photos.Photo", b =>
+                {
+                    b.HasOne("DriversManagement.Domain.Drivers.Driver", "Driver")
+                        .WithOne("Photo")
+                        .HasForeignKey("DriversManagement.Domain.Photos.Photo", "DriverId")
+                        .HasConstraintName("fk_photos_drivers_driver_id");
+
+                    b.Navigation("Driver");
+                });
+
             modelBuilder.Entity("DriversManagement.Domain.Repairs.Repair", b =>
                 {
                     b.HasOne("DriversManagement.Domain.Trucks.Truck", "Truck")
@@ -706,19 +724,13 @@ namespace DriversManagement.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("DriversManagement.Domain.Companies.Company", b =>
-                {
-                    b.Navigation("Driver");
-                });
-
             modelBuilder.Entity("DriversManagement.Domain.Drivers.Driver", b =>
                 {
-                    b.Navigation("Expences");
-                });
+                    b.Navigation("Company");
 
-            modelBuilder.Entity("DriversManagement.Domain.Photos.Photo", b =>
-                {
-                    b.Navigation("Driver");
+                    b.Navigation("Expences");
+
+                    b.Navigation("Photo");
                 });
 
             modelBuilder.Entity("DriversManagement.Domain.Trucks.Truck", b =>

@@ -15,10 +15,14 @@ var builder = DistributedApplication.CreateBuilder(args);
 // ====================================================================================
 // 🐰 1. ІНФРАСТРУКТУРА: BROKER RABBITMQ (AMQP 0-9-1)
 // ------------------------------------------------------------------------------------
-// Aspire автоматично завантажує Docker-образ RabbitMQ та налаштовує порти:
-// - AMQP порт 5672 для передачі бінарних фреймів повідомлень.
-// - HTTP порт 15672 для веб-панелі адміністрування (WithManagementPlugin).
-// Змінна ConnectionStrings__rabbitmq автоматично інжектується в залежні сервіси.
+// Aspire автоматично завантажує Docker-образ RabbitMQ (rabbitmq:4.x-management) і публікує:
+// - AMQP-ендпоінт (всередині контейнера 5672) — для бінарних фреймів повідомлень MassTransit;
+// - HTTP-ендпоінт (всередині контейнера 15672) — веб-панель адміністрування (WithManagementPlugin).
+// Зовнішні порти на хості призначаються ДИНАМІЧНО — дивіться колонку URLs у дашборді.
+// Логін за замовчуванням — guest, а пароль Aspire ГЕНЕРУЄ і зберігає як параметр
+// "rabbitmq-password" (вкладка Parameters у дашборді, user secrets AppHost).
+// Залежні сервіси отримують готовий рядок ConnectionStrings__rabbitmq
+// (amqp://guest:{пароль}@localhost:{порт}) через .WithReference(rabbitmq).
 // ====================================================================================
 var rabbitmq = builder.AddRabbitMQ("rabbitmq")
     .WithManagementPlugin();
@@ -28,11 +32,22 @@ var rabbitmq = builder.AddRabbitMQ("rabbitmq")
 // ------------------------------------------------------------------------------------
 // Патерн "Database-per-Microservice": кожен Bounded Context має власну фізичну або
 // логічну БД, унеможливлюючи несанкціонований доступ до чужих таблиць напряму через SQL.
+//
+// ⚠️ ВАЖЛИВО: імена ресурсів в Aspire РЕГІСТРОНЕЗАЛЕЖНІ та мають бути унікальними.
+// Якщо назвати базу "CargoOrderingService", а проєкт — "cargoorderingservice", AppHost
+// впаде на старті з DistributedApplicationException ("resource ... already exists").
+// Тому ресурси БД мають суфікс "-db", а очікуване сервісом ім'я рядка підключення
+// (ConnectionStrings:CargoOrderingService тощо) задається явно через connectionName
+// у .WithReference(...) нижче.
+//
+// Другий аргумент AddDatabase — фізична назва БД всередині SQL Server. Якщо БД ще
+// не існує, Aspire створює її сам; таблиці потім створюють EF Core міграції
+// (MigrationHostedService у кожному мікросервісі).
 // ====================================================================================
 var sqlserver = builder.AddSqlServer("sqlserver");
-var driversDb = sqlserver.AddDatabase("DriversManagement", "dev_driversmanagement");
-var blogDb = sqlserver.AddDatabase("DriversBlogManagement", "dev_driversblogmanagement");
-var cargoDb = sqlserver.AddDatabase("CargoOrderingService", "dev_cargoorderingservice");
+var driversDb = sqlserver.AddDatabase("driversmanagement-db", "dev_driversmanagement");
+var blogDb = sqlserver.AddDatabase("driversblogmanagement-db", "dev_driversblogmanagement");
+var cargoDb = sqlserver.AddDatabase("cargoorderingservice-db", "dev_cargoorderingservice");
 
 // ====================================================================================
 // 📦 3. МІКРОСЕРВІС ЗАМОВЛЕНЬ ТА ДОСТАВОК: CargoOrderingService
@@ -40,11 +55,15 @@ var cargoDb = sqlserver.AddDatabase("CargoOrderingService", "dev_cargoorderingse
 // - Володіє логістичним доменом (Order, Delivery, Carrier).
 // - MassTransit Consumer для IDriverCreated / IDriverUpdated (актуалізація водіїв).
 // - MassTransit Publisher для IOrderCreated.
-// - Надає HTTP REST ендпоінти для отримання активних рейсів водія.
+// - Внутрішній REST-ендпоінт api/internal/deliveries для агрегаторів.
 // ====================================================================================
 var cargoApi = builder.AddProject<Projects.CargoOrderingService>("cargoorderingservice")
-    .WithReference(cargoDb)
+    // connectionName → змінна ConnectionStrings__CargoOrderingService, яку читає ConnectionStringOptions сервісу
+    .WithReference(cargoDb, connectionName: "CargoOrderingService")
     .WithReference(rabbitmq)
+    // Health probe для Aspire: ресурс вважається "Healthy" лише коли GET /health повертає 200.
+    // Саме на цей стан чекають залежні ресурси у .WaitFor(cargoApi).
+    .WithHttpHealthCheck("/health")
     .WaitFor(cargoDb)
     .WaitFor(rabbitmq);
 
@@ -54,11 +73,12 @@ var cargoApi = builder.AddProject<Projects.CargoOrderingService>("cargoorderings
 // - Соціальний домен (Post, Comment, Like, Shadow Driver).
 // - gRPC Server: реалізує DriverRpcService (HTTP/2 бінарний контракт).
 // - MassTransit Consumer: асинхронно синхронізує Shadow Drivers.
-// - HTTP REST API: надає пости водіїв для зовнішніх клієнтів та BFF Агрегатора.
+// - HTTP REST API: публічні ендпоінти блогу + внутрішній api/internal/postaboutdrivers для агрегаторів.
 // ====================================================================================
 var blogApi = builder.AddProject<Projects.DriversBlogManagement>("driversblogmanagement")
-    .WithReference(blogDb)
+    .WithReference(blogDb, connectionName: "DriversBlogManagement")
     .WithReference(rabbitmq)
+    .WithHttpHealthCheck("/health")
     .WaitFor(blogDb)
     .WaitFor(rabbitmq);
 
@@ -74,10 +94,11 @@ var blogApi = builder.AddProject<Projects.DriversBlogManagement>("driversblogman
 //   та суміжних API, усуваючи неприємні стартові винятки Connection Refused!
 // ====================================================================================
 var driversApi = builder.AddProject<Projects.DriversManagement>("driversmanagement")
-    .WithReference(driversDb)
+    .WithReference(driversDb, connectionName: "DriversManagement")
     .WithReference(rabbitmq)
     .WithReference(blogApi)
     .WithReference(cargoApi)
+    .WithHttpHealthCheck("/health")
     .WaitFor(driversDb)
     .WaitFor(rabbitmq)
     .WaitFor(blogApi)
@@ -89,12 +110,14 @@ var driversApi = builder.AddProject<Projects.DriversManagement>("driversmanageme
 // - Патерн Scatter-Gather: паралельний Fan-Out / Fan-In через IHttpClientFactory.
 // - Демонстрація OpenTelemetry Distributed Tracing (батьківські та дочірні спани).
 // - Демонстрація Polly Resilience (Retry, Timeout, Circuit Breaker).
-// - .WaitFor(...) гарантує, що агрегатор стартує лише після готовності залежних API.
+// - .WaitFor(...) гарантує, що агрегатор стартує лише після того, як залежні API стануть
+//   Healthy (їхній /health повертає 200 — див. .WithHttpHealthCheck вище).
 // ====================================================================================
 var httpAggregator = builder.AddProject<Projects.CargoDelivery_HttpAggregator>("httpaggregator")
     .WithReference(driversApi)
     .WithReference(cargoApi)
     .WithReference(blogApi)
+    .WithHttpHealthCheck("/health")
     .WaitFor(driversApi)
     .WaitFor(cargoApi)
     .WaitFor(blogApi);

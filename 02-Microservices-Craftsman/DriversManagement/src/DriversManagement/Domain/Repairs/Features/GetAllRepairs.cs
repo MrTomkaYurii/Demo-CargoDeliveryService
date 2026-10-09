@@ -30,7 +30,7 @@ public static class GetAllRepairs
 
         public async Task<List<RepairDto>> Handle(Query request, CancellationToken cancellationToken)
         {
-            await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanReadRepairs);
+            // [AUTH-DISABLED] await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanReadRepairs);
 
             return _repairRepository.Query()
                 .AsNoTracking()

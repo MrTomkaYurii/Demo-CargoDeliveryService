@@ -1,4 +1,3 @@
-using DriversBlogManagement.Domain.PostAboutDrivers.Dtos;
 
 namespace DriversManagement.Domain.Drivers.Dtos
 {

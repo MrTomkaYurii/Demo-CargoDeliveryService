@@ -28,7 +28,7 @@ public sealed class DriversController: ControllerBase
     /// <summary>
     /// Gets a list of all Drivers.
     /// </summary>
-    [Authorize]
+    // [AUTH-DISABLED] [Authorize]
     [HttpGet(Name = "GetDrivers")]
     public async Task<IActionResult> GetDrivers([FromQuery] DriverParametersDto driverParametersDto)
     {
@@ -58,7 +58,7 @@ public sealed class DriversController: ControllerBase
     /// <summary>
     /// Gets a list of all Drivers.
     /// </summary>
-    [Authorize]
+    // [AUTH-DISABLED] [Authorize]
     [HttpGet("all", Name = "GetAllDrivers")]
     public async Task<IActionResult> GetAllDrivers()
     {
@@ -71,7 +71,7 @@ public sealed class DriversController: ControllerBase
     /// <summary>
     /// Gets a single Driver by ID.
     /// </summary>
-    [Authorize]
+    // [AUTH-DISABLED] [Authorize]
     [HttpGet("{driverId:guid}", Name = "GetDriver")]
     public async Task<ActionResult<FullDataAboutDriverAndPostsDto>> GetDriver(Guid driverId)
     {
@@ -84,7 +84,7 @@ public sealed class DriversController: ControllerBase
     /// <summary>
     /// Creates a new Driver record.
     /// </summary>
-    [Authorize]
+    // [AUTH-DISABLED] [Authorize]
     [HttpPost(Name = "AddDriver")]
     public async Task<ActionResult<DriverDto>> AddDriver([FromBody]DriverForCreationDto driverForCreation)
     {
@@ -100,7 +100,7 @@ public sealed class DriversController: ControllerBase
     /// <summary>
     /// Updates an entire existing Driver.
     /// </summary>
-    [Authorize]
+    // [AUTH-DISABLED] [Authorize]
     [HttpPut("{driverId:guid}", Name = "UpdateDriver")]
     public async Task<IActionResult> UpdateDriver(Guid driverId, DriverForUpdateDto driver)
     {
@@ -113,7 +113,7 @@ public sealed class DriversController: ControllerBase
     /// <summary>
     /// Deletes an existing Driver record.
     /// </summary>
-    [Authorize]
+    // [AUTH-DISABLED] [Authorize]
     [HttpDelete("{driverId:guid}", Name = "DeleteDriver")]
     public async Task<ActionResult> DeleteDriver(Guid driverId)
     {

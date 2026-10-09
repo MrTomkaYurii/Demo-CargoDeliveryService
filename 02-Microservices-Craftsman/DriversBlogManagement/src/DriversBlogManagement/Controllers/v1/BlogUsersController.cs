@@ -28,7 +28,7 @@ public sealed class BlogUsersController: ControllerBase
     /// <summary>
     /// Gets a list of all BlogUsers.
     /// </summary>
-    [Authorize]
+    // [AUTH-DISABLED] [Authorize]
     [HttpGet(Name = "GetBlogUsers")]
     public async Task<IActionResult> GetBlogUsers([FromQuery] BlogUserParametersDto blogUserParametersDto)
     {
@@ -58,7 +58,7 @@ public sealed class BlogUsersController: ControllerBase
     /// <summary>
     /// Gets a list of all BlogUsers.
     /// </summary>
-    [Authorize]
+    // [AUTH-DISABLED] [Authorize]
     [HttpGet("all", Name = "GetAllBlogUsers")]
     public async Task<IActionResult> GetAllBlogUsers()
     {
@@ -71,7 +71,7 @@ public sealed class BlogUsersController: ControllerBase
     /// <summary>
     /// Gets a single BlogUser by ID.
     /// </summary>
-    [Authorize]
+    // [AUTH-DISABLED] [Authorize]
     [HttpGet("{blogUserId:guid}", Name = "GetBlogUser")]
     public async Task<ActionResult<BlogUserDto>> GetBlogUser(Guid blogUserId)
     {
@@ -84,7 +84,7 @@ public sealed class BlogUsersController: ControllerBase
     /// <summary>
     /// Creates a new BlogUser record.
     /// </summary>
-    [Authorize]
+    // [AUTH-DISABLED] [Authorize]
     [HttpPost(Name = "AddBlogUser")]
     public async Task<ActionResult<BlogUserDto>> AddBlogUser([FromBody]BlogUserForCreationDto blogUserForCreation)
     {
@@ -100,7 +100,7 @@ public sealed class BlogUsersController: ControllerBase
     /// <summary>
     /// Updates an entire existing BlogUser.
     /// </summary>
-    [Authorize]
+    // [AUTH-DISABLED] [Authorize]
     [HttpPut("{blogUserId:guid}", Name = "UpdateBlogUser")]
     public async Task<IActionResult> UpdateBlogUser(Guid blogUserId, BlogUserForUpdateDto blogUser)
     {
@@ -113,7 +113,7 @@ public sealed class BlogUsersController: ControllerBase
     /// <summary>
     /// Deletes an existing BlogUser record.
     /// </summary>
-    [Authorize]
+    // [AUTH-DISABLED] [Authorize]
     [HttpDelete("{blogUserId:guid}", Name = "DeleteBlogUser")]
     public async Task<ActionResult> DeleteBlogUser(Guid blogUserId)
     {

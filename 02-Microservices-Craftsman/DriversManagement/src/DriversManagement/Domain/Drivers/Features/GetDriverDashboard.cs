@@ -99,7 +99,12 @@ public static class GetDriverDashboard
                 defaultValue: new List<AggregatedBlogPostDto>(),
                 onFailure: () => hadPartialFailures = true);
 
-            // Локальний запит до бази даних для отримання закріпленої вантажівки (також паралельно)
+            // Локальний запит до бази даних для отримання вантажівки (також паралельно з HTTP).
+            // ⚠️ Спрощення демо: у доменній моделі Craftsman немає зв'язку Truck ↔ Driver,
+            // тому береться ПЕРША вантажівка автопарку. Для реального сценарію потрібне поле
+            // AssignedDriverId у Truck і фільтр Where(t => t.AssignedDriverId == driver.Id).
+            // Безпечно, бо це єдиний паралельний запит до DbContext (EF Core не підтримує
+            // кілька одночасних операцій на одному контексті), решта задач — HTTP.
             var truckTask = _truckRepository.Query().AsNoTracking().FirstOrDefaultAsync(cancellationToken);
 
             // КРОК 3: Fan-In через Task.WhenAll.

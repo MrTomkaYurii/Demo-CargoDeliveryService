@@ -18,7 +18,8 @@ public class BlogUser : BaseEntity
 
     public string Email { get; private set; }
 
-    public PostAboutDriver PostAboutDriver { get; private set; } = PostAboutDriver.Create(new PostAboutDriverForCreation());
+    // Без ініціалізатора: інакше кожен новий користувач блогу створював би порожній пост.
+    public PostAboutDriver PostAboutDriver { get; private set; }
 
     // Add Props Marker -- Deleting this comment will cause the add props utility to be incomplete
 

@@ -30,7 +30,7 @@ public static class GetAllExpences
 
         public async Task<List<ExpenceDto>> Handle(Query request, CancellationToken cancellationToken)
         {
-            await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanReadExpences);
+            // [AUTH-DISABLED] await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanReadExpences);
 
             return _expenceRepository.Query()
                 .AsNoTracking()

@@ -25,7 +25,7 @@ public static class GetPhoto
 
         public async Task<PhotoDto> Handle(Query request, CancellationToken cancellationToken)
         {
-            await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanReadPhoto);
+            // [AUTH-DISABLED] await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanReadPhoto);
 
             var result = await _photoRepository.GetById(request.PhotoId, cancellationToken: cancellationToken);
             return result.ToPhotoDto();

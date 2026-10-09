@@ -54,8 +54,9 @@ public sealed class CargoOrderingApiClient : ICargoOrderingApiClient
     {
         try
         {
-            // Формуємо відносний шлях. Базова адреса вже містить http://cargoorderingservice/
-            var requestUri = $"api/v1/deliveries";
+            // Відносний шлях до ВНУТРІШНЬОГО (service-to-service) ендпоінта з фільтром за водієм.
+            // Базова адреса вже містить https+http://cargoorderingservice (див. WebAppServiceConfiguration).
+            var requestUri = $"api/internal/deliveries?driverId={driverId}";
 
             _logger.LogInformation("Надсилання HTTP GET запиту до {BaseAddress}{Uri} для водія {DriverId}",
                 _httpClient.BaseAddress, requestUri, driverId);
@@ -74,9 +75,13 @@ public sealed class CargoOrderingApiClient : ICargoOrderingApiClient
                 {
                     result.Add(new AggregatedDeliveryDto
                     {
-                        Id = item.TryGetProperty("id", out var idProp) && Guid.TryParse(idProp.GetString(), out var g) ? g : Guid.NewGuid(),
-                        Status = item.TryGetProperty("status", out var sProp) ? sProp.GetString() ?? "Active" : "Active",
-                        RouteDescription = item.TryGetProperty("destination", out var dProp) ? dProp.GetString() : "Вантажний маршрут"
+                        // Ручний розбір JsonElement — підхід "толерантного читача" (Tolerant Reader):
+                        // нові поля у відповіді сусіднього сервісу не ламають цей клієнт.
+                        Id = item.TryGetProperty("orderId", out var idProp) && Guid.TryParse(idProp.GetString(), out var g) ? g : Guid.Empty,
+                        Status = item.TryGetProperty("status", out var sProp) ? sProp.GetString() ?? "Unknown" : "Unknown",
+                        RouteDescription = item.TryGetProperty("pickupAddress", out var pProp) && item.TryGetProperty("destinationAddress", out var dProp)
+                            ? $"{pProp.GetString()} → {dProp.GetString()}"
+                            : "Вантажний маршрут"
                     });
                 }
             }

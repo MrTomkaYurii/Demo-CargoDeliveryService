@@ -22,11 +22,11 @@ public sealed class RolesController: ControllerBase
     /// <summary>
     /// Gets a list of all available roles.
     /// </summary>
-    [Authorize]
+    // [AUTH-DISABLED] [Authorize]
     [HttpGet(Name = "GetRoles")]
     public List<string> GetRoles()
     {
-        _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanGetRoles);
+        // [AUTH-DISABLED] _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanGetRoles);
         return Role.ListNames();
     }
 }

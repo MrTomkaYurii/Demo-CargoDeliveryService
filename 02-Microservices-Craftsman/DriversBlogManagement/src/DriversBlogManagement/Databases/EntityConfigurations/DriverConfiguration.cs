@@ -1,6 +1,7 @@
 namespace DriversBlogManagement.Databases.EntityConfigurations;
 
 using DriversBlogManagement.Domain.Drivers;
+using DriversBlogManagement.Domain.PostAboutDrivers;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -12,9 +13,17 @@ public sealed class DriverConfiguration : IEntityTypeConfiguration<Driver>
     public void Configure(EntityTypeBuilder<Driver> builder)
     {
         // Relationship Marker -- Deleting or modifying this comment could cause incomplete relationship scaffolding
+        // ⚠️ ВИПРАВЛЕНО: Craftsman згенерував зв'язок "один-до-одного" зі СПІЛЬНИМ первинним ключем
+        // (HasForeignKey<Driver>(s => s.Id)), тобто Driver.Id мусив дорівнювати Id PostAboutDriver.
+        // На практиці це унеможливлювало вставку: EF Core під час fix-up підміняв Id нового
+        // запису (або ловив порушення FK). Тепер залежною стороною є PostAboutDriver, а зв'язок
+        // тримає окрема опційна колонка driver_id (snake_case від тіньової властивості DriverId).
+        // Для тіньового водія це критично: його Id ОБОВ'ЯЗКОВО має збігатися з Id водія
+        // у DriversManagement (приходить у події IDriverCreated), інакше реплікація ламається.
         builder.HasOne(x => x.PostAboutDriver)
             .WithOne(x => x.Driver)
-            .HasForeignKey<Driver>(s => s.Id);
+            .HasForeignKey<PostAboutDriver>("DriverId")
+            .IsRequired(false);
 
         // Property Marker -- Deleting or modifying this comment could cause incomplete relationship scaffolding
         

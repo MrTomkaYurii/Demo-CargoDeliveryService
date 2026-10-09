@@ -30,7 +30,7 @@ public static class AddDriver
 
         public async Task<DriverDto> Handle(Command request, CancellationToken cancellationToken)
         {
-            await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanAddDriver);
+            // [AUTH-DISABLED] await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanAddDriver);
 
             var driverToAdd = request.DriverToAdd.ToDriverForCreation();
             var driver = Driver.Create(driverToAdd);

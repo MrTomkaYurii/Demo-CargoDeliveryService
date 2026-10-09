@@ -29,7 +29,7 @@ public static class GetOrderList
 
         public async Task<PagedList<OrderDto>> Handle(Query request, CancellationToken cancellationToken)
         {
-            await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanReadOrders);
+            // [AUTH-DISABLED] await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanReadOrders);
 
             var collection = _orderRepository.Query().AsNoTracking();
 

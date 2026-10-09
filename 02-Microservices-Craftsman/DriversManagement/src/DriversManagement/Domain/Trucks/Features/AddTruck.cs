@@ -30,7 +30,7 @@ public static class AddTruck
 
         public async Task<TruckDto> Handle(Command request, CancellationToken cancellationToken)
         {
-            await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanAddTruck);
+            // [AUTH-DISABLED] await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanAddTruck);
 
             var truckToAdd = request.TruckToAdd.ToTruckForCreation();
             var truck = Truck.Create(truckToAdd);

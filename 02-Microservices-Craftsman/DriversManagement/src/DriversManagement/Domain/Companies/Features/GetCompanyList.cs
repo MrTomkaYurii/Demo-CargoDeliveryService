@@ -30,7 +30,7 @@ public static class GetCompanyList
 
         public async Task<PagedList<CompanyDto>> Handle(Query request, CancellationToken cancellationToken)
         {
-            await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanReadCompanies);
+            // [AUTH-DISABLED] await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanReadCompanies);
 
             var collection = _companyRepository.Query().AsNoTracking();
 

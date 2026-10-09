@@ -5,8 +5,12 @@
 // забезпечує дотримання золотого стандарту розподілених хмарних систем:
 // 1. OpenTelemetry: наскрізне трасування (Tracing), системні метрики (Metrics) та OTLP-логи.
 // 2. Health Checks: стандартизовані зонди готовності (/health) та життєздатності (/alive).
-// 3. Service Discovery: динамічна резолюція логічних імен (наприклад, http://cargoorderingservice).
-// 4. Polly Resilience: конвеєр із 5 рівнів захисту мережевих викликів HttpClient.
+// 3. Service Discovery: динамічна резолюція логічних імен (наприклад, https+http://cargoorderingservice).
+// 4. Polly Resilience: стандартний конвеєр із 5 стратегій захисту мережевих викликів HttpClient.
+//
+// Кожен мікросервіс підключає все це ОДНИМ рядком: builder.AddServiceDefaults();
+// Властивість <IsAspireSharedProject>true</IsAspireSharedProject> у .csproj позначає
+// проєкт як спільну бібліотеку Aspire (а не як окремий запускуваний ресурс).
 // ====================================================================================
 
 using Microsoft.AspNetCore.Builder;
@@ -19,6 +23,8 @@ using OpenTelemetry;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Trace;
 
+// Простір імен Microsoft.Extensions.Hosting обрано свідомо: методи розширення стають
+// доступними в Program.cs будь-якого сервісу без додаткового using.
 namespace Microsoft.Extensions.Hosting;
 
 public static class Extensions
@@ -35,15 +41,16 @@ public static class Extensions
     /// автоматично комплектує сервіс усіма необхідними діагностичними інструментами.
     ///
     /// ВХІДНІ ПАРАМЕТРИ ТА ДЖЕНЕРИК-ОБМЕЖЕННЯ:
-    /// - TBuilder: будь-який білдер, що реалізує IHostApplicationBuilder (WebApplicationBuilder,
-    ///   HostApplicationBuilder для фонових воркерів, Aspire TestBuilder тощо).
+    /// - TBuilder: будь-який білдер, що реалізує IHostApplicationBuilder (WebApplicationBuilder
+    ///   для Web API, HostApplicationBuilder для фонових воркерів тощо). Метод повертає той
+    ///   самий тип TBuilder, тому зберігається "fluent"-ланцюжок викликів.
     ///
     /// ЩО НАЛАШТОВУЄТЬСЯ ВСЕРЕДИНІ:
-    /// 1. ConfigureOpenTelemetry() — збір трейсів, метрик і логів.
+    /// 1. ConfigureOpenTelemetry() — збір трейсів, метрик і логів + OTLP-експорт.
     /// 2. AddDefaultHealthChecks() — базовий health check працездатності процесу.
-    /// 3. AddServiceDiscovery() — активація провайдера резолюції імен.
-    /// 4. ConfigureHttpClientDefaults(...) — глобальні налаштування стійкості для ВСІХ
-    ///    HttpClient у додатку через IHttpClientFactory.
+    /// 3. AddServiceDiscovery() — реєстрація резолвера логічних імен сервісів.
+    /// 4. ConfigureHttpClientDefaults(...) — глобальні налаштування для ВСІХ HttpClient,
+    ///    створених через IHttpClientFactory (типізованих, іменованих, gRPC-клієнтів).
     /// ====================================================================================
     /// </summary>
     public static TBuilder AddServiceDefaults<TBuilder>(this TBuilder builder) where TBuilder : IHostApplicationBuilder
@@ -60,18 +67,22 @@ public static class Extensions
         // 4. Налаштування політик стійкості для всіх екземплярів HttpClient
         // ConfigureHttpClientDefaults гарантує, що будь-який клієнт, створений через IHttpClientFactory,
         // автоматично отримає підтримку Service Discovery та конвеєр стійкості Polly.
+        // ⚠️ Тому НЕ додавайте .AddStandardResilienceHandler() повторно для окремих клієнтів:
+        // конвеєри вкладуться один в одного і кількість повторів помножиться. Щоб змінити
+        // параметри для конкретного клієнта, спершу викличте .RemoveAllResilienceHandlers().
         builder.Services.ConfigureHttpClientDefaults(http =>
         {
-            // Підключення стандарту стійкості Polly:
-            // Включає конвеєр з 5 стратегій:
-            // 1. Total Request Timeout (загальний ліміт часу)
-            // 2. Retry (повтори при мережевих збоях і HTTP 5xx)
-            // 3. Circuit Breaker (автоматичне розмикання ланцюга при каскадних аваріях)
-            // 4. Attempt Timeout (таймаут окремої спроби)
-            // 5. Rate Limiter (обмеження одночасних запитів)
+            // Стандартний конвеєр Microsoft.Extensions.Http.Resilience (Polly v8).
+            // Стратегії від ЗОВНІШНЬОЇ до ВНУТРІШНЬОЇ (запит проходить їх саме в такому порядку):
+            // 1. Rate Limiter — не більше 1000 одночасних запитів (захист власного процесу);
+            // 2. Total Request Timeout — 30 с на весь виклик разом з усіма повторами;
+            // 3. Retry — до 3 повторів, експоненційна затримка від 2 с + jitter
+            //    (для 408, 429, 5xx, HttpRequestException та таймаутів спроби);
+            // 4. Circuit Breaker — розмикання при ≥10% збоїв за 30 с (мінімум 100 запитів), пауза 5 с;
+            // 5. Attempt Timeout — 10 с на ОДНУ спробу.
             http.AddStandardResilienceHandler();
 
-            // Дозвіл клієнту резолвити URL формату "http://driversmanagement" через Aspire Service Discovery
+            // Дозвіл клієнту резолвити URL формату "https+http://driversmanagement" через Aspire Service Discovery
             http.AddServiceDiscovery();
         });
 
@@ -80,7 +91,7 @@ public static class Extensions
 
     /// <summary>
     /// ====================================================================================
-    /// 📊 2. КОНФІГУРАЦІЯ ОПЕНТЕЛЕМЕТРІЇ (ConfigureOpenTelemetry)
+    /// 📊 2. КОНФІГУРАЦІЯ OPENTELEMETRY (ConfigureOpenTelemetry)
     /// ------------------------------------------------------------------------------------
     /// ПРИЗНАЧЕННЯ:
     /// Створює єдиний конвеєр збору діагностичних даних з трьох стовпів Observability:
@@ -91,27 +102,30 @@ public static class Extensions
     /// 1. builder.Logging.AddOpenTelemetry:
     ///    - IncludeFormattedMessage = true:
     ///      Зберігає відформатоване людське повідомлення логу на додачу до шаблону.
-    ///      Альтернатива: false (зменшує обсяг пам'яті в високонавантажених системах).
+    ///      Альтернатива: false (менше алокацій і трафіку у високонавантажених системах).
     ///    - IncludeScopes = true:
-    ///      Включає параметри скоупів (ILogger.BeginScope), що автоматично додає
-    ///      TraceId, SpanId та користувацькі метадані до кожного запису логу.
+    ///      Додає до запису дані скоупів (ILogger.BeginScope) — наприклад, ідентифікатор
+    ///      повідомлення MassTransit або власні бізнес-метадані.
+    ///      (TraceId/SpanId потрапляють у кожен запис незалежно від цього параметра —
+    ///      їх бере OTel-провайдер з поточної Activity.)
     ///
     /// 2. WithMetrics (Системні та прикладні лічильники):
-    ///    - AddAspNetCoreInstrumentation(): збирає тривалість HTTP-запитів, статус-коди.
-    ///    - AddHttpClientInstrumentation(): фіксує латентність зовнішніх викликів до інших мікросервісів.
-    ///    - AddRuntimeInstrumentation(): збирає критичні метрики .NET CLR (використання пам'яті,
-    ///      кількість збірок сміття GC Gen0/1/2, стан пулу потоків ThreadPool, завантаження CPU).
+    ///    - AddAspNetCoreInstrumentation(): тривалість вхідних HTTP-запитів, статус-коди.
+    ///    - AddHttpClientInstrumentation(): латентність вихідних викликів до інших мікросервісів.
+    ///    - AddRuntimeInstrumentation(): метрики .NET CLR (GC Gen0/1/2, пам'ять, ThreadPool,
+    ///      кількість винятків тощо).
     ///    - Альтернативні опції: .AddMeter("CustomMeterName") для користувацьких бізнес-метрик.
     ///
     /// 3. WithTracing (Наскрізні розподілені трейси):
     ///    - AddSource(builder.Environment.ApplicationName): реєструє власний ActivitySource
     ///      мікросервісу для ручного створення спанів.
-    ///    - AddSource("MassTransit"): автоматично зв'язує повідомлення в RabbitMQ єдиним TraceId.
-    ///    - AddSource("Microsoft.EntityFrameworkCore.SqlServer"): трейсить SQL-запити до БД з тривалістю.
-    ///    - options.Filter: делегат фільтрації. Критично важливий для усунення «шуму»:
-    ///      відсікає діагностичні запити Health Checks (/health та /alive), які виконуються кожні
-    ///      кілька секунд і без фільтрації захаращували б базу трейсів мільйонами пустих записів.
-    ///    - Альтернативні параметри: SetSampler(new AlwaysOnSampler()) або ParentBasedSampler
+    ///    - AddSource("MassTransit"): спани публікації/споживання повідомлень RabbitMQ
+    ///      з тим самим TraceId, що й вихідний HTTP-запит.
+    ///    - AddSqlClientInstrumentation(): спан на кожен SQL-запит (EF Core працює через
+    ///      Microsoft.Data.SqlClient, тому всі запити до SQL Server видно в трейсі).
+    ///    - options.Filter: відсікає діагностичні запити Health Checks (/health та /alive),
+    ///      які оркестратор виконує кожні кілька секунд — інакше вони засмічували б трейси.
+    ///    - Альтернативні параметри: SetSampler(new ParentBasedSampler(new TraceIdRatioBasedSampler(0.1)))
     ///      для контролю відсотка збережених трейсів (Sampling Rate) під великим навантаженням.
     /// ====================================================================================
     /// </summary>
@@ -134,7 +148,6 @@ public static class Extensions
             {
                 tracing.AddSource(builder.Environment.ApplicationName)
                     .AddSource("MassTransit")
-                    .AddSource("Microsoft.EntityFrameworkCore.SqlServer")
                     .AddAspNetCoreInstrumentation(options =>
                     {
                         // Фільтрація Health Checks: не записувати рутинні пінги життєздатності в трасування
@@ -142,7 +155,9 @@ public static class Extensions
                             !context.Request.Path.StartsWithSegments(HealthEndpointPath)
                             && !context.Request.Path.StartsWithSegments(AlivenessEndpointPath);
                     })
-                    .AddHttpClientInstrumentation();
+                    .AddHttpClientInstrumentation()
+                    // SQL-запити EF Core / ADO.NET до SQL Server як дочірні спани (CLIENT)
+                    .AddSqlClientInstrumentation();
             });
 
         // Підключення експортера OTLP (OpenTelemetry Protocol)
@@ -156,14 +171,15 @@ public static class Extensions
     /// 📡 3. АВТОМАТИЧНИЙ OTLP ЕКСПОРТЕР (AddOpenTelemetryExporters)
     /// ------------------------------------------------------------------------------------
     /// ПРИЗНАЧЕННЯ:
-    /// Автоматично перевіряє наявність змінної середовища OTEL_EXPORTER_OTLP_ENDPOINT.
+    /// Перевіряє наявність змінної середовища OTEL_EXPORTER_OTLP_ENDPOINT.
     /// Коли мікросервіс запускається через Aspire AppHost, Aspire сам інжектує цей URL
-    /// (зазвичай gRPC або HTTP endpoint вбудованого Aspire Dashboard).
+    /// (OTLP-ендпоінт вбудованого Aspire Dashboard, див. launchSettings.json AppHost).
     ///
     /// АЛЬТЕРНАТИВНІ ВАРІАНТИ:
-    /// - Якщо змінна відсутня (наприклад, у локальних юніт-тестах або без Aspire), OTLP
-    ///   експортер не ініціалізується, уникаючи спаму помилками "Connection Refused".
-    /// - У продакшні цей параметр може вказувати на Grafana Mimir/Tempo, Datadog або Azure Monitor.
+    /// - Якщо змінна відсутня (юніт-/функціональні тести, запуск без Aspire), OTLP
+    ///   експортер не реєструється — жодних спроб з'єднання з неіснуючим колектором.
+    /// - У продакшні цей параметр може вказувати на OpenTelemetry Collector, Grafana
+    ///   Tempo/Loki, Datadog або Azure Monitor — код сервісу при цьому не змінюється.
     /// ====================================================================================
     /// </summary>
     private static TBuilder AddOpenTelemetryExporters<TBuilder>(this TBuilder builder) where TBuilder : IHostApplicationBuilder
@@ -172,6 +188,7 @@ public static class Extensions
 
         if (useOtlpExporter)
         {
+            // UseOtlpExporter() одним викликом вмикає експорт логів, метрик і трейсів
             builder.Services.AddOpenTelemetry().UseOtlpExporter();
         }
 
@@ -187,11 +204,11 @@ public static class Extensions
     ///
     /// РОЗБІР ПАРАМЕТРІВ:
     /// - "self": унікальне ім'я перевірки.
-    /// - () => HealthCheckResult.Healthy(): швидка функція перевірки, яка підтверджує,
-    ///   що CLR-потік відповідає і пам'ять не переповнена.
+    /// - () => HealthCheckResult.Healthy(): тривіальна перевірка — якщо процес здатен
+    ///   прийняти HTTP-запит і виконати цей делегат, він живий.
     /// - ["live"]: тег (Tag). Дозволяє розділяти перевірки на категорії:
-    ///   * "live" — для Liveness probe (процес живий, чи його треба перезапустити контейнером).
-    ///   * "ready" — для Readiness probe (чи підключені БД, брокер повідомлень тощо).
+    ///   * "live" — для Liveness probe (процес живий, чи його треба перезапустити).
+    ///   * інші/без тегу — для Readiness probe (БД, брокер повідомлень тощо).
     /// ====================================================================================
     /// </summary>
     public static TBuilder AddDefaultHealthChecks<TBuilder>(this TBuilder builder) where TBuilder : IHostApplicationBuilder
@@ -207,21 +224,25 @@ public static class Extensions
     /// 🚪 5. МАПІНГ ДІАГНОСТИЧНИХ ЕНДПОІНТІВ (MapDefaultEndpoints)
     /// ------------------------------------------------------------------------------------
     /// ПРИЗНАЧЕННЯ:
-    /// Мапить два стандартизовані маршрути для оркестраторів (Kubernetes, Docker, Aspire Dashboard):
+    /// Мапить два стандартизовані маршрути для оркестраторів (Kubernetes, Docker, Aspire):
     ///
     /// 1. /health — READINESS PROBE (Зонд готовності приймати трафік):
     ///    - Викликає ВСІ зареєстровані перевірки (база даних, черга, сторонні API).
-    ///    - Якщо хоча б одна залежність повертає Unhealthy, сервіс повертає HTTP 503,
-    ///      і балансувальник навантаження не спрямовує на нього клієнтські запити.
+    ///    - Якщо хоча б одна повертає Unhealthy — HTTP 503, і балансувальник
+    ///      не спрямовує на інстанс клієнтські запити.
+    ///    - Саме цей ендпоінт опитує Aspire через .WithHttpHealthCheck("/health") в AppHost,
+    ///      і саме на статус Healthy чекають залежні ресурси у .WaitFor(...).
     ///
     /// 2. /alive — LIVENESS PROBE (Зонд життєздатності процесу):
     ///    - Використовує Predicate: r => r.Tags.Contains("live").
     ///    - Перевіряє виключно життєздатність самого застосунку без зовнішніх залежностей.
-    ///    - Якщо повертає збій — контейнер завис у deadlock, і Docker/Kubernetes перезапускає процес.
+    ///    - Якщо повертає збій — процес завис (deadlock, starvation), і оркестратор його перезапускає.
     ///
     /// БЕЗПЕКА ТА СЕРЕДОВИЩЕ:
-    /// - Умова app.Environment.IsDevelopment() відкриває ендпоінти для локальної розробки
-    ///   та діагностики Aspire Dashboard.
+    /// - Умова app.Environment.IsDevelopment() відкриває ендпоінти лише в розробці
+    ///   (AppHost запускає сервіси саме в Development). У продакшні health-ендпоінти
+    ///   зазвичай відкривають на окремому внутрішньому порту або захищають авторизацією,
+    ///   щоб не розкривати внутрішній стан системи назовні.
     /// ====================================================================================
     /// </summary>
     public static WebApplication MapDefaultEndpoints(this WebApplication app)

@@ -30,7 +30,7 @@ public static class AddBlogUser
 
         public async Task<BlogUserDto> Handle(Command request, CancellationToken cancellationToken)
         {
-            await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanAddUser);
+            // [AUTH-DISABLED] await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanAddUser);
 
             var blogUserToAdd = request.BlogUserToAdd.ToBlogUserForCreation();
             var blogUser = BlogUser.Create(blogUserToAdd);

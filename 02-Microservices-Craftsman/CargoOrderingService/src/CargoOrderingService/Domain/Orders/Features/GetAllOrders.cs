@@ -29,7 +29,7 @@ public static class GetAllOrders
 
         public async Task<List<OrderDto>> Handle(Query request, CancellationToken cancellationToken)
         {
-            await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanReadOrders);
+            // [AUTH-DISABLED] await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanReadOrders);
 
             return _orderRepository.Query()
                 .AsNoTracking()

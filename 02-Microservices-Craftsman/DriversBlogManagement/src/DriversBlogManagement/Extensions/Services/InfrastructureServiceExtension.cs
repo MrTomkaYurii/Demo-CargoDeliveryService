@@ -34,18 +34,31 @@ public static class ServiceRegistration
 
         services.SetupHangfire(env);
 
-        // Auth -- Do Not Delete
-        var authOptions = configuration.GetAuthOptions();
-        if (!env.IsEnvironment(Consts.Testing.FunctionalTestingEnvName))
-        {
-            services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-                .AddJwtBearer(options =>
-                {
-                    options.Authority = authOptions.Authority;
-                    options.Audience = authOptions.Audience;
-                    options.RequireHttpsMetadata = !env.IsDevelopment();
-                });
-        }
+        // ====================================================================================
+        // 🔓 [AUTH-DISABLED] АВТЕНТИФІКАЦІЮ ВИМКНЕНО ДЛЯ НАВЧАЛЬНОГО СТЕНДУ ASPIRE
+        // ------------------------------------------------------------------------------------
+        // Оригінальний Craftsman-шаблон вимагає JWT від Keycloak (http://localhost:5000), який
+        // у цьому навчальному стенді не запускається. Тому закоментовано:
+        //   - реєстрацію JwtBearer (нижче);
+        //   - app.UseAuthentication() у Program.cs;
+        //   - атрибути [Authorize] у контролерах;
+        //   - перевірки дозволів HeimGuard (_heimGuard.MustHavePermission) в обробниках.
+        // Усі такі рядки позначені маркером "[AUTH-DISABLED]": щоб повернути авторизацію,
+        // знайдіть маркер у рішенні та розкоментуйте рядки.
+        // AddAuthorization та AddHeimGuard ЗАЛИШЕНО, бо IHeimGuardClient інжектується в обробники.
+        // ====================================================================================
+        // [AUTH-DISABLED] // Auth -- Do Not Delete
+        // [AUTH-DISABLED] var authOptions = configuration.GetAuthOptions();
+        // [AUTH-DISABLED] if (!env.IsEnvironment(Consts.Testing.FunctionalTestingEnvName))
+        // [AUTH-DISABLED] {
+        // [AUTH-DISABLED] services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+        // [AUTH-DISABLED] .AddJwtBearer(options =>
+        // [AUTH-DISABLED] {
+        // [AUTH-DISABLED] options.Authority = authOptions.Authority;
+        // [AUTH-DISABLED] options.Audience = authOptions.Audience;
+        // [AUTH-DISABLED] options.RequireHttpsMetadata = !env.IsDevelopment();
+        // [AUTH-DISABLED] });
+        // [AUTH-DISABLED] }
 
         services.AddAuthorization(options =>
         {

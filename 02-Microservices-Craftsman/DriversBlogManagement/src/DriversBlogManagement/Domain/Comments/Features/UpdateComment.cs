@@ -30,7 +30,7 @@ public static class UpdateComment
 
         public async Task Handle(Command request, CancellationToken cancellationToken)
         {
-            await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanUpdateComment);
+            // [AUTH-DISABLED] await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanUpdateComment);
 
             var commentToUpdate = await _commentRepository.GetById(request.CommentId, cancellationToken: cancellationToken);
             var commentToAdd = request.UpdatedCommentData.ToCommentForUpdate();

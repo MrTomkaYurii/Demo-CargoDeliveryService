@@ -27,12 +27,16 @@ using System.Threading.Tasks;
 /// </summary>
 public class DriverRpcService : DriverRpc.DriverRpcBase
 {
-    private readonly DriverRepository _driverRepository;
+    // Залежимо від АБСТРАКЦІЇ (IDriverRepository), а не від конкретного класу: DI-контейнер
+    // реєструє репозиторії саме за інтерфейсами (AddBoundaryServices у WebAppServiceConfiguration).
+    // Раніше тут був конкретний DriverRepository → DI не міг створити сервіс, і КОЖЕН gRPC-виклик
+    // завершувався статусом Unknown (2), який клієнт тихо маскував через Graceful Degradation.
+    private readonly IDriverRepository _driverRepository;
 
     /// <summary>
     /// Конструктор інжектує локальний репозиторій блогу для читання постів водія.
     /// </summary>
-    public DriverRpcService(DriverRepository driverRepository)
+    public DriverRpcService(IDriverRepository driverRepository)
     {
         _driverRepository = driverRepository;
     }

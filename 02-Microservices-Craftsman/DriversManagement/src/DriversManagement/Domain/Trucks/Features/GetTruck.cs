@@ -25,7 +25,7 @@ public static class GetTruck
 
         public async Task<TruckDto> Handle(Query request, CancellationToken cancellationToken)
         {
-            await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanReadTruck);
+            // [AUTH-DISABLED] await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanReadTruck);
 
             var result = await _truckRepository.GetById(request.TruckId, cancellationToken: cancellationToken);
             return result.ToTruckDto();

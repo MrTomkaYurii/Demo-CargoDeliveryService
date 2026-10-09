@@ -9,6 +9,23 @@ using DriversManagement.Configurations;
 using DriversManagement.Extensions.Services.ProducerRegistrations;
 using DriversManagement.Resources;
 
+/// <summary>
+/// ====================================================================================
+/// 📬 РЕЄСТРАЦІЯ ШИНИ MASSTRANSIT (RABBITMQ) У DriversManagement — СТОРОНА ПРОДЮСЕРА
+/// ------------------------------------------------------------------------------------
+/// ПРИЗНАЧЕННЯ:
+/// DriversManagement — джерело правди (Source of Truth) про водіїв. Після збереження водія
+/// він ПУБЛІКУЄ доменні події IDriverCreated / IDriverUpdated (див. AddDriver.cs, UpdateDriver.cs),
+/// а інші сервіси асинхронно оновлюють свої тіньові копії.
+///
+/// ЗВІДКИ БЕРЕТЬСЯ АДРЕСА БРОКЕРА (у порядку пріоритету):
+/// 1. ConnectionStrings:rabbitmq — рядок підключення, який Aspire AppHost інжектує через
+///    .WithReference(rabbitmq) у вигляді amqp://guest:{пароль}@localhost:{порт}.
+/// 2. Секція RabbitMq в appsettings.json — для запуску сервісу БЕЗ Aspire.
+///
+/// У середовищах інтеграційних/функціональних тестів шина не реєструється взагалі.
+/// ====================================================================================
+/// </summary>
 public static class MassTransitServiceExtension
 {
     public static void AddMassTransitServices(this IServiceCollection services, 
@@ -23,15 +40,19 @@ public static class MassTransitServiceExtension
         {
             services.AddMassTransit(mt =>
             {
+                // Автоматично знаходить усі класи IConsumer<T> у збірці сервісу
                 mt.AddConsumers(Assembly.GetExecutingAssembly());
                 mt.UsingRabbitMq((context, cfg) =>
                 {
                     if (!string.IsNullOrEmpty(rmqConnectionString))
                     {
+                        // Розбираємо amqp-URI від Aspire: amqp://user:password@host:port/vhost
                         var uri = new Uri(rmqConnectionString);
                         var userInfo = uri.UserInfo.Split(':');
-                        var username = userInfo.Length > 0 && !string.IsNullOrEmpty(userInfo[0]) ? userInfo[0] : "guest";
-                        var password = userInfo.Length > 1 ? userInfo[1] : "guest";
+                        // Uri.UserInfo повертає percent-encoded значення (згенерований Aspire пароль
+                        // може містити спецсимволи), тому декодуємо його перед передачею брокеру.
+                        var username = userInfo.Length > 0 && !string.IsNullOrEmpty(userInfo[0]) ? Uri.UnescapeDataString(userInfo[0]) : "guest";
+                        var password = userInfo.Length > 1 ? Uri.UnescapeDataString(userInfo[1]) : "guest";
                         var vhost = string.IsNullOrEmpty(uri.AbsolutePath.Trim('/')) ? "/" : uri.AbsolutePath.Trim('/');
 
                         cfg.Host(uri.Host, uri.Port > 0 ? (ushort)uri.Port : (ushort)5672, vhost, h =>
@@ -40,6 +61,7 @@ public static class MassTransitServiceExtension
                             h.Password(password);
                         });
                     }
+                    // Fallback: класична конфігурація з appsettings (запуск без Aspire)
                     else if (rmqOptions != null && !string.IsNullOrEmpty(rmqOptions.Host))
                     {
                         cfg.Host(rmqOptions.Host, 
@@ -59,6 +81,7 @@ public static class MassTransitServiceExtension
                     // Consumers -- Do Not Delete This Comment
                 });
             });
+            // MassTransitHostOptions керують стартом/зупинкою шини разом із хостом ASP.NET Core
             services.AddOptions<MassTransitHostOptions>();
         }
     }

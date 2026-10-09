@@ -30,7 +30,7 @@ public static class AddCompany
 
         public async Task<CompanyDto> Handle(Command request, CancellationToken cancellationToken)
         {
-            await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanAddCompany);
+            // [AUTH-DISABLED] await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanAddCompany);
 
             var companyToAdd = request.CompanyToAdd.ToCompanyForCreation();
             var company = Company.Create(companyToAdd);

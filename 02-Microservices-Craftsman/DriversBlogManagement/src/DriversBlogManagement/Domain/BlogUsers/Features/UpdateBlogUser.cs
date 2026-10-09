@@ -30,7 +30,7 @@ public static class UpdateBlogUser
 
         public async Task Handle(Command request, CancellationToken cancellationToken)
         {
-            await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanUpdateUser);
+            // [AUTH-DISABLED] await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanUpdateUser);
 
             var blogUserToUpdate = await _blogUserRepository.GetById(request.BlogUserId, cancellationToken: cancellationToken);
             var blogUserToAdd = request.UpdatedBlogUserData.ToBlogUserForUpdate();

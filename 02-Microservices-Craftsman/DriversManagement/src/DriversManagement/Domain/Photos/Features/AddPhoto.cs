@@ -30,7 +30,7 @@ public static class AddPhoto
 
         public async Task<PhotoDto> Handle(Command request, CancellationToken cancellationToken)
         {
-            await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanAddPhoto);
+            // [AUTH-DISABLED] await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanAddPhoto);
 
             var photoToAdd = request.PhotoToAdd.ToPhotoForCreation();
             var photo = Photo.Create(photoToAdd);

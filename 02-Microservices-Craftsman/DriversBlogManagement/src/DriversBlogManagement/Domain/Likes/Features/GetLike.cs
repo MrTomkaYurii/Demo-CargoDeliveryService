@@ -25,7 +25,7 @@ public static class GetLike
 
         public async Task<LikeDto> Handle(Query request, CancellationToken cancellationToken)
         {
-            await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanReadLike);
+            // [AUTH-DISABLED] await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanReadLike);
 
             var result = await _likeRepository.GetById(request.LikeId, cancellationToken: cancellationToken);
             return result.ToLikeDto();

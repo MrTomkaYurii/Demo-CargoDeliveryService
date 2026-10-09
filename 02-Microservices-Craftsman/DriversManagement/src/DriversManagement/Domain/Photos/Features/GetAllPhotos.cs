@@ -30,7 +30,7 @@ public static class GetAllPhotos
 
         public async Task<List<PhotoDto>> Handle(Query request, CancellationToken cancellationToken)
         {
-            await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanReadPhotos);
+            // [AUTH-DISABLED] await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanReadPhotos);
 
             return _photoRepository.Query()
                 .AsNoTracking()

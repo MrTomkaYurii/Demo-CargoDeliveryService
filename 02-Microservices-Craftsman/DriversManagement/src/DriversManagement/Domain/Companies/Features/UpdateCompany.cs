@@ -30,7 +30,7 @@ public static class UpdateCompany
 
         public async Task Handle(Command request, CancellationToken cancellationToken)
         {
-            await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanUpdateCompany);
+            // [AUTH-DISABLED] await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanUpdateCompany);
 
             var companyToUpdate = await _companyRepository.GetById(request.CompanyId, cancellationToken: cancellationToken);
             var companyToAdd = request.UpdatedCompanyData.ToCompanyForUpdate();

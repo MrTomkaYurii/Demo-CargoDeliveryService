@@ -25,7 +25,7 @@ public static class GetCompany
 
         public async Task<CompanyDto> Handle(Query request, CancellationToken cancellationToken)
         {
-            await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanReadCompany);
+            // [AUTH-DISABLED] await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanReadCompany);
 
             var result = await _companyRepository.GetById(request.CompanyId, cancellationToken: cancellationToken);
             return result.ToCompanyDto();

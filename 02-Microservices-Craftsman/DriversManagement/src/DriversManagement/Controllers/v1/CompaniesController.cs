@@ -28,7 +28,7 @@ public sealed class CompaniesController: ControllerBase
     /// <summary>
     /// Gets a list of all Companies.
     /// </summary>
-    [Authorize]
+    // [AUTH-DISABLED] [Authorize]
     [HttpGet(Name = "GetCompanies")]
     public async Task<IActionResult> GetCompanies([FromQuery] CompanyParametersDto companyParametersDto)
     {
@@ -58,7 +58,7 @@ public sealed class CompaniesController: ControllerBase
     /// <summary>
     /// Gets a list of all Companies.
     /// </summary>
-    [Authorize]
+    // [AUTH-DISABLED] [Authorize]
     [HttpGet("all", Name = "GetAllCompanies")]
     public async Task<IActionResult> GetAllCompanies()
     {
@@ -71,7 +71,7 @@ public sealed class CompaniesController: ControllerBase
     /// <summary>
     /// Gets a single Company by ID.
     /// </summary>
-    [Authorize]
+    // [AUTH-DISABLED] [Authorize]
     [HttpGet("{companyId:guid}", Name = "GetCompany")]
     public async Task<ActionResult<CompanyDto>> GetCompany(Guid companyId)
     {
@@ -84,7 +84,7 @@ public sealed class CompaniesController: ControllerBase
     /// <summary>
     /// Creates a new Company record.
     /// </summary>
-    [Authorize]
+    // [AUTH-DISABLED] [Authorize]
     [HttpPost(Name = "AddCompany")]
     public async Task<ActionResult<CompanyDto>> AddCompany([FromBody]CompanyForCreationDto companyForCreation)
     {
@@ -100,7 +100,7 @@ public sealed class CompaniesController: ControllerBase
     /// <summary>
     /// Updates an entire existing Company.
     /// </summary>
-    [Authorize]
+    // [AUTH-DISABLED] [Authorize]
     [HttpPut("{companyId:guid}", Name = "UpdateCompany")]
     public async Task<IActionResult> UpdateCompany(Guid companyId, CompanyForUpdateDto company)
     {
@@ -113,7 +113,7 @@ public sealed class CompaniesController: ControllerBase
     /// <summary>
     /// Deletes an existing Company record.
     /// </summary>
-    [Authorize]
+    // [AUTH-DISABLED] [Authorize]
     [HttpDelete("{companyId:guid}", Name = "DeleteCompany")]
     public async Task<ActionResult> DeleteCompany(Guid companyId)
     {

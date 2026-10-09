@@ -25,7 +25,7 @@ public static class GetDriver
 
         public async Task<DriverDto> Handle(Query request, CancellationToken cancellationToken)
         {
-            await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanReadDriver);
+            // [AUTH-DISABLED] await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanReadDriver);
 
             var result = await _driverRepository.GetById(request.DriverId, cancellationToken: cancellationToken);
             return result.ToDriverDto();

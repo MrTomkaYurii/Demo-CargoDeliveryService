@@ -13,7 +13,8 @@ public class Driver : BaseEntity
 
     public IReadOnlyCollection<Like> Likes { get; } = new List<Like>();
 
-    public PostAboutDriver PostAboutDriver { get; private set; } = PostAboutDriver.Create(new PostAboutDriverForCreation());
+    // Без ініціалізатора: інакше кожен тіньовий водій створював би порожній пост у блозі.
+    public PostAboutDriver PostAboutDriver { get; private set; }
 
     // Add Props Marker -- Deleting this comment will cause the add props utility to be incomplete
 

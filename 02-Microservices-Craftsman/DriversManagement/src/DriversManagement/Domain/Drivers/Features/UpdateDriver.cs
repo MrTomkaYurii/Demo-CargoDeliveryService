@@ -55,7 +55,7 @@ public static class UpdateDriver
         /// </summary>
         public async Task Handle(Command request, CancellationToken cancellationToken)
         {
-            await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanUpdateDriver);
+            // [AUTH-DISABLED] await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanUpdateDriver);
 
             var driverToUpdate = await _driverRepository.GetById(request.DriverId, cancellationToken: cancellationToken);
             var driverToAdd = request.UpdatedDriverData.ToDriverForUpdate();

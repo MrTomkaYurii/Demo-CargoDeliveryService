@@ -1,6 +1,5 @@
 namespace CargoDelivery.HttpAggregator.Domain.Clients;
 
-using System.Net;
 using System.Net.Http.Json;
 using CargoDelivery.HttpAggregator.Domain.Dtos;
 using Microsoft.Extensions.Logging;
@@ -10,11 +9,16 @@ using Microsoft.Extensions.Logging;
 /// 📦 CARGO ORDER API TYPED HTTP CLIENT (.NET 10 & IHttpClientFactory)
 /// ------------------------------------------------------------------------------------
 /// ПРИЗНАЧЕННЯ:
-/// Опитує мікросервіс CargoOrderingService за логічною адресою:
-/// "http://cargoorderingservice".
+/// Опитує мікросервіс CargoOrderingService за логічною адресою
+/// "https+http://cargoorderingservice".
 ///
 /// ДОМЕН:
-/// Отримує активні доставки та вантажі водія для відображення в диспетчерському дашборді.
+/// Отримує доставки водія для відображення в диспетчерському дашборді.
+///
+/// РОЛЬ В АГРЕГАЦІЇ:
+/// Доставки — ЖОРСТКА залежність (диспетчер не може планувати рейс без них), тому
+/// збій тут НЕ маскується "фейковими" даними: виняток прокидається вище, і клієнт
+/// отримує чесний 503 замість вигаданого рейсу.
 /// ====================================================================================
 /// </summary>
 public sealed class CargoOrderApiClient : ICargoOrderApiClient
@@ -31,38 +35,20 @@ public sealed class CargoOrderApiClient : ICargoOrderApiClient
     public async Task<List<AggregatedCargoOrderDto>> GetActiveOrdersByDriverIdAsync(
         Guid driverId, CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("Отримання активних доставок з CargoOrderingService для водія {DriverId}", driverId);
+        _logger.LogInformation("Отримання доставок з CargoOrderingService для водія {DriverId}", driverId);
 
         try
         {
-            var response = await _httpClient.GetAsync($"api/deliveries?driverId={driverId}", cancellationToken);
+            // GetFromJsonAsync = GetAsync + EnsureSuccessStatusCode + ReadFromJsonAsync в одному виклику
+            var orders = await _httpClient.GetFromJsonAsync<List<AggregatedCargoOrderDto>>(
+                $"api/internal/deliveries?driverId={driverId}", cancellationToken);
 
-            if (response.StatusCode == HttpStatusCode.NotFound)
-            {
-                return [];
-            }
-
-            response.EnsureSuccessStatusCode();
-
-            var orders = await response.Content.ReadFromJsonAsync<List<AggregatedCargoOrderDto>>(cancellationToken: cancellationToken);
             return orders ?? [];
         }
         catch (HttpRequestException ex)
         {
-            _logger.LogWarning(ex, "Помилка зв'язку з CargoOrderingService. Застосовуємо локальний fallback для водія {DriverId}", driverId);
-            // Повертаємо демонстраційний рейс при частковій недоступності для демонстрації агрегатора
-            return
-            [
-                new AggregatedCargoOrderDto
-                {
-                    OrderId = Guid.NewGuid(),
-                    CargoDescription = "Терміновий медичний вантаж (Стандартний рейс)",
-                    WeightKg = 1450.5m,
-                    OriginCity = "Київ",
-                    DestinationCity = "Львів",
-                    Status = "InTransit"
-                }
-            ];
+            _logger.LogWarning(ex, "Помилка зв'язку з CargoOrderingService для водія {DriverId}", driverId);
+            throw;
         }
     }
 }

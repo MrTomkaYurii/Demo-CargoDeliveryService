@@ -30,7 +30,7 @@ public static class UpdatePostAboutDriver
 
         public async Task Handle(Command request, CancellationToken cancellationToken)
         {
-            await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanUpdatePostAboutDriver);
+            // [AUTH-DISABLED] await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanUpdatePostAboutDriver);
 
             var postAboutDriverToUpdate = await _postAboutDriverRepository.GetById(request.PostAboutDriverId, cancellationToken: cancellationToken);
             var postAboutDriverToAdd = request.UpdatedPostAboutDriverData.ToPostAboutDriverForUpdate();

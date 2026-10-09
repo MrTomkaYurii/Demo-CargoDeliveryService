@@ -6,13 +6,23 @@
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
   </PropertyGroup>
 
+  <!--
+    EXTEXP0001: RemoveAllResilienceHandlers() у Microsoft.Extensions.Http.Resilience 10.x
+    позначений як експериментальний. Ми свідомо використовуємо його, щоб замінити глобальний
+    конвеєр Polly із ServiceDefaults на клієнт-специфічний (короткий бюджет для некритичних
+    залежностей / демо-параметри лабораторії стійкості).
+  -->
+  <PropertyGroup>
+    <NoWarn>$(NoWarn);EXTEXP0001</NoWarn>
+  </PropertyGroup>
+
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
     <DocumentationFile>DriversManagement.WebApi.xml</DocumentationFile>
-    <NoWarn>1701;1702;8632;1591;</NoWarn>
+    <NoWarn>$(NoWarn);1701;1702;8632;1591</NoWarn>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
     <DocumentationFile>DriversManagement.WebApi.xml</DocumentationFile>
-    <NoWarn>1701;1702;8632;1591;</NoWarn>
+    <NoWarn>$(NoWarn);1701;1702;8632;1591</NoWarn>
   </PropertyGroup>
   <ItemGroup>
     <Compile Remove="Protos\**" />
@@ -26,10 +36,10 @@
     <PackageReference Include="Destructurama.Attributed" Version="3.1.0" />
     <PackageReference Include="EFCore.NamingConventions" Version="8.0.1" />
     <PackageReference Include="FluentValidation.AspNetCore" Version="11.3.0" />
-    <PackageReference Include="Google.Protobuf" Version="3.25.2" />
-    <PackageReference Include="Grpc.AspNetCore" Version="2.60.0" />
-    <PackageReference Include="Grpc.Net.Client" Version="2.60.0" />
-    <PackageReference Include="Grpc.Tools" Version="2.61.0">
+    <PackageReference Include="Google.Protobuf" Version="3.30.2" />
+    <PackageReference Include="Grpc.AspNetCore" Version="2.71.0" />
+    <PackageReference Include="Grpc.Net.Client" Version="2.71.0" />
+    <PackageReference Include="Grpc.Tools" Version="2.71.0">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
@@ -66,16 +76,21 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\DriversBlogManagement\src\DriversBlogManagement\DriversBlogManagement.csproj">
-      <PrivateAssets>all</PrivateAssets>
-    </ProjectReference>
     <ProjectReference Include="..\..\..\SharedKernel\SharedKernel.csproj" />
     <ProjectReference Include="..\..\..\Aspire\CargoDelivery.ServiceDefaults\CargoDelivery.ServiceDefaults.csproj" />
   </ItemGroup>
 
 
+  <!--
+    gRPC CONTRACT-FIRST: DriversManagement НЕ посилається на проєкт DriversBlogManagement.
+    Спільним є лише контракт Driver.proto (єдине джерело правди). Grpc.Tools компілює його
+    тут у режимі GrpcServices="Client" — генерується тільки клієнт DriverRpc.DriverRpcClient.
+    Раніше тут був ProjectReference на весь сервіс блогу: це тягнуло в процес чужі
+    контролери (AmbiguousMatchException для /api/drivers), DbContext та інші залежності —
+    класичний "розподілений моноліт".
+  -->
   <ItemGroup>
-    <Folder Include="Protos\" />
+    <Protobuf Include="..\..\..\DriversBlogManagement\src\DriversBlogManagement\Domain\Drivers\Protos\Driver.proto" GrpcServices="Client" Link="Protos\Driver.proto" />
   </ItemGroup>
 
 </Project>

@@ -30,7 +30,7 @@ public static class AddDelivery
 
         public async Task<DeliveryDto> Handle(Command request, CancellationToken cancellationToken)
         {
-            await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanAddDelivery);
+            // [AUTH-DISABLED] await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanAddDelivery);
 
             var deliveryToAdd = request.DeliveryToAdd.ToDeliveryForCreation();
             var delivery = Delivery.Create(deliveryToAdd);

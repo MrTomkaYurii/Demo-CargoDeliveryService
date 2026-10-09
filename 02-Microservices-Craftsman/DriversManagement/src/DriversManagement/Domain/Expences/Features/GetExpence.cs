@@ -25,7 +25,7 @@ public static class GetExpence
 
         public async Task<ExpenceDto> Handle(Query request, CancellationToken cancellationToken)
         {
-            await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanReadExpence);
+            // [AUTH-DISABLED] await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanReadExpence);
 
             var result = await _expenceRepository.GetById(request.ExpenceId, cancellationToken: cancellationToken);
             return result.ToExpenceDto();

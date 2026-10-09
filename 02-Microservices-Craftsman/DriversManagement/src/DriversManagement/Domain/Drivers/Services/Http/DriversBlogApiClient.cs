@@ -47,7 +47,9 @@ public sealed class DriversBlogApiClient : IDriversBlogApiClient
     {
         try
         {
-            var requestUri = "api/v1/postaboutdrivers";
+            // Внутрішній ендпоінт блогу з фільтром за водієм (публічний /api/postaboutdrivers
+            // повертає ВСІ пости з пагінацією і не фільтрує їх за водієм).
+            var requestUri = $"api/internal/postaboutdrivers?driverId={driverId}";
 
             _logger.LogInformation("Надсилання HTTP GET запиту до {BaseAddress}{Uri} для водія {DriverId}",
                 _httpClient.BaseAddress, requestUri, driverId);
@@ -64,9 +66,9 @@ public sealed class DriversBlogApiClient : IDriversBlogApiClient
                 {
                     result.Add(new AggregatedBlogPostDto
                     {
-                        Id = item.TryGetProperty("id", out var idProp) && Guid.TryParse(idProp.GetString(), out var g) ? g : Guid.NewGuid(),
+                        Id = item.TryGetProperty("postId", out var idProp) && Guid.TryParse(idProp.GetString(), out var g) ? g : Guid.Empty,
                         Title = item.TryGetProperty("title", out var tProp) ? tProp.GetString() ?? "Без назви" : "Без назви",
-                        Content = item.TryGetProperty("description", out var cProp) ? cProp.GetString() ?? "" : ""
+                        Content = item.TryGetProperty("summary", out var cProp) ? cProp.GetString() ?? "" : ""
                     });
                 }
             }

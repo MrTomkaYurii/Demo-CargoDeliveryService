@@ -1,0 +1,80 @@
+### ====================================================================================
+### 🧪 ЛАБОРАТОРНІ ЗАПИТИ ДЛЯ СТЕНДУ 02-Microservices-Craftsman
+### ------------------------------------------------------------------------------------
+### Запуск: dotnet run --project Aspire/CargoDelivery.AppHost (усі порти нижче — фіксовані
+### з launchSettings.json кожного сервісу; Aspire проксіює їх до процесів).
+### Відкривається у Visual Studio / Rider (вбудовано) або у VS Code (розширення REST Client).
+### Після кожного запиту відкрийте Aspire Dashboard → Traces, щоб побачити дерево спанів.
+### ====================================================================================
+
+@drivers = https://localhost:5001
+@blog = https://localhost:5002
+@ordering = https://localhost:5003
+@aggregator = https://localhost:57390
+
+### 1️⃣ Створити водія (DriversManagement). Подія IDriverCreated полетить у RabbitMQ,
+###    і за ~1 с тіньові копії з'являться в блозі та в сервісі замовлень.
+# @name createDriver
+POST {{drivers}}/api/drivers
+Content-Type: application/json
+
+{
+  "firstName": "Тарас",
+  "lastName": "Коваленко",
+  "middleName": "Іванович",
+  "gender": "Male",
+  "birthdate": "1985-04-12",
+  "phone": "+380501234567",
+  "email": "taras@cargo.ua",
+  "driverLicenseNumber": "DL-994421",
+  "driverLicenseCategory": "CE",
+  "employmentStatus": "Active"
+}
+
+### Ідентифікатор водія з відповіді (Visual Studio / Rider / REST Client підставлять автоматично)
+@driverId = {{createDriver.response.body.$.id}}
+
+### 2️⃣ Перевірити реплікацію: тіньовий водій у блозі (має той самий Id)
+GET {{blog}}/api/drivers
+
+### 3️⃣ Демо-дані: доставка для водія (CargoOrderingService)
+POST {{ordering}}/api/internal/deliveries/demo-seed?driverId={{driverId}}
+
+### 4️⃣ Демо-дані: дорожня замітка для водія (DriversBlogManagement)
+POST {{blog}}/api/internal/postaboutdrivers/demo-seed?driverId={{driverId}}
+
+### 5️⃣ gRPC: профіль водія + пости з блогу (REST → MediatR → gRPC HTTP/2)
+GET {{drivers}}/api/drivers/{{driverId}}
+
+### 6️⃣ BFF-агрегатор усередині DriversManagement (Task.WhenAll: БД + 2 HTTP-виклики)
+GET {{drivers}}/api/v1/driver-dashboard/{{driverId}}
+
+### 7️⃣ Виділений Gateway Aggregator (Scatter-Gather до трьох сервісів)
+GET {{aggregator}}/api/v1/shipment-summary/{{driverId}}
+
+### 8️⃣ 404: неіснуючий водій — агрегатор не опитує решту сервісів
+GET {{aggregator}}/api/v1/shipment-summary/00000000-0000-0000-0000-000000000001
+
+### 9️⃣ Polly Retry: /flaky двічі повертає 503, на 3-й спробі — 200 (≈0.5 с)
+GET {{aggregator}}/api/v1/resilience-demo/retry
+
+### 🔟 Polly Timeout: кожна спроба обривається через 2 с, загальний бюджет 8 с → fallback
+GET {{aggregator}}/api/v1/resilience-demo/timeout
+
+### 1️⃣1️⃣ Polly Circuit Breaker: перший виклик іде в мережу, наступні — BrokenCircuitException за 0 мс
+GET {{aggregator}}/api/v1/resilience-demo/circuit-breaker
+
+### 1️⃣2️⃣ Сирі ендпоінти симулятора збоїв
+GET {{aggregator}}/api/simulation/flaky?failUntil=2
+
+###
+GET {{aggregator}}/api/simulation/slow?delaySeconds=2
+
+###
+GET {{aggregator}}/api/simulation/error
+
+### 1️⃣3️⃣ Зонди здоров'я
+GET {{aggregator}}/health
+
+###
+GET {{aggregator}}/alive

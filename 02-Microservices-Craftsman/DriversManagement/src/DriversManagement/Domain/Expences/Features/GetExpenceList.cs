@@ -30,7 +30,7 @@ public static class GetExpenceList
 
         public async Task<PagedList<ExpenceDto>> Handle(Query request, CancellationToken cancellationToken)
         {
-            await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanReadExpences);
+            // [AUTH-DISABLED] await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanReadExpences);
 
             var collection = _expenceRepository.Query().AsNoTracking();
 

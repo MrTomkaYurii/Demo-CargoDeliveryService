@@ -43,7 +43,9 @@ public sealed class ShipmentAggregatorService : IShipmentAggregatorService
     {
         _logger.LogInformation("Початок агрегації рейсу для водія {DriverId}", driverId);
 
-        // КРОК 1: Перевірка водія у сервісі DriversManagement
+        // КРОК 1: Перевірка водія у сервісі DriversManagement (ПОСЛІДОВНИЙ бар'єр, Guard Check).
+        // Водій — корінь агрегації. Якщо його не існує, опитувати замовлення та блог немає сенсу:
+        // ми економимо 2 мережеві виклики і не створюємо зайвого навантаження на сусідні сервіси.
         var driver = await _driverApiClient.GetDriverByIdAsync(driverId, cancellationToken);
         if (driver == null)
         {
@@ -51,22 +53,29 @@ public sealed class ShipmentAggregatorService : IShipmentAggregatorService
             throw new KeyNotFoundException($"Водія з ID {driverId} не знайдено в системі DriversManagement.");
         }
 
+        // Прапорець часткової деградації. Його змінює лямбда onFailure у SafeFetchRoadNotesAsync.
         bool isDegraded = false;
 
-        // КРОК 2: Паралельний Fan-Out до CargoOrderingService та DriversBlogManagement
+        // КРОК 2: Паралельний Fan-Out (Scatter) до CargoOrderingService та DriversBlogManagement.
+        // Зверніть увагу: тут НЕМАЄ await — ми лише ЗАПУСКАЄМО обидва HTTP-запити. Обидва вже
+        // летять мережею одночасно, а потік не блокується (очікування I/O не займає потоків пулу).
+        // Доставки — жорстка залежність: їхній виняток НЕ перехоплюється і дійде до контролера (503).
         var ordersTask = _cargoOrderApiClient.GetActiveOrdersByDriverIdAsync(driverId, cancellationToken);
 
         var blogNotesTask = SafeFetchRoadNotesAsync(
             () => _driverBlogApiClient.GetRoadNotesByDriverIdAsync(driverId, cancellationToken),
             onFailure: () => isDegraded = true);
 
-        // КРОК 3: Fan-In через Task.WhenAll
+        // КРОК 3: Fan-In (Gather) через Task.WhenAll — чекаємо завершення ОБОХ задач.
+        // Загальний час ≈ max(t_orders, t_blog), а не їхня сума.
+        // Якщо ordersTask впаде, await Task.WhenAll перекине ПЕРШИЙ виняток з AggregateException.
         await Task.WhenAll(ordersTask, blogNotesTask);
 
+        // Задачі вже завершені, тож ці await миттєво повертають результат (без повторного виклику)
         var orders = await ordersTask;
         var notes = await blogNotesTask;
 
-        // КРОК 4: Формування підсумкового DTO
+        // КРОК 4: Композиція (Composition) — формування підсумкового DTO під потреби диспетчера
         var summary = new ShipmentSummaryDto
         {
             DriverId = driverId,
@@ -84,6 +93,13 @@ public sealed class ShipmentAggregatorService : IShipmentAggregatorService
         return summary;
     }
 
+    /// <summary>
+    /// Обгортка відмовостійкості (Fault Isolation) для НЕКРИТИЧНОЇ залежності — блогу.
+    /// Будь-який збій (HTTP 5xx після повторів Polly, таймаут, розімкнений Circuit Breaker)
+    /// перетворюється на порожній список + прапорець деградації, а не на HTTP 500 для клієнта.
+    /// Скасування запиту (OperationCanceledException) свідомо НЕ ковтається: якщо клієнт
+    /// пішов, продовжувати агрегацію немає сенсу.
+    /// </summary>
     private async Task<List<AggregatedBlogNoteDto>> SafeFetchRoadNotesAsync(
         Func<Task<List<AggregatedBlogNoteDto>>> fetchAction,
         Action onFailure)
@@ -92,8 +108,9 @@ public sealed class ShipmentAggregatorService : IShipmentAggregatorService
         {
             return await fetchAction();
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
+            // Warning, а не Error: збій передбачений і опрацьований — сервіс продовжує працювати
             _logger.LogWarning(ex, "Мікросервіс DriversBlogManagement недоступний. Застосовано Graceful Degradation.");
             onFailure();
             return [];

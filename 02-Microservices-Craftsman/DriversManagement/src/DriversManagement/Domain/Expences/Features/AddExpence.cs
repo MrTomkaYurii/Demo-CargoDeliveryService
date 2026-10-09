@@ -30,7 +30,7 @@ public static class AddExpence
 
         public async Task<ExpenceDto> Handle(Command request, CancellationToken cancellationToken)
         {
-            await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanAddExpence);
+            // [AUTH-DISABLED] await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanAddExpence);
 
             var expenceToAdd = request.ExpenceToAdd.ToExpenceForCreation();
             var expence = Expence.Create(expenceToAdd);

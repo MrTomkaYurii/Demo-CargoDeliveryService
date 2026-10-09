@@ -70,7 +70,7 @@ public static class AddDriver
         public async Task<DriverDto> Handle(Command request, CancellationToken cancellationToken)
         {
             // Перевірка прав користувача (RBAC) через HeimGuard
-            await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanAddDriver);
+            // [AUTH-DISABLED] await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanAddDriver);
 
             // КРОК 1: Створення багатого доменного агрегату (Rich Domain Model)
             var driverToAdd = request.DriverToAdd.ToDriverForCreation();

@@ -28,7 +28,7 @@ public static class RemoveUserRole
 
         public async Task Handle(Command request, CancellationToken cancellationToken)
         {
-            await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanRemoveUserRoles);
+            // [AUTH-DISABLED] await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanRemoveUserRoles);
             var user = await _userRepository.GetById(request.UserId, true, cancellationToken);
 
             var roleToRemove = user.RemoveRole(new Role(request.Role));

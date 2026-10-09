@@ -26,7 +26,7 @@ public static class DeletePostAboutDriver
 
         public async Task Handle(Command request, CancellationToken cancellationToken)
         {
-            await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanDeletePostAboutDriver);
+            // [AUTH-DISABLED] await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanDeletePostAboutDriver);
 
             var recordToDelete = await _postAboutDriverRepository.GetById(request.PostAboutDriverId, cancellationToken: cancellationToken);
             _postAboutDriverRepository.Remove(recordToDelete);

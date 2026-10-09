@@ -73,7 +73,7 @@ public static class GetDriver
         public async Task<FullDataAboutDriverAndPostsDto> Handle(Query request, CancellationToken cancellationToken)
         {
             // Перевірка дозволів безпеки за допомогою політики доступу HeimGuard
-            await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanReadDriver);
+            // [AUTH-DISABLED] await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanReadDriver);
 
             var result = new FullDataAboutDriverAndPostsDto();
 
@@ -97,7 +97,7 @@ public static class GetDriver
                 // Мапимо отримані Protobuf-повідомлення в DTO домену
                 if (grpcResponse?.Posts != null)
                 {
-                    result.Posts = grpcResponse.Posts.Select(p => new DriversBlogManagement.Domain.PostAboutDrivers.Dtos.PostAboutDriverDto
+                    result.Posts = grpcResponse.Posts.Select(p => new PostAboutDriverDto
                     {
                         Id = Guid.TryParse(p.Id, out var postId) ? postId : Guid.Empty,
                         Title = p.Title,
@@ -109,7 +109,7 @@ public static class GetDriver
             {
                 // Graceful Degradation: якщо віддалений сервіс блогів недоступний,
                 // ми повертаємо дані водія з порожньою колекцією постів, рятуючи запит користувача
-                result.Posts = new List<DriversBlogManagement.Domain.PostAboutDrivers.Dtos.PostAboutDriverDto>();
+                result.Posts = new List<PostAboutDriverDto>();
             }
 
             return result;

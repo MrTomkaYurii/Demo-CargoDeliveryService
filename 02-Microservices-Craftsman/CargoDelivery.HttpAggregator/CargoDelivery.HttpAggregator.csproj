@@ -7,6 +7,16 @@
     <RootNamespace>CargoDelivery.HttpAggregator</RootNamespace>
   </PropertyGroup>
 
+  <!--
+    EXTEXP0001: RemoveAllResilienceHandlers() у Microsoft.Extensions.Http.Resilience 10.x
+    позначений як експериментальний. Ми свідомо використовуємо його, щоб замінити глобальний
+    конвеєр Polly із ServiceDefaults на клієнт-специфічний (короткий бюджет для некритичних
+    залежностей / демо-параметри лабораторії стійкості).
+  -->
+  <PropertyGroup>
+    <NoWarn>$(NoWarn);EXTEXP0001</NoWarn>
+  </PropertyGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\Aspire\CargoDelivery.ServiceDefaults\CargoDelivery.ServiceDefaults.csproj" />
   </ItemGroup>

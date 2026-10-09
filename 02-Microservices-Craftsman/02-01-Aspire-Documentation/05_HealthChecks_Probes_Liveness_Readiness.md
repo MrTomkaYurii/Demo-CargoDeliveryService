@@ -1,7 +1,7 @@
 # 🩺 05. Діагностика мікросервісів: Health Checks, Liveness та Readiness Probes
 
 > **Розділ курсу:** `02-Microservices-Craftsman` • **Модуль:** `02-01-Aspire-Documentation`  
-> **Стек:** .NET 10, C# 13, ASP.NET Core Health Checks, Kubernetes Probes RFC, Aspire Dashboard Health Status, WebApplicationFactory  
+> **Стек:** .NET 10, ASP.NET Core Health Checks, Kubernetes Probes, Aspire `WithHttpHealthCheck` / Dashboard Health Status, WebApplicationFactory  
 > **Цільова аудиторія:** Архітектори надійності (SRE), системні аналітики, Lead .NET інженери, розробники хмарної інфраструктури  
 > **Офіційна специфікація та документація:**  
 > - [ASP.NET Core Health Checks in .NET](https://learn.microsoft.com/aspnet/core/host-and-deploy/health-checks)  
@@ -22,7 +22,8 @@
 - [8. Діаграма станів життєвого циклу контейнера під контролем зондів](#section-8)
 - [9. Автоматизоване тестування зондів у CargoDelivery.HttpAggregator.Tests](#section-9)
 - [10. Архітектурна матриця: Антипатерни vs Еталонні практики проектування зондів](#section-10)
-- [11. Контрольні запитання та лабораторні вправи](#section-11)
+- [11. Як Aspire використовує /health: WithHttpHealthCheck, WaitFor та колонка Health](#section-11a)
+- [12. Контрольні запитання та лабораторні вправи](#section-11)
 
 ---
 
@@ -48,7 +49,7 @@ flowchart LR
     subgraph Microservice ["📦 Контейнер Microservice"]
         Router["🔀 Kestrel HTTP Pipeline"]
         HC["🩺 ASP.NET Core HealthCheck Engine"]
-        DBCheck["🐘 Npgsql DB Ping"]
+        DBCheck["💾 SQL Server Ping (SELECT 1)"]
         RMQCheck["🐰 RabbitMQ Socket Ping"]
         SelfCheck["💻 Process CLR Ping"]
     end
@@ -78,7 +79,7 @@ flowchart LR
 2. **Взаємне блокування (Deadlock на Monitor/lock або синхронізаторах транзакцій):**
    * Два фонові потоки заблокували спільні ресурси у перехресному порядку. Процес споживає 0% CPU, але жоден запит не обробляється.
 3. **Вичерпання пулу з'єднань з базою даних (Database Connection Pool Exhaustion):**
-   * Розробники забули закрити підключення (`NpgsqlConnection` / `SqlConnection`). Пул вичерпав ліміт у 100 підключень. Наступні бізнес-запити зависають на 15 секунд і падають з помилкою `TimeoutException`.
+   * Розробники забули закрити підключення (`SqlConnection` / `DbContext` поза `using`). Пул вичерпав ліміт у 100 підключень (значення `Max Pool Size` за замовчуванням). Наступні бізнес-запити чекають на вільне з'єднання 15 секунд (`Connect Timeout`) і падають з помилкою `InvalidOperationException: Timeout expired... max pool size was reached`.
 4. **Нескінченна пауза збирача сміття (Garbage Collection Pause / Heap Fragmentation):**
    * Через витік пам'яті в Large Object Heap (LOH) процес знаходиться у стані агресивного збирання Full GC Gen 2, блокуючи виконання коду на кілька секунд.
 
@@ -97,7 +98,7 @@ flowchart LR
 | **Семантичне питання** | *"Чи завершилась ініціалізація застосунку?"* | *"Чи живий внутрішній цикл виконання процесу CLR?"* | *"Чи готовий сервіс обробляти реальні бізнес-запити клієнтів?"* |
 | **Що перевіряє?** | Міграції бази даних, розігрів кешів, JIT-компільовані структури. | Виключно стан процесу, пам'ять та цикл потоків (перевірка `"self"`). | Доступність бази даних, брокера RabbitMQ, обов'язкових зовнішніх API. |
 | **Реакція оркестратора при збої** | Чекає до закінчення ліміту `failureThreshold`. При перевищенні — рестарт. | **Негайне примусове вбивство контейнера (SIGKILL / Container Restart).** | **Зняття контейнера з балансувальника навантаження (Remove from Ingress).** Контейнер НЕ вбивають! |
-| **Тег у коді .NET** | `tags: ["startup"]` | `tags: ["live"]` | `tags: ["ready"]` (або всі зареєстровані перевірки). |
+| **Тег у коді .NET** | `tags: ["startup"]` (у нашому коді окремий ендпоінт не замаплено) | `tags: ["live"]` | Усі зареєстровані перевірки (`/health` без предиката). |
 | **Вплив на інфраструктуру** | Тимчасовий на етапі старту. | Захищає від безвихідних Deadlock. | Захищає користувачів від отримання помилок 502/503. |
 
 ---
@@ -105,14 +106,14 @@ flowchart LR
 <a id="section-4"></a>
 ## 4. Антипатерн "Спіраль смерті" (The Cascading Death Spiral)
 
-Найнебезпечнішою помилкою інженерів є включення зовнішніх залежностей (бази даних PostgreSQL або черги RabbitMQ) до зонда **Liveness (`/alive`)**.
+Найнебезпечнішою помилкою інженерів є включення зовнішніх залежностей (бази даних SQL Server або черги RabbitMQ) до зонда **Liveness (`/alive`)**.
 
 ### Сценарій виникнення катастрофічної спіралі смерті:
 
 ```mermaid
 sequenceDiagram
     autonumber
-    participant DB as 🐘 База даних PostgreSQL (Під високим навантаженням)
+    participant DB as 💾 База даних SQL Server (Під високим навантаженням)
     participant Pod1 as 📦 Pod 1 (Driver Service)
     participant Pod2 as 📦 Pod 2 (Driver Service)
     participant Kube as ⚙️ Оркестратор (Kubelet)
@@ -151,7 +152,7 @@ sequenceDiagram
 
 Усі перевірки централізовані у спільному проєкті `CargoDelivery.ServiceDefaults`.
 
-> 📍 **Вихідний код:** [Extensions.cs](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/02-Microservices-Craftsman/Aspire/CargoDelivery.ServiceDefaults/Extensions.cs)
+> 📍 **Вихідний код:** [Extensions.cs#L214](../Aspire/CargoDelivery.ServiceDefaults/Extensions.cs#L214) (реєстрація) • [Extensions.cs#L248](../Aspire/CargoDelivery.ServiceDefaults/Extensions.cs#L248) (маршрути)
 
 ### 1. Реєстрація базового зонда життя процесу
 
@@ -198,28 +199,49 @@ public static WebApplication MapDefaultEndpoints(this WebApplication app)
 <a id="section-6"></a>
 ## 6. Проєктування перевірок для зовнішніх залежностей (БД, RabbitMQ, HTTP)
 
-Для повноцінної перевірки готовності мікросервісів обробляти бізнес-запити до конвеєра `builder.Services.AddHealthChecks()` додаються спеціалізовані перевірки:
+Для повноцінної перевірки готовності мікросервісів обробляти бізнес-запити до конвеєра `builder.Services.AddHealthChecks()` додаються спеціалізовані перевірки.
 
-### Приклад розширення для мікросервісу з БД та чергою:
+> ⚖️ **Поточний стан проєкту.** Зараз у сервісах зареєстрована лише перевірка `self` (з ServiceDefaults), а Craftsman-сервіси додатково викликають порожній `builder.Services.AddHealthChecks()` ([DriversManagement WebAppServiceConfiguration.cs#L39](../DriversManagement/src/DriversManagement/Extensions/Services/WebAppServiceConfiguration.cs#L39)) і мапять старий маршрут `api/health` ([Program.cs#L56](../DriversManagement/src/DriversManagement/Program.cs#L56)). Отже, `/health` поки **не** перевіряє БД і брокер. Приклади нижче — це рекомендоване розширення, яке ви можете додати як практичне завдання.
+
+### Варіант А: перевірка через EF Core DbContext (без додаткових пакетів, крім одного)
 
 ```csharp
+// NuGet: Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore
 builder.Services.AddHealthChecks()
-    // Перевірка доступності PostgreSQL через відкриття з'єднання та легкий SELECT 1;
-    .AddNpgSql(
-        connectionString: builder.Configuration.GetConnectionString("cargo-db")!,
-        name: "postgresql_check",
+    // Виконує DbContext.Database.CanConnectAsync() — реальне з'єднання з SQL Server.
+    // Без тегу "live" → потрапить у /health (Readiness), але НЕ в /alive (Liveness).
+    .AddDbContextCheck<DriversManagementContext>(
+        name: "sqlserver-driversmanagement",
+        failureStatus: HealthStatus.Unhealthy,
+        tags: ["ready", "db"]);
+```
+
+### Варіант Б: спеціалізовані перевірки з бібліотеки AspNetCore.HealthChecks.*
+
+```csharp
+// NuGet: AspNetCore.HealthChecks.SqlServer, AspNetCore.HealthChecks.Rabbitmq
+builder.Services.AddHealthChecks()
+    // Відкриває з'єднання та виконує легкий SELECT 1
+    .AddSqlServer(
+        connectionString: builder.Configuration.GetConnectionString("DriversManagement")!,
+        name: "sqlserver_check",
         failureStatus: HealthStatus.Unhealthy,
         tags: ["ready", "db"],
         timeout: TimeSpan.FromSeconds(3))
     
     // Перевірка доступності брокера повідомлень RabbitMQ
+    // (точна сигнатура залежить від версії пакета; у нових версіях приймає фабрику IConnection)
     .AddRabbitMQ(
-        rabbitConnectionString: builder.Configuration.GetConnectionString("messaging")!,
         name: "rabbitmq_check",
-        failureStatus: HealthStatus.Degraded, // Якщо черга впала, можемо працювати в режимі деградації!
+        failureStatus: HealthStatus.Degraded, // Якщо брокер впав, HTTP API все ще може обслуговувати читання!
         tags: ["ready", "broker"],
         timeout: TimeSpan.FromSeconds(2));
 ```
+
+### Варіант В: клієнтські інтеграції Aspire
+Пакети на кшталт `Aspire.Microsoft.EntityFrameworkCore.SqlServer` (`builder.AddSqlServerDbContext<T>("name")`) або `Aspire.RabbitMQ.Client` реєструють DbContext/клієнт **разом** із health check, OpenTelemetry-інструментацією та повторами. У нашому проєкті DbContext реєструється «по-Craftsman-ському» (`AddDbContext` у `InfrastructureServiceExtension`), тому перевірки треба додавати вручну (варіанти А/Б).
+
+> 💡 **Чому для RabbitMQ — `Degraded`, а не `Unhealthy`?** Якщо брокер недоступний, сервіс не зможе публікувати події, але може відповідати на запити читання. Позначка `Degraded` залишає інстанс у балансуванні (HTTP 200) і водночас підсвічує проблему в дашборді. Рішення залежить від домену: для сервісу, весь сенс якого — обробка черги, правильніше `Unhealthy`.
 
 ### Три статуси перевірки здоров'я (`HealthStatus`):
 * `HealthStatus.Healthy` (HTTP 200) — підсистема повністю функціональна.
@@ -277,11 +299,11 @@ app.MapHealthChecks("/health/details", new HealthCheckOptions
       "exception": null
     },
     {
-      "name": "postgresql_check",
+      "name": "sqlserver_check",
       "status": "Unhealthy",
       "durationMs": 310.1,
-      "description": "Timeout connecting to host 'localhost:5432'",
-      "exception": "Npgsql.NpgsqlException: Connection refused"
+      "description": "A network-related or instance-specific error occurred while establishing a connection to SQL Server.",
+      "exception": "Microsoft.Data.SqlClient.SqlException: ... (provider: TCP Provider, error: 40 - Could not open a connection to SQL Server)"
     }
   ]
 }
@@ -334,7 +356,7 @@ stateDiagram-v2
 
 Для гарантії того, що зонди здоров'я завжди сконфігуровані коректно і не зламаються при зміні залежностей або рефакторингу, у тестовому проєкті реалізовано автоматизовані функціональні тести:
 
-> 📍 **Вихідний код:** [HttpAggregatorEndpointTests.cs](file:///c:/Users/Yurii/source/repos/Demo-CargoDeliveryService/02-Microservices-Craftsman/CargoDelivery.HttpAggregator.Tests/FunctionalTests/HttpAggregatorEndpointTests.cs)
+> 📍 **Вихідний код:** [HttpAggregatorEndpointTests.cs](../CargoDelivery.HttpAggregator.Tests/FunctionalTests/HttpAggregatorEndpointTests.cs) — `/health` [#L18](../CargoDelivery.HttpAggregator.Tests/FunctionalTests/HttpAggregatorEndpointTests.cs#L18), `/alive` [#L30](../CargoDelivery.HttpAggregator.Tests/FunctionalTests/HttpAggregatorEndpointTests.cs#L30), `/api/simulation/ok` [#L42](../CargoDelivery.HttpAggregator.Tests/FunctionalTests/HttpAggregatorEndpointTests.cs#L42)
 
 ```csharp
 public sealed class HttpAggregatorEndpointTests : IClassFixture<WebApplicationFactory<Program>>
@@ -374,7 +396,9 @@ public sealed class HttpAggregatorEndpointTests : IClassFixture<WebApplicationFa
 ```
 
 ### Чому ці тести критичні?
-* Вони виконуються в CI/CD конвеєрі за 380 мілісекунд.
+* Вони виконуються за частки секунди (увесь набір `CargoDelivery.HttpAggregator.Tests` з 6 тестів — ≈0.4 с), бо `WebApplicationFactory` піднімає застосунок у пам'яті (`TestServer`) без реальних сокетів.
+* `WebApplicationFactory<Program>` за замовчуванням запускає застосунок у середовищі **Development** — саме тому `MapDefaultEndpoints()` мапить `/health` і `/alive` (умова `IsDevelopment()`), і тести їх бачать.
+* `OTEL_EXPORTER_OTLP_ENDPOINT` у тестах не задано, тому OTLP-експортер не реєструється ([гайд 02, §7](02_ServiceDefaults_Architecture_And_Parameters.md#section-7)) і тести не намагаються з'єднатися з дашбордом.
 * Якщо будь-який розробник помилково видалить `.AddDefaultHealthChecks()` або зламає `MapDefaultEndpoints()`, білд негайно впаде ще до потрапляння в репозиторій.
 
 ---
@@ -393,19 +417,64 @@ public sealed class HttpAggregatorEndpointTests : IClassFixture<WebApplicationFa
 
 ---
 
+<a id="section-11a"></a>
+## 11. Як Aspire використовує /health: WithHttpHealthCheck, WaitFor та колонка Health
+
+Aspire сам по собі **не знає**, що всередині .NET-проєкту є ендпоінт `/health`. Зв'язок задається в AppHost:
+
+```csharp
+var driversApi = builder.AddProject<Projects.DriversManagement>("driversmanagement")
+    // ...
+    .WithHttpHealthCheck("/health")   // 👈 Aspire періодично викликає GET /health цього ресурсу
+    .WaitFor(driversDb);
+```
+> 📍 [AppHost.cs#L101](../Aspire/CargoDelivery.AppHost/AppHost.cs#L101) (а також [#L66](../Aspire/CargoDelivery.AppHost/AppHost.cs#L66), [#L81](../Aspire/CargoDelivery.AppHost/AppHost.cs#L81), [#L120](../Aspire/CargoDelivery.AppHost/AppHost.cs#L120))
+
+| Що відбувається | Де це видно |
+| :--- | :--- |
+| Aspire реєструє health check з іменем на кшталт `driversmanagement_https_/health_200_check` (очікує код 200 від HTTPS-ендпоінта) | Деталі ресурсу → секція *Health checks* |
+| Результат перевірки визначає стан здоров'я ресурсу (`Healthy` / `Unhealthy`) | Іконка стану в колонці *State* вкладки *Resources* |
+| Залежні ресурси з `.WaitFor(driversApi)` стартують лише після `Healthy` | `httpaggregator` перебуває в стані `Waiting`, доки всі три сервіси не стануть Healthy |
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant Host as 🎯 Aspire (DCP + AppHost)
+    participant DM as 🚚 DriversManagement
+    participant Agg as 🛡️ HttpAggregator
+
+    Host->>DM: Старт процесу
+    Note over Agg: State = Waiting (WaitFor driversmanagement)
+    loop Кожні кілька секунд
+        Host->>DM: GET https://localhost:5001/health
+        DM-->>Host: 503 / немає відповіді (ще стартує, міграції)
+    end
+    Host->>DM: GET /health
+    DM-->>Host: 200 Healthy
+    Host->>Agg: Старт процесу (WaitFor знято)
+```
+
+> ⚠️ **Без `WithHttpHealthCheck`** проєкт вважається здоровим, щойно процес запущено, — тобто `WaitFor` захищав би лише від «процес ще не створено», але не від «Kestrel ще не слухає порт» чи «міграції ще йдуть». Раніше AppHost у проєкті був саме таким, хоча документація обіцяла очікування `/health`.
+
+> 🔁 **Два маршрути здоров'я в Craftsman-сервісах.** Окрім `/health` і `/alive` із ServiceDefaults, шаблон Craftsman мапить ще `api/health` ([Program.cs#L56](../DriversManagement/src/DriversManagement/Program.cs#L56)). Він виконує ті самі перевірки, що й `/health`, але відкритий у будь-якому середовищі. Aspire використовує саме `/health`.
+
+---
+
 <a id="section-11"></a>
-## 11. Контрольні запитання та лабораторні вправи
+## 12. Контрольні запитання та лабораторні вправи
 
 ### 🎯 Контрольні запитання:
 1. Опишіть фізичний механізм виникнення «Спіралі смерті» (Cascading Death Spiral) при додаванні перевірки SQL Server до зонда Liveness.
 2. Чим відрізняється поведінка балансувальника трафіку (Ingress/Kube-Proxy) при отриманні статусу `Unhealthy` від зонда Readiness порівняно зі статусом `Degraded`?
 3. Чому ендпоінти діагностики здоров'я у файлі `Extensions.cs` мапляться виключно за умови `if (app.Environment.IsDevelopment())`, або за наявності захисту вхідного периметра в продакшні?
 4. Які переваги надає використання класу `WebApplicationFactory<Program>` для тестування Health Checks порівняно з ручним запуском сервісу через консоль?
+5. Чому `.WaitFor(project)` без `.WithHttpHealthCheck("/health")` не захищає від помилки `Connection refused` на старті?
 
 ### 🛠️ Практичне лабораторне завдання:
 1. Запустіть проєкт `CargoDelivery.AppHost`.
-2. Відкрийте браузер і надішліть GET-запити на:
-   * `http://localhost:<порт_агрегатора>/alive`
-   * `http://localhost:<порт_агрегатора>/health`
-3. Перевірте статус сервісу у стовпчику **Health** в інтерфейсі **Aspire Dashboard**.
-4. Створіть власну перевірку здоров'я `SlowDependencyHealthCheck`, яка штучно затримує відповідь на 4 секунди, та протестуйте роботу таймауту діагностики.
+2. Відкрийте браузер (або [CargoDelivery.HttpAggregator.http](../CargoDelivery.HttpAggregator/CargoDelivery.HttpAggregator.http), запит 1️⃣3️⃣) і надішліть GET-запити на:
+   * `https://localhost:57390/alive`
+   * `https://localhost:57390/health`
+3. Перевірте стан здоров'я ресурсів у вкладці **Resources** та секцію *Health checks* у деталях ресурсу `httpaggregator` в **Aspire Dashboard**.
+4. Додайте в DriversManagement перевірку `AddDbContextCheck<DriversManagementContext>()` (варіант А з §6), перезапустіть AppHost і переконайтеся, що вона з'явилась у `/health`, але не в `/alive`.
+5. Створіть власну перевірку здоров'я `SlowDependencyHealthCheck`, яка штучно затримує відповідь на 4 секунди, та протестуйте, як це впливає на стан ресурсу в дашборді і на старт залежних сервісів.

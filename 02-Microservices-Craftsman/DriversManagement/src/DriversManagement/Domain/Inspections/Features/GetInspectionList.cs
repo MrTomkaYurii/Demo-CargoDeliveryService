@@ -30,7 +30,7 @@ public static class GetInspectionList
 
         public async Task<PagedList<InspectionDto>> Handle(Query request, CancellationToken cancellationToken)
         {
-            await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanReadInspections);
+            // [AUTH-DISABLED] await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanReadInspections);
 
             var collection = _inspectionRepository.Query().AsNoTracking();
 

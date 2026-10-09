@@ -42,10 +42,12 @@ public static class MassTransitServiceExtension
                 mt.AddConsumers(Assembly.GetExecutingAssembly());
                 mt.UsingRabbitMq((context, cfg) =>
                 {
+                    // Розбираємо amqp-URI від Aspire: amqp://user:password@host:port/vhost.
+                    // Uri.UserInfo — percent-encoded, тому значення декодуємо.
                     var uri = new Uri(rmqConnectionString);
                     var userInfo = uri.UserInfo.Split(':');
-                    var username = userInfo.Length > 0 && !string.IsNullOrEmpty(userInfo[0]) ? userInfo[0] : "guest";
-                    var password = userInfo.Length > 1 ? userInfo[1] : "guest";
+                    var username = userInfo.Length > 0 && !string.IsNullOrEmpty(userInfo[0]) ? Uri.UnescapeDataString(userInfo[0]) : "guest";
+                    var password = userInfo.Length > 1 ? Uri.UnescapeDataString(userInfo[1]) : "guest";
                     var vhost = string.IsNullOrEmpty(uri.AbsolutePath.Trim('/')) ? "/" : uri.AbsolutePath.Trim('/');
 
                     cfg.Host(uri.Host, uri.Port > 0 ? (ushort)uri.Port : (ushort)5672, vhost, h =>

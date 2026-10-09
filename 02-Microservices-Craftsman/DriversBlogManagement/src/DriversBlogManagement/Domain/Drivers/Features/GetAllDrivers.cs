@@ -30,7 +30,7 @@ public static class GetAllDrivers
 
         public async Task<List<DriverDto>> Handle(Query request, CancellationToken cancellationToken)
         {
-            await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanReadDrivers);
+            // [AUTH-DISABLED] await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanReadDrivers);
 
             return _driverRepository.Query()
                 .AsNoTracking()

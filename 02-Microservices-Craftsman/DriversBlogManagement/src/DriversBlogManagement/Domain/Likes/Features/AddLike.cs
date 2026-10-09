@@ -30,7 +30,7 @@ public static class AddLike
 
         public async Task<LikeDto> Handle(Command request, CancellationToken cancellationToken)
         {
-            await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanAddLike);
+            // [AUTH-DISABLED] await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanAddLike);
 
             var likeToAdd = request.LikeToAdd.ToLikeForCreation();
             var like = Like.Create(likeToAdd);

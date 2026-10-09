@@ -26,7 +26,7 @@ public static class DeleteRolePermission
 
         public async Task Handle(Command request, CancellationToken cancellationToken)
         {
-            await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanDeleteRolePermissions);
+            // [AUTH-DISABLED] await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanDeleteRolePermissions);
 
             var recordToDelete = await _rolePermissionRepository.GetById(request.RolePermissionId, cancellationToken: cancellationToken);
             _rolePermissionRepository.Remove(recordToDelete);

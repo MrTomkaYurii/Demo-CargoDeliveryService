@@ -29,7 +29,7 @@ public static class GetAllDeliveries
 
         public async Task<List<DeliveryDto>> Handle(Query request, CancellationToken cancellationToken)
         {
-            await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanReadDeliveries);
+            // [AUTH-DISABLED] await _heimGuard.MustHavePermission<ForbiddenAccessException>(Permissions.CanReadDeliveries);
 
             return _deliveryRepository.Query()
                 .AsNoTracking()

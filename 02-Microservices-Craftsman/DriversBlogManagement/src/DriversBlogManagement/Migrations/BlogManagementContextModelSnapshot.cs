@@ -17,7 +17,7 @@ namespace DriversBlogManagement.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "7.0.11")
+                .HasAnnotation("ProductVersion", "8.0.0")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
@@ -25,6 +25,7 @@ namespace DriversBlogManagement.Migrations
             modelBuilder.Entity("DriversBlogManagement.Domain.BlogUsers.BlogUser", b =>
                 {
                     b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier")
                         .HasColumnName("id");
 
@@ -116,6 +117,7 @@ namespace DriversBlogManagement.Migrations
             modelBuilder.Entity("DriversBlogManagement.Domain.Drivers.Driver", b =>
                 {
                     b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier")
                         .HasColumnName("id");
 
@@ -211,6 +213,10 @@ namespace DriversBlogManagement.Migrations
                         .HasColumnType("uniqueidentifier")
                         .HasColumnName("id");
 
+                    b.Property<Guid?>("BlogUserId")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("blog_user_id");
+
                     b.Property<string>("Content")
                         .HasColumnType("nvarchar(max)")
                         .HasColumnName("content");
@@ -222,6 +228,10 @@ namespace DriversBlogManagement.Migrations
                     b.Property<DateTime>("CreatedOn")
                         .HasColumnType("datetime2")
                         .HasColumnName("created_on");
+
+                    b.Property<Guid?>("DriverId")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("driver_id");
 
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit")
@@ -241,6 +251,16 @@ namespace DriversBlogManagement.Migrations
 
                     b.HasKey("Id")
                         .HasName("pk_post_about_drivers");
+
+                    b.HasIndex("BlogUserId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_post_about_drivers_blog_user_id")
+                        .HasFilter("[blog_user_id] IS NOT NULL");
+
+                    b.HasIndex("DriverId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_post_about_drivers_driver_id")
+                        .HasFilter("[driver_id] IS NOT NULL");
 
                     b.ToTable("post_about_drivers", (string)null);
                 });
@@ -383,18 +403,6 @@ namespace DriversBlogManagement.Migrations
                     b.ToTable("user_roles", (string)null);
                 });
 
-            modelBuilder.Entity("DriversBlogManagement.Domain.BlogUsers.BlogUser", b =>
-                {
-                    b.HasOne("DriversBlogManagement.Domain.PostAboutDrivers.PostAboutDriver", "PostAboutDriver")
-                        .WithOne("BlogUser")
-                        .HasForeignKey("DriversBlogManagement.Domain.BlogUsers.BlogUser", "Id")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("fk_blog_users_post_about_drivers_post_about_driver_id");
-
-                    b.Navigation("PostAboutDriver");
-                });
-
             modelBuilder.Entity("DriversBlogManagement.Domain.Comments.Comment", b =>
                 {
                     b.HasOne("DriversBlogManagement.Domain.PostAboutDrivers.PostAboutDriver", "PostAboutDriver")
@@ -410,18 +418,6 @@ namespace DriversBlogManagement.Migrations
                     b.Navigation("PostAboutDriver");
 
                     b.Navigation("User");
-                });
-
-            modelBuilder.Entity("DriversBlogManagement.Domain.Drivers.Driver", b =>
-                {
-                    b.HasOne("DriversBlogManagement.Domain.PostAboutDrivers.PostAboutDriver", "PostAboutDriver")
-                        .WithOne("Driver")
-                        .HasForeignKey("DriversBlogManagement.Domain.Drivers.Driver", "Id")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("fk_drivers_post_about_drivers_post_about_driver_id");
-
-                    b.Navigation("PostAboutDriver");
                 });
 
             modelBuilder.Entity("DriversBlogManagement.Domain.Likes.Like", b =>
@@ -441,6 +437,23 @@ namespace DriversBlogManagement.Migrations
                     b.Navigation("PostAboutDriver");
                 });
 
+            modelBuilder.Entity("DriversBlogManagement.Domain.PostAboutDrivers.PostAboutDriver", b =>
+                {
+                    b.HasOne("DriversBlogManagement.Domain.BlogUsers.BlogUser", "BlogUser")
+                        .WithOne("PostAboutDriver")
+                        .HasForeignKey("DriversBlogManagement.Domain.PostAboutDrivers.PostAboutDriver", "BlogUserId")
+                        .HasConstraintName("fk_post_about_drivers_blog_users_blog_user_id");
+
+                    b.HasOne("DriversBlogManagement.Domain.Drivers.Driver", "Driver")
+                        .WithOne("PostAboutDriver")
+                        .HasForeignKey("DriversBlogManagement.Domain.PostAboutDrivers.PostAboutDriver", "DriverId")
+                        .HasConstraintName("fk_post_about_drivers_drivers_driver_id");
+
+                    b.Navigation("BlogUser");
+
+                    b.Navigation("Driver");
+                });
+
             modelBuilder.Entity("DriversBlogManagement.Domain.Users.UserRole", b =>
                 {
                     b.HasOne("DriversBlogManagement.Domain.Users.User", "User")
@@ -451,18 +464,21 @@ namespace DriversBlogManagement.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("DriversBlogManagement.Domain.BlogUsers.BlogUser", b =>
+                {
+                    b.Navigation("PostAboutDriver");
+                });
+
             modelBuilder.Entity("DriversBlogManagement.Domain.Drivers.Driver", b =>
                 {
                     b.Navigation("Likes");
+
+                    b.Navigation("PostAboutDriver");
                 });
 
             modelBuilder.Entity("DriversBlogManagement.Domain.PostAboutDrivers.PostAboutDriver", b =>
                 {
-                    b.Navigation("BlogUser");
-
                     b.Navigation("Comments");
-
-                    b.Navigation("Driver");
 
                     b.Navigation("Likes");
                 });
