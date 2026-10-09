@@ -230,7 +230,7 @@ sequenceDiagram
     C-->>C: 201 CreatedAtRoute("GetDriver")
 ```
 * Контролер: [DriversController.cs#L88](../DriversManagement/src/DriversManagement/Controllers/v1/DriversController.cs#L88) — лише формує команду і викликає `_mediator.Send`.
-* Обробник: [AddDriver.cs#L70-L95](../DriversManagement/src/DriversManagement/Domain/Drivers/Features/AddDriver.cs#L70) — створення агрегату, збереження ([#L81](../DriversManagement/src/DriversManagement/Domain/Drivers/Features/AddDriver.cs#L81)), публікація події ([#L85](../DriversManagement/src/DriversManagement/Domain/Drivers/Features/AddDriver.cs#L85)).
+* Обробник: [AddDriver.cs#L70](../DriversManagement/src/DriversManagement/Domain/Drivers/Features/AddDriver.cs#L70) — створення агрегату, збереження ([#L81](../DriversManagement/src/DriversManagement/Domain/Drivers/Features/AddDriver.cs#L81)), публікація події ([#L85](../DriversManagement/src/DriversManagement/Domain/Drivers/Features/AddDriver.cs#L85)).
 
 > 💡 **Навіщо посередник (Mediator)?** Контролер не знає, хто і як обробить команду. Це дозволяє додавати наскрізну поведінку (логування, транзакції, валідацію) через `IPipelineBehavior<,>` без зміни обробників. У поточному коді Craftsman pipeline-поведінок не підключено — це гарне місце для розширення (наприклад, FluentValidation-валідатора команд).
 

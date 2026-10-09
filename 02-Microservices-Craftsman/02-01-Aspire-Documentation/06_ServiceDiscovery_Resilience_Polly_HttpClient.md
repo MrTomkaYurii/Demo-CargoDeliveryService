@@ -74,7 +74,7 @@ flowchart TD
 
 У рішенні .NET Aspire клієнтське виявлення сервісів інтегровано на рівні базової конфігурації через пакет `Microsoft.Extensions.ServiceDiscovery` (підключається в [Extensions.cs#L65](../Aspire/CargoDelivery.ServiceDefaults/Extensions.cs#L65) і [#L86](../Aspire/CargoDelivery.ServiceDefaults/Extensions.cs#L86)).
 
-> 📍 **Реєстрація у [Program.cs#L45-L49](../CargoDelivery.HttpAggregator/Program.cs#L45):**
+> 📍 **Реєстрація у [Program.cs#L68](../CargoDelivery.HttpAggregator/Program.cs#L68):**
 
 ```csharp
 builder.Services.AddHttpClient<IDriverApiClient, DriverApiClient>(client =>
@@ -201,7 +201,7 @@ flowchart TD
 
 > ⏱️ **Як рахується найгірший випадок?** Сервіс «завис» (не відповідає): спроба 1 — 10 с, пауза ≈2 с, спроба 2 — 10 с, пауза ≈4 с, спроба 3 обривається вже **загальним** таймаутом на 30-й секунді. Тому зупинений через дашборд Aspire сервіс (проксі DCP приймає з'єднання, але не відповідає) змушує клієнта чекати **рівно ~30 с**. Саме це ми бачили у вимірах до налаштування короткого бюджету для блогу ([гайд 03, §8](03_HttpAggregator_Gateway_Architecture_And_Design.md#section-8)).
 
-> 🐞 **Вкладені конвеєри.** Якщо до клієнта, який уже отримав стандартний конвеєр через `ConfigureHttpClientDefaults`, ще раз дописати `.AddStandardResilienceHandler()`, то утвориться **два** конвеєри один в одному: зовнішній Retry повторює **увесь** внутрішній конвеєр з його власними повторами. Саме так було в агрегаторі та BFF до виправлення. Правильно — `RemoveAllResilienceHandlers()` і потім `AddStandardResilienceHandler(options => …)` з потрібними параметрами ([Program.cs#L55-L64](../CargoDelivery.HttpAggregator/Program.cs#L55)).
+> 🐞 **Вкладені конвеєри.** Якщо до клієнта, який уже отримав стандартний конвеєр через `ConfigureHttpClientDefaults`, ще раз дописати `.AddStandardResilienceHandler()`, то утвориться **два** конвеєри один в одному: зовнішній Retry повторює **увесь** внутрішній конвеєр з його власними повторами. Саме так було в агрегаторі та BFF до виправлення. Правильно — `RemoveAllResilienceHandlers()` і потім `AddStandardResilienceHandler(options => …)` з потрібними параметрами ([Program.cs#L78](../CargoDelivery.HttpAggregator/Program.cs#L78)).
 
 ---
 
@@ -269,7 +269,7 @@ $$\text{FailureRatio} = \frac{N_{\text{errors}}}{N_{\text{total}}} \ge \theta \q
 | Сценарії | [ResilienceDemoController.cs](../CargoDelivery.HttpAggregator/Controllers/ResilienceDemoController.cs) | `/retry`, `/timeout`, `/circuit-breaker` — запускають експеримент і повертають звіт |
 
 ### Окремий конвеєр Polly на кожен сценарій
-Стандартні параметри (затримка 2 с, таймаут спроби 10 с, Circuit Breaker після 100 запитів) непридатні для живої демонстрації. Тому кожен сценарій має **власний іменований клієнт** зі своїми параметрами ([Program.cs#L80-L119](../CargoDelivery.HttpAggregator/Program.cs#L80)):
+Стандартні параметри (затримка 2 с, таймаут спроби 10 с, Circuit Breaker після 100 запитів) непридатні для живої демонстрації. Тому кожен сценарій має **власний іменований клієнт** зі своїми параметрами ([Program.cs#L103](../CargoDelivery.HttpAggregator/Program.cs#L103)):
 
 ```csharp
 builder.Services.AddTransient<ISimulationApiClient, SimulationApiClient>();
@@ -461,7 +461,7 @@ for (var call = 1; call <= 5; call++)
 Дефолтні налаштування `AddStandardResilienceHandler()` оптимізовані під загальні сценарії. Проте в реальних системах існують різні профілі трафіку.
 
 ### Профіль «некритична залежність» (реальний код проєкту)
-Блог водіїв — «приємне доповнення» до екрана. Краще швидко показати екран без заміток, ніж чекати 30 с ([агрегатор Program.cs#L55-L64](../CargoDelivery.HttpAggregator/Program.cs#L55), [BFF WebAppServiceConfiguration.cs#L94](../DriversManagement/src/DriversManagement/Extensions/Services/WebAppServiceConfiguration.cs#L94)):
+Блог водіїв — «приємне доповнення» до екрана. Краще швидко показати екран без заміток, ніж чекати 30 с ([агрегатор Program.cs#L78](../CargoDelivery.HttpAggregator/Program.cs#L78), [BFF WebAppServiceConfiguration.cs#L100](../DriversManagement/src/DriversManagement/Extensions/Services/WebAppServiceConfiguration.cs#L100)):
 
 ```csharp
 builder.Services.AddHttpClient<IDriverBlogApiClient, DriverBlogApiClient>(client =>
@@ -538,10 +538,10 @@ builder.Services.AddHttpClient<ICriticalPaymentClient, CriticalPaymentClient>()
 6. Чому в експерименті з Circuit Breaker виклики #3–#5 не мають дочірніх HTTP-спанів у трейсі?
 
 ### 🛠️ Практичне лабораторне завдання:
-Готові запити — у [CargoDelivery.HttpAggregator.http](../CargoDelivery.HttpAggregator/CargoDelivery.HttpAggregator.http) (запити 9️⃣–1️⃣2️⃣). Swagger в агрегаторі не підключено, тому використовуйте `.http`-файл, браузер або `curl -k`.
+Готові запити — у [CargoDelivery.HttpAggregator.http](../CargoDelivery.HttpAggregator/CargoDelivery.HttpAggregator.http) (запити 9️⃣–1️⃣2️⃣). Або Swagger UI агрегатора: `https://localhost:57390/swagger` (розділи *ResilienceDemo* та *Simulation*).
 1. Запустіть проєкт через `CargoDelivery.AppHost`.
 2. Виконайте `GET /api/v1/resilience-demo/retry`. Зафіксуйте час виконання та перегляньте відповідний трейс у Aspire Dashboard (три клієнтські спани).
 3. Виконайте `GET /api/v1/resilience-demo/timeout` і переконайтеся, що контролер повернув `TimeoutHandled` приблизно через 8 с. Знайдіть у *Structured logs* події `OnTimeout`.
 4. Виконайте `GET /api/v1/resilience-demo/circuit-breaker` двічі поспіль, потім ще раз через 15 с. Поясніть різницю результатів.
-5. У [Program.cs#L83](../CargoDelivery.HttpAggregator/Program.cs#L83) змініть для сценарію Retry `MaxRetryAttempts` на 1 і повторіть експеримент 2 — чому тепер повертається `Exhausted`?
+5. У [Program.cs#L106](../CargoDelivery.HttpAggregator/Program.cs#L106) змініть для сценарію Retry `MaxRetryAttempts` на 1 і повторіть експеримент 2 — чому тепер повертається `Exhausted`?
 6. Зупиніть `driversblogmanagement` у дашборді та порівняйте час відповіді `GET /api/v1/shipment-summary/{id}` з поточним коротким бюджетом і з тимчасово видаленим блоком `.RemoveAllResilienceHandlers().AddStandardResilienceHandler(...)` для клієнта блогу.

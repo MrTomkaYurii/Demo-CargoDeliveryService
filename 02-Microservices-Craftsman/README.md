@@ -24,7 +24,8 @@
 dotnet run --project "02-Microservices-Craftsman\Aspire\CargoDelivery.AppHost\CargoDelivery.AppHost.csproj"
 ```
 * Дашборд Aspire: `https://localhost:17048` (URL з токеном входу друкується в консолі).
-* Сервіси: DriversManagement `https://localhost:5001/swagger`, DriversBlogManagement `:5002/swagger`, CargoOrderingService `:5003/swagger`, HttpAggregator `https://localhost:57390`.
+* Сервіси (Swagger): DriversManagement `https://localhost:5001/swagger`, DriversBlogManagement `:5002/swagger`, CargoOrderingService `:5003/swagger`, HttpAggregator `https://localhost:57390/swagger`.
+* Бази наповнюються демо-даними автоматично (Bogus): 50 водіїв, 30 компаній, 15 вантажівок, 50 постів, 50 замовлень із доставками — водії реплікуються між сервісами через RabbitMQ ([як це працює](02-01-Aspire-Documentation/01_Aspire_Orchestration_AppHost_DeepDive.md#section-9)).
 * Готові запити для всіх сценаріїв: [CargoDelivery.HttpAggregator.http](CargoDelivery.HttpAggregator/CargoDelivery.HttpAggregator.http).
 * ⚠️ Авторизацію (Keycloak / HeimGuard) для навчального стенду вимкнено — усі такі місця позначені `// [AUTH-DISABLED]`.
 * Потрібен запущений Docker Desktop. Контейнери ефемерні — бази створюються заново при кожному запуску ([чому і як змінити](02-01-Aspire-Documentation/01_Aspire_Orchestration_AppHost_DeepDive.md#section-9)).

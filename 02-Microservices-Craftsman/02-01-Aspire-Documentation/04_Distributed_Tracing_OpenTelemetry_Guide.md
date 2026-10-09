@@ -192,7 +192,7 @@ $$\underbrace{\text{00}}_{\text{Версія}} - \underbrace{\text{4bf92f3577b34
 
 Усе налаштування OpenTelemetry централізовано у спільному проєкті:
 
-> 📍 **Файл:** [Extensions.cs#L147-L161](../Aspire/CargoDelivery.ServiceDefaults/Extensions.cs#L147)
+> 📍 **Файл:** [Extensions.cs#L147](../Aspire/CargoDelivery.ServiceDefaults/Extensions.cs#L147)
 
 ### Деконструкція коду реєстрації OpenTelemetry Tracing (реальний код):
 
@@ -312,7 +312,7 @@ sequenceDiagram
 * Це наочно доводить працездатність нашого захисного коду: аварія другорядного сервісу локалізована, а користувач отримав валідну зведену сторінку рейсу.
 
 ### Сценарій 2: Візуалізація транзієнтних повторів Polly (Retry Pattern)
-При виклику `GET /api/v1/resilience-demo/retry` (демо-клієнт з базовою затримкою повтору 200 мс — [Program.cs#L83](../CargoDelivery.HttpAggregator/Program.cs#L83)):
+При виклику `GET /api/v1/resilience-demo/retry` (демо-клієнт з базовою затримкою повтору 200 мс — [Program.cs#L106](../CargoDelivery.HttpAggregator/Program.cs#L106)):
 
 ```
 [Trace: httpaggregator: GET api/v1/resilience-demo/retry]   (≈ 0.4–0.6 с)

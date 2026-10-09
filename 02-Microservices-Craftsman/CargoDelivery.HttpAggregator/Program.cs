@@ -30,7 +30,30 @@ var builder = WebApplication.CreateBuilder(args);
 builder.AddServiceDefaults();
 
 builder.Services.AddControllers();
+
+// ====================================================================================
+// 📘 SWAGGER / OpenAPI (Swashbuckle) — інтерактивна документація та "пісочниця" API
+// ------------------------------------------------------------------------------------
+// AddEndpointsApiExplorer збирає метадані про маршрути контролерів, а AddSwaggerGen
+// будує з них OpenAPI-документ (/swagger/v1/swagger.json). XML-коментарі (///) з
+// контролерів підтягуються як описи ендпоінтів. UI відкривається на /swagger —
+// саме туди веде посилання ресурсу httpaggregator в Aspire Dashboard (launchUrl).
+// ====================================================================================
 builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen(options =>
+{
+    options.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo
+    {
+        Title = "CargoDelivery.HttpAggregator",
+        Version = "v1",
+        Description = "Gateway Aggregator (Scatter-Gather) + лабораторія стійкості Polly. " +
+                      "Водіїв для запитів беріть із DriversManagement: GET https://localhost:5001/api/drivers"
+    });
+
+    var xmlFile = Path.Combine(AppContext.BaseDirectory, $"{typeof(Program).Assembly.GetName().Name}.xml");
+    if (File.Exists(xmlFile))
+        options.IncludeXmlComments(xmlFile);
+});
 
 // ====================================================================================
 // 🌐 2. РЕЄСТРАЦІЯ ТИПІЗОВАНИХ HTTP-КЛІЄНТІВ (TYPED CLIENTS) ЗІ SERVICE DISCOVERY
@@ -127,6 +150,13 @@ var app = builder.Build();
 
 // Діагностичні ендпоінти Aspire (/health, /alive)
 app.MapDefaultEndpoints();
+
+// Swagger UI лише в розробці: у продакшні опис внутрішнього API не варто виставляти назовні
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI(options => options.DocumentTitle = "CargoDelivery.HttpAggregator — Swagger");
+}
 
 app.UseRouting();
 app.MapControllers();

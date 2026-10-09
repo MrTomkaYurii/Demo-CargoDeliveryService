@@ -239,7 +239,7 @@ stateDiagram-v2
 
 ## 6. Проблема подвійного запису (Dual-Write Problem) та Eventual Consistency
 
-У розподілених системах без розподілених двофазних блокуючих транзакцій (2PC / WS-AtomicTransaction) існує класична проблема ([AddDriver.cs#L81-L85](../DriversManagement/src/DriversManagement/Domain/Drivers/Features/AddDriver.cs#L81)):
+У розподілених системах без розподілених двофазних блокуючих транзакцій (2PC / WS-AtomicTransaction) існує класична проблема ([AddDriver.cs#L81](../DriversManagement/src/DriversManagement/Domain/Drivers/Features/AddDriver.cs#L81)):
 
 ```csharp
 // 1. Локальна транзакція
@@ -272,6 +272,13 @@ flowchart LR
 ### Наслідки Eventual Consistency для UI та API
 * Між `201 Created` у DriversManagement і появою тіньового водія в блозі/замовленнях минає час (на стенді — <1 с). Якщо в цей проміжок викликати `demo-seed` або gRPC `GetDriverWithPosts`, отримаєте `404` / `NotFound` — це **нормально** для асинхронної архітектури, а не баг.
 * Тому gRPC-клієнт трактує `NotFound` від блогу як «постів поки немає» і не ламає профіль водія.
+
+### Демо-сідинг як навчальний приклад Eventual Consistency
+При кожному старті стенду DriversManagement створює 50 водіїв і публікує 50 подій `IDriverCreated` ([DemoDataSeeder.cs#L156](../DriversManagement/src/DriversManagement/Databases/DemoDataSeeder.cs#L156)). Сідери блогу і замовлень **не знають** про водіїв напряму — вони чекають, доки споживачі `SyncDriver` / `SyncDriverInOrdering` створять тіньові копії, і лише тоді генерують пости та замовлення ([блог](../DriversBlogManagement/src/DriversBlogManagement/Databases/DemoDataSeeder.cs#L107), [замовлення](../CargoOrderingService/src/CargoOrderingService/Databases/DemoDataSeeder.cs#L117)). Критерій «реплікацію завершено» — кількість водіїв > 0 і не змінюється дві перевірки поспіль.
+
+Що варто спостерігати в Aspire Dashboard одразу після старту:
+* **Traces:** 50 трейсів `send driver-created` → `*-sync-driver receive/process`.
+* **Structured logs** (фільтр `🌱` або `MassTransit`): «Опубліковано 50 подій IDriverCreated…», далі «Створено 50 дорожніх заміток…» і «Створено 50 замовлень…» — порядок і затримки між ними і є Eventual Consistency.
 
 ---
 
@@ -355,7 +362,7 @@ await _publishEndpoint.Publish<IDriverCreated>(new DriverCreated
 
 У конфігурації шини ми явно прив'язуємо інтерфейси до імен обмінників типу `Fanout`:
 
-> 📍 **Шлях до файлу:** `DriversManagement/src/DriversManagement/Extensions/Services/ProducerRegistrations/DriverCreatedEndpointRegistration.cs` — [#L28-L29](../DriversManagement/src/DriversManagement/Extensions/Services/ProducerRegistrations/DriverCreatedEndpointRegistration.cs#L28)
+> 📍 **Шлях до файлу:** `DriversManagement/src/DriversManagement/Extensions/Services/ProducerRegistrations/DriverCreatedEndpointRegistration.cs` — [#L28](../DriversManagement/src/DriversManagement/Extensions/Services/ProducerRegistrations/DriverCreatedEndpointRegistration.cs#L28)
 
 [👉 **Перейти до файлу (клікніть тут)**](../DriversManagement/src/DriversManagement/Extensions/Services/ProducerRegistrations/DriverCreatedEndpointRegistration.cs#L28)
 
@@ -403,7 +410,7 @@ public sealed class SyncDriver : IConsumer<IDriverCreated>, IConsumer<IDriverUpd
 
 Конфігурація кінцевої точки та зв'язування з обмінниками:
 
-> 📍 **Шлях до файлу:** `DriversBlogManagement/src/DriversBlogManagement/Extensions/Services/ConsumerRegistrations/SyncPatientEndpointRegistration.cs` — черга [#L33](../DriversBlogManagement/src/DriversBlogManagement/Extensions/Services/ConsumerRegistrations/SyncPatientEndpointRegistration.cs#L33), повтори [#L52](../DriversBlogManagement/src/DriversBlogManagement/Extensions/Services/ConsumerRegistrations/SyncPatientEndpointRegistration.cs#L52), прив'язки [#L58-L65](../DriversBlogManagement/src/DriversBlogManagement/Extensions/Services/ConsumerRegistrations/SyncPatientEndpointRegistration.cs#L58)  
+> 📍 **Шлях до файлу:** `DriversBlogManagement/src/DriversBlogManagement/Extensions/Services/ConsumerRegistrations/SyncPatientEndpointRegistration.cs` — черга [#L33](../DriversBlogManagement/src/DriversBlogManagement/Extensions/Services/ConsumerRegistrations/SyncPatientEndpointRegistration.cs#L33), повтори [#L52](../DriversBlogManagement/src/DriversBlogManagement/Extensions/Services/ConsumerRegistrations/SyncPatientEndpointRegistration.cs#L52), прив'язки [#L58](../DriversBlogManagement/src/DriversBlogManagement/Extensions/Services/ConsumerRegistrations/SyncPatientEndpointRegistration.cs#L58)  
 > 📝 *Назва `SyncPatient...` — спадок шаблону Craftsman; за змістом це реєстрація споживача водіїв.*
 
 [👉 **Перейти до файлу (клікніть тут)**](../DriversBlogManagement/src/DriversBlogManagement/Extensions/Services/ConsumerRegistrations/SyncPatientEndpointRegistration.cs#L33)

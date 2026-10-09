@@ -413,7 +413,7 @@ var httpAggregator = builder.AddProject<Projects.CargoDelivery_HttpAggregator>("
    * `services__cargoorderingservice__https__0 = https://localhost:5003`
    * `services__driversblogmanagement__https__0 = https://localhost:5002`
    
-   Ключі `http__0` не з'являються, бо в `launchSettings.json` наших сервісів оголошено лише HTTPS-адреси. Тому клієнти агрегатора використовують схему `https+http://` — «спершу HTTPS, якщо немає — HTTP» ([Program.cs#L45](../CargoDelivery.HttpAggregator/Program.cs#L45)).
+   Ключі `http__0` не з'являються, бо в `launchSettings.json` наших сервісів оголошено лише HTTPS-адреси. Тому клієнти агрегатора використовують схему `https+http://` — «спершу HTTPS, якщо немає — HTTP» ([Program.cs#L68](../CargoDelivery.HttpAggregator/Program.cs#L68)).
 3. **Захист життєвого циклу:** Агрегатор не запускається до тих пір, поки всі три мікросервіси не піднімуть власні HTTP-слухачі та не дадуть відповідь `200 OK` на зонд `/health` (завдяки `.WithHttpHealthCheck` на кожному з них).
 
 ---
@@ -427,7 +427,7 @@ Aspire усуває людський фактор конфігурації. Та
 | :--- | :--- | :--- |
 | `.WithReference(rabbitmq)` | `ConnectionStrings__rabbitmq = amqp://guest:…@localhost:{порт}` | `configuration.GetConnectionString("rabbitmq")` — [MassTransitServiceExtension.cs#L36](../DriversManagement/src/DriversManagement/Extensions/Services/MassTransitServiceExtension.cs#L36) |
 | `.WithReference(driversDb, connectionName: "DriversManagement")` | `ConnectionStrings__DriversManagement = Server=…;Database=dev_driversmanagement;…` | `ConnectionStringOptions.DriversManagement` — [ConnectionStringOptions.cs](../DriversManagement/src/DriversManagement/Configurations/ConnectionStringOptions.cs) |
-| `.WithReference(cargoApi)` | `services__cargoorderingservice__https__0 = https://localhost:5003` | `new Uri("https+http://cargoorderingservice")` + `AddServiceDiscovery()` — [Program.cs#L48](../CargoDelivery.HttpAggregator/Program.cs#L48) |
+| `.WithReference(cargoApi)` | `services__cargoorderingservice__https__0 = https://localhost:5003` | `new Uri("https+http://cargoorderingservice")` + `AddServiceDiscovery()` — [Program.cs#L71](../CargoDelivery.HttpAggregator/Program.cs#L71) |
 | Автоматично для всіх проєктів | `OTEL_EXPORTER_OTLP_ENDPOINT`, `OTEL_EXPORTER_OTLP_HEADERS`, `OTEL_EXPORTER_OTLP_PROTOCOL` | `AddOpenTelemetryExporters()` у ServiceDefaults — [Extensions.cs#L185](../Aspire/CargoDelivery.ServiceDefaults/Extensions.cs#L185) |
 | Автоматично для кожного проєкту | `OTEL_SERVICE_NAME`, `OTEL_RESOURCE_ATTRIBUTES` | Встановлює унікальне ім'я вузла в трасуванні (`driversmanagement` тощо) |
 | Автоматично для кожного проєкту | `ASPNETCORE_URLS`, `ASPNETCORE_ENVIRONMENT=Development` | Kestrel слухає призначені порти; ендпоінти `/health` і `/alive` відкриті лише в Development |
@@ -483,7 +483,40 @@ AppHost не запускає Docker напряму. Він передає оп�
 
 > ⚠️ Якщо ви ввімкнете `WithDataVolume()`, пароль `sa` має лишатися стабільним між запусками — Aspire зберігає його в user secrets AppHost. Якщо секрети видалити, SQL Server у старому томі не прийме новий пароль.
 
-### 9.3. Стани ресурсу в дашборді
+### 9.3. Демо-дані: автоматичний сідинг через Bogus
+Оскільки бази порожні після кожного старту, кожен сервіс має фоновий `DemoDataSeeder` (реєструється **лише в Development** — саме в цьому середовищі сервіси запускає AppHost). Сідинг навмисно побудований так, щоб демонструвати архітектуру, а не обходити її:
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant DM as 🚚 DriversManagement (DemoDataSeeder)
+    participant RMQ as 🐰 RabbitMQ (driver-created)
+    participant Blog as 📝 DriversBlogManagement (DemoDataSeeder)
+    participant Ord as 📦 CargoOrderingService (DemoDataSeeder)
+
+    DM->>DM: Bogus("uk"): 50 водіїв + 30 компаній + 15 вантажівок → SaveChanges
+    DM->>DM: Очікування, поки шина MassTransit стане Healthy
+    DM->>RMQ: 50 × Publish IDriverCreated
+    RMQ-->>Blog: SyncDriver → 50 тіньових водіїв (ті самі Id)
+    RMQ-->>Ord: SyncDriverInOrdering → 50 тіньових водіїв
+    Blog->>Blog: Чекає, доки кількість водіїв стабілізується → 50 постів
+    Ord->>Ord: Чекає, доки кількість водіїв стабілізується → 50 замовлень + 50 доставок
+```
+
+| Сервіс | Файл | Що створює |
+| :--- | :--- | :--- |
+| DriversManagement | [DemoDataSeeder.cs](../DriversManagement/src/DriversManagement/Databases/DemoDataSeeder.cs#L68) | 50 водіїв, компанії для 60% з них, 15 вантажівок; публікує `IDriverCreated` ([#L156](../DriversManagement/src/DriversManagement/Databases/DemoDataSeeder.cs#L156)) |
+| DriversBlogManagement | [DemoDataSeeder.cs](../DriversBlogManagement/src/DriversBlogManagement/Databases/DemoDataSeeder.cs#L54) | По одному посту («дорожній замітці») на кожного тіньового водія |
+| CargoOrderingService | [DemoDataSeeder.cs](../CargoOrderingService/src/CargoOrderingService/Databases/DemoDataSeeder.cs#L50) | 50 замовлень із заповненими доставками, призначеними водіям |
+
+Важливі деталі реалізації:
+* **Фіксоване зерно Bogus** (`UseSeed(2026)`) — дані однакові від запуску до запуску (ті самі імена, номери посвідчень), але `Id` генеруються заново.
+* **Ідемпотентність:** якщо дані вже є (наприклад, ви ввімкнули `WithDataVolume()`), сідинг пропускається.
+* **Порядок старту:** сідер реєструється після `AddInfrastructure`, тож `MigrationHostedService` встигає створити схему раніше.
+* **Збій сідингу не валить сервіс** — помилка лише логується з позначкою 🌱 (видно в *Structured logs*).
+* Водії для запитів: `GET https://localhost:5001/api/drivers/all` (повертає всіх без пагінації).
+
+### 9.4. Стани ресурсу в дашборді
 `Waiting` (чекає на `WaitFor`) → `Starting` → `Running` + Health `Healthy` / `Unhealthy` → `Finished` / `Exited` (процес завершився) / `FailedToStart`. Кнопки ▶/■ у колонці *Actions* дозволяють зупиняти та запускати окремі ресурси — це наш головний інструмент для експериментів зі збоями.
 
 ---

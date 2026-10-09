@@ -346,6 +346,35 @@
             Deletes an existing User record.
             </summary>
         </member>
+        <member name="T:DriversManagement.Databases.DemoDataSeeder">
+             <summary>
+             ====================================================================================
+             🌱 ДЕМО-СІДИНГ DriversManagement (Bogus) — ДЖЕРЕЛО ПРАВДИ ПРО ВОДІЇВ
+             ------------------------------------------------------------------------------------
+             ПРИЗНАЧЕННЯ:
+             Контейнери Aspire ефемерні (без томів даних), тож при кожному запуску бази порожні.
+             Цей фоновий сервіс наповнює БД навчальними даними, щоб дашборд, BFF, gRPC і
+             агрегатор одразу мали що показати:
+               - 50 водіїв (українська локаль Bogus);
+               - компанії-перевізники для частини водіїв (зв'язок Company ↔ Driver "один-до-одного");
+               - 15 вантажівок автопарку.
+            
+             ЧОМУ ПОДІЇ, А НЕ СІДИНГ У КОЖНОМУ СЕРВІСІ ОКРЕМО?
+             DriversManagement — єдине джерело правди про водіїв. Для кожного створеного водія
+             публікується IDriverCreated → RabbitMQ (Fanout) → тіньові копії з'являються в
+             DriversBlogManagement та CargoOrderingService ТИМИ САМИМИ Id. Тобто сідинг сам є
+             живою демонстрацією Event-Driven реплікації (видно в Aspire Dashboard → Traces).
+            
+             БЕЗПЕКА ПОВТОРНОГО ЗАПУСКУ:
+             - працює лише в Development (реєстрація в WebAppServiceConfiguration);
+             - якщо водії вже є (наприклад, підключено том даних), сідинг пропускається.
+            
+             ПОРЯДОК СТАРТУ:
+             MigrationHostedService зареєстрований раніше, тож до виклику ExecuteAsync схема вже
+             створена. Перед публікацією чекаємо, поки шина MassTransit стане Healthy.
+             ====================================================================================
+             </summary>
+        </member>
         <member name="M:DriversManagement.Databases.EntityConfigurations.CompanyConfiguration.Configure(Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder{DriversManagement.Domain.Companies.Company})">
             <summary>
             The database configuration for Companies. 

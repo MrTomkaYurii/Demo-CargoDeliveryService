@@ -17,12 +17,21 @@
     <NoWarn>$(NoWarn);EXTEXP0001</NoWarn>
   </PropertyGroup>
 
+  <!--
+    XML-документація з /// коментарів контролерів показується у Swagger UI (summary, параметри).
+    CS1591 ("немає XML-коментаря для публічного члена") вимкнено, щоб не вимагати коментарів скрізь.
+  -->
+  <PropertyGroup>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);1591</NoWarn>
+  </PropertyGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\Aspire\CargoDelivery.ServiceDefaults\CargoDelivery.ServiceDefaults.csproj" />
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.0-preview.1.25120.3" />
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="6.5.0" />
   </ItemGroup>
 
 </Project>

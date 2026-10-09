@@ -204,9 +204,9 @@ public interface IDriversBlogApiClient
 
 Реєстрація клієнтів здійснюється у файлі конфігурації сервісів:
 
-> 📍 **Шлях до файлу:** `DriversManagement/src/DriversManagement/Extensions/Services/WebAppServiceConfiguration.cs` — HTTP-клієнти [#L75-L82](../DriversManagement/src/DriversManagement/Extensions/Services/WebAppServiceConfiguration.cs#L75), бюджет для блогу [#L94](../DriversManagement/src/DriversManagement/Extensions/Services/WebAppServiceConfiguration.cs#L94)
+> 📍 **Шлях до файлу:** `DriversManagement/src/DriversManagement/Extensions/Services/WebAppServiceConfiguration.cs` — HTTP-клієнти [#L81](../DriversManagement/src/DriversManagement/Extensions/Services/WebAppServiceConfiguration.cs#L81), бюджет для блогу [#L100](../DriversManagement/src/DriversManagement/Extensions/Services/WebAppServiceConfiguration.cs#L100)
 
-[👉 **Перейти до файлу (клікніть тут)**](../DriversManagement/src/DriversManagement/Extensions/Services/WebAppServiceConfiguration.cs#L75)
+[👉 **Перейти до файлу (клікніть тут)**](../DriversManagement/src/DriversManagement/Extensions/Services/WebAppServiceConfiguration.cs#L81)
 
 ```csharp
 // Замовлення: логічне ім'я + глобальний стандартний конвеєр Polly із ServiceDefaults
@@ -243,7 +243,7 @@ private static void SoftDependencyBudget(HttpStandardResilienceOptions options)
 
 Серце патерну Агрегатора — обробник запиту MediatR:
 
-> 📍 **Шлях до файлу:** `DriversManagement/src/DriversManagement/Domain/Drivers/Features/GetDriverDashboard.cs` — Guard Check [#L82](../DriversManagement/src/DriversManagement/Domain/Drivers/Features/GetDriverDashboard.cs#L82), Fan-Out [#L92-L108](../DriversManagement/src/DriversManagement/Domain/Drivers/Features/GetDriverDashboard.cs#L92), Fan-In [#L112](../DriversManagement/src/DriversManagement/Domain/Drivers/Features/GetDriverDashboard.cs#L112), `SafeFetchAsync` [#L141](../DriversManagement/src/DriversManagement/Domain/Drivers/Features/GetDriverDashboard.cs#L141)  
+> 📍 **Шлях до файлу:** `DriversManagement/src/DriversManagement/Domain/Drivers/Features/GetDriverDashboard.cs` — Guard Check [#L82](../DriversManagement/src/DriversManagement/Domain/Drivers/Features/GetDriverDashboard.cs#L82), Fan-Out [#L92](../DriversManagement/src/DriversManagement/Domain/Drivers/Features/GetDriverDashboard.cs#L92), Fan-In [#L112](../DriversManagement/src/DriversManagement/Domain/Drivers/Features/GetDriverDashboard.cs#L112), `SafeFetchAsync` [#L141](../DriversManagement/src/DriversManagement/Domain/Drivers/Features/GetDriverDashboard.cs#L141)  
 > 📝 *У файлі наведено вичерпні коментарі українською мовою до кожного кроку виконання.*
 
 [👉 **Перейти до файлу (клікніть тут)**](../DriversManagement/src/DriversManagement/Domain/Drivers/Features/GetDriverDashboard.cs#L75)
@@ -360,7 +360,7 @@ return new AggregatedDriverDashboardDto
   * [👉 **Перейти до CargoOrderingApiClient.cs**](../DriversManagement/src/DriversManagement/Domain/Drivers/Services/Http/CargoOrderingApiClient.cs#L55)
   * [👉 **Перейти до DriversBlogApiClient.cs**](../DriversManagement/src/DriversManagement/Domain/Drivers/Services/Http/DriversBlogApiClient.cs#L52)
 * ⚙️ **Реєстрація та Service Discovery:**
-  * [👉 **Перейти до WebAppServiceConfiguration.cs**](../DriversManagement/src/DriversManagement/Extensions/Services/WebAppServiceConfiguration.cs#L75)
+  * [👉 **Перейти до WebAppServiceConfiguration.cs**](../DriversManagement/src/DriversManagement/Extensions/Services/WebAppServiceConfiguration.cs#L81)
 * 🛡️ **Оркестратор Агрегатора (Fan-Out/Fan-In):**
   * [👉 **Перейти до GetDriverDashboard.cs**](../DriversManagement/src/DriversManagement/Domain/Drivers/Features/GetDriverDashboard.cs#L75)
   * [👉 **Перейти до AggregatedDriverDashboardDto.cs**](../DriversManagement/src/DriversManagement/Domain/Drivers/Dtos/AggregatedDriverDashboardDto.cs)

@@ -25,6 +25,12 @@ public static class WebAppServiceConfiguration
         builder.Services.AddInfrastructure(builder.Environment, builder.Configuration);
         builder.Services.AddMassTransitServices(builder.Environment, builder.Configuration);
 
+        // 🌱 Демо-дані (Bogus) для навчального стенду: лише в Development (саме в цьому
+        // середовищі сервіс запускає Aspire AppHost). Реєструється ПІСЛЯ AddInfrastructure,
+        // тож MigrationHostedService встигає створити схему БД до старту сідера.
+        if (builder.Environment.IsDevelopment())
+            builder.Services.AddHostedService<DriversManagement.Databases.DemoDataSeeder>();
+
         builder.Services.AddControllers()
             .AddJsonOptions(o => o.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles);
         builder.Services.AddApiVersioningExtension();

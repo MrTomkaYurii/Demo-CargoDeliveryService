@@ -91,6 +91,8 @@ dotnet run --project "02-Microservices-Craftsman\Aspire\CargoDelivery.AppHost\Ca
 | **Ресурсів у вкладці Resources** | **9**: `rabbitmq`, `sqlserver` (+3 бази `*-db`), `cargoorderingservice`, `driversblogmanagement`, `driversmanagement`, `httpaggregator`. Усі — `Running`, у колонці health — `Healthy`. |
 | **Порти сервісів** | Фіксовані з `launchSettings.json` кожного проєкту: DriversManagement `5001`, DriversBlogManagement `5002`, CargoOrderingService `5003`, HttpAggregator `57390` (HTTPS). Порти контейнерів (RabbitMQ, SQL) — **динамічні**, дивіться колонку *URLs*. |
 | **Готові запити для перевірки** | [CargoDelivery.HttpAggregator.http](../CargoDelivery.HttpAggregator/CargoDelivery.HttpAggregator.http) — створення водія, демо-дані, gRPC, BFF, агрегатор, сценарії Polly. |
+| **Демо-дані** | Наповнюються **автоматично** при кожному запуску (Bogus, українська локаль): 50 водіїв, 30 компаній, 15 вантажівок у DriversManagement → події `IDriverCreated` реплікують водіїв у блог і замовлення → там створюються 50 постів і 50 замовлень із доставками. Повна картина з'являється приблизно за 10–20 с після старту. Деталі — [гайд 01, §9.3](01_Aspire_Orchestration_AppHost_DeepDive.md#section-9). |
+| **Swagger** | У всіх чотирьох сервісах: `https://localhost:5001/swagger`, `:5002/swagger`, `:5003/swagger`, агрегатор — `https://localhost:57390/swagger` (посилання є в колонці *URLs* дашборду). |
 
 > ⚠️ **Авторизацію вимкнено.** Оригінальні Craftsman-сервіси вимагали JWT від Keycloak (`http://localhost:5000`), який у стенді не запускається. Усі `[Authorize]`, перевірки HeimGuard і реєстрацію JwtBearer закоментовано з маркером `// [AUTH-DISABLED]` — пошук цього маркера по рішенню покаже всі місця, які треба розкоментувати, щоб повернути безпеку.
 

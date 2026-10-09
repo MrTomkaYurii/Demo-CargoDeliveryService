@@ -359,7 +359,7 @@ flowchart LR
 
 2. **Реєстрація в мікросервісі водіїв:**
    > 📍 `builder.AddServiceDefaults()` викликається через обгортку [OpenTelemetryServiceExtension.cs#L20](../DriversManagement/src/DriversManagement/Extensions/Services/OpenTelemetryServiceExtension.cs#L20), а `app.MapDefaultEndpoints()` — у [Program.cs#L57](../DriversManagement/src/DriversManagement/Program.cs#L57).
-   *У Program.cs також є важливе виправлення для Serilog (`WriteTo.Providers`) — без нього логи сервісу не потрапляли у Structured Logs дашборду ([Program.cs#L23-L31](../DriversManagement/src/DriversManagement/Program.cs#L23)).*
+   *У Program.cs також є важливе виправлення для Serilog (`WriteTo.Providers`) — без нього логи сервісу не потрапляли у Structured Logs дашборду ([Program.cs#L23](../DriversManagement/src/DriversManagement/Program.cs#L23)).*
 
    [👉 **Перейти до файлу (клікніть тут)**](../DriversManagement/src/DriversManagement/Program.cs)
 
@@ -453,7 +453,7 @@ MassTransit підтримує стандарт W3C `traceparent`. Коли по
         .AddSqlClientInstrumentation(); // 👈 SQL-запити EF Core як дочірні спани
 });
 ```
-> 📍 [Extensions.cs#L147-L161](../Aspire/CargoDelivery.ServiceDefaults/Extensions.cs#L147). Раніше замість `AddSqlClientInstrumentation()` стояв `AddSource("Microsoft.EntityFrameworkCore.SqlServer")` — такого джерела не існує, тож SQL у трейсах не було.
+> 📍 [Extensions.cs#L147](../Aspire/CargoDelivery.ServiceDefaults/Extensions.cs#L147). Раніше замість `AddSqlClientInstrumentation()` стояв `AddSource("Microsoft.EntityFrameworkCore.SqlServer")` — такого джерела не існує, тож SQL у трейсах не було.
 
 #### 3. Візуалізація спану в Aspire Dashboard
 
@@ -518,7 +518,7 @@ builder.Services.AddGrpcClient<DriverRpc.DriverRpcClient>(options =>
 .RemoveAllResilienceHandlers()
 .AddStandardResilienceHandler(SoftDependencyBudget); // короткий бюджет: пости — некритичні дані
 ```
-> 📍 [WebAppServiceConfiguration.cs#L52-L62](../DriversManagement/src/DriversManagement/Extensions/Services/WebAppServiceConfiguration.cs#L52)
+> 📍 [WebAppServiceConfiguration.cs#L58](../DriversManagement/src/DriversManagement/Extensions/Services/WebAppServiceConfiguration.cs#L58)
 
 #### 3. Як це працює по кроках:
 1. Коли проєкт запускається всередині Aspire AppHost через зв'язку `.WithReference(blogApi)`, Aspire передає адресу сервісу блогу у змінну середовища:
@@ -588,7 +588,7 @@ services.AddMassTransit(mt =>
 });
 ```
 
-> 📍 Реальний код: [MassTransitServiceExtension.cs#L36-L80](../DriversManagement/src/DriversManagement/Extensions/Services/MassTransitServiceExtension.cs#L36)
+> 📍 Реальний код: [MassTransitServiceExtension.cs#L36](../DriversManagement/src/DriversManagement/Extensions/Services/MassTransitServiceExtension.cs#L36)
 
 #### 3. Чому це надійно?
 Жодна зміна конфігурації не зламала попередні тести чи ручний запуск: якщо Aspire активний — працює Aspire-контейнер, якщо запущено без нього — сервіс використовує параметри з `appsettings.json`. Пріоритет простий: змінні середовища (від Aspire) перекривають appsettings.
@@ -818,7 +818,8 @@ dotnet run --project "02-Microservices-Craftsman\Aspire\CargoDelivery.AppHost\Ca
    - `driversmanagement` — `https://localhost:5001/swagger`
    - `driversblogmanagement` — `https://localhost:5002/swagger`
    - `cargoorderingservice` — `https://localhost:5003/swagger`
-   - `httpaggregator` — `https://localhost:57390` (без Swagger; використовуйте `.http`-файл)
+   - `httpaggregator` — `https://localhost:57390/swagger`
+5. Автоматично наповнить бази демо-даними (Bogus): 50 водіїв → події RabbitMQ → тіньові копії → 50 постів і 50 замовлень із доставками. Візьміть `id` будь-якого водія з `GET https://localhost:5001/api/drivers/all`.
 
 ---
 

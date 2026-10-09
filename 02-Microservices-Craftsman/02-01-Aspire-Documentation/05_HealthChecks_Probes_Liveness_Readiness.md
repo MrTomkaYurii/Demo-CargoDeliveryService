@@ -201,7 +201,7 @@ public static WebApplication MapDefaultEndpoints(this WebApplication app)
 
 Для повноцінної перевірки готовності мікросервісів обробляти бізнес-запити до конвеєра `builder.Services.AddHealthChecks()` додаються спеціалізовані перевірки.
 
-> ⚖️ **Поточний стан проєкту.** Зараз у сервісах зареєстрована лише перевірка `self` (з ServiceDefaults), а Craftsman-сервіси додатково викликають порожній `builder.Services.AddHealthChecks()` ([DriversManagement WebAppServiceConfiguration.cs#L39](../DriversManagement/src/DriversManagement/Extensions/Services/WebAppServiceConfiguration.cs#L39)) і мапять старий маршрут `api/health` ([Program.cs#L56](../DriversManagement/src/DriversManagement/Program.cs#L56)). Отже, `/health` поки **не** перевіряє БД і брокер. Приклади нижче — це рекомендоване розширення, яке ви можете додати як практичне завдання.
+> ⚖️ **Поточний стан проєкту.** Зараз у сервісах зареєстрована лише перевірка `self` (з ServiceDefaults), а Craftsman-сервіси додатково викликають порожній `builder.Services.AddHealthChecks()` ([DriversManagement WebAppServiceConfiguration.cs#L45](../DriversManagement/src/DriversManagement/Extensions/Services/WebAppServiceConfiguration.cs#L45)) і мапять старий маршрут `api/health` ([Program.cs#L56](../DriversManagement/src/DriversManagement/Program.cs#L56)). Отже, `/health` поки **не** перевіряє БД і брокер. Приклади нижче — це рекомендоване розширення, яке ви можете додати як практичне завдання.
 
 ### Варіант А: перевірка через EF Core DbContext (без додаткових пакетів, крім одного)
 

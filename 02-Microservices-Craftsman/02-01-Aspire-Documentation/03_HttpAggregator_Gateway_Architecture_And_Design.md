@@ -250,8 +250,13 @@ CargoDelivery.HttpAggregator/
 │       └── ShipmentAggregatorService.cs
 ├── Properties/launchSettings.json     <-- Фіксовані порти: https 57390, http 57391
 ├── CargoDelivery.HttpAggregator.http  <-- Готові запити для всіх лабораторних
-└── Program.cs                         <-- DI контейнер та підключення ServiceDefaults
+└── Program.cs                         <-- DI контейнер, ServiceDefaults, Swagger (/swagger)
 ```
+
+### Swagger / OpenAPI
+Агрегатор, як і інші сервіси, має Swagger UI — `https://localhost:57390/swagger` (у дашборді Aspire посилання з колонки *URLs* веде саме туди завдяки `launchUrl` у [launchSettings.json](../CargoDelivery.HttpAggregator/Properties/launchSettings.json)). Реєстрація — `AddSwaggerGen` у [Program.cs#L43](../CargoDelivery.HttpAggregator/Program.cs#L43), UI — лише в Development ([#L158](../CargoDelivery.HttpAggregator/Program.cs#L158)). Описи ендпоінтів беруться з XML-коментарів `///` контролерів (`<GenerateDocumentationFile>` у csproj).
+
+> 💡 **Чи потрібен Swagger агрегатору?** Для роботи — ні: це звичайний HTTP API, його можна викликати `.http`-файлом, `curl` чи з фронтенду. Але для навчального стенду Swagger дає «пісочницю» без додаткових інструментів і живу документацію контракту — тому він підключений. У продакшні опис **внутрішнього** API зазвичай не виставляють назовні (звідси умова `IsDevelopment()`).
 
 ### Оркестрація в AppHost
 
@@ -284,7 +289,7 @@ var httpAggregator = builder.AddProject<Projects.CargoDelivery_HttpAggregator>("
 ### Рішення: Typed HttpClients в ASP.NET Core
 У `CargoDelivery.HttpAggregator` кожен клієнт реалізовано як типізований клас, життєвим циклом пулу з'єднань якого керує `IHttpClientFactory`:
 
-> 📍 **Реєстрація у [Program.cs#L45-L64](../CargoDelivery.HttpAggregator/Program.cs#L45):**
+> 📍 **Реєстрація у [Program.cs#L68](../CargoDelivery.HttpAggregator/Program.cs#L68):**
 
 ```csharp
 // Логічні імена сервісів з AppHost + схема "https+http" (спершу HTTPS, потім HTTP).
@@ -424,7 +429,7 @@ sequenceDiagram
 
 ### Детальний розбір реалізації методу злиття
 
-> 📍 **Вихідний код:** [ShipmentAggregatorService.cs#L42-L94](../CargoDelivery.HttpAggregator/Domain/Services/ShipmentAggregatorService.cs#L42) — Guard Check [#L49](../CargoDelivery.HttpAggregator/Domain/Services/ShipmentAggregatorService.cs#L49), Fan-Out [#L63-L67](../CargoDelivery.HttpAggregator/Domain/Services/ShipmentAggregatorService.cs#L63), Fan-In [#L72](../CargoDelivery.HttpAggregator/Domain/Services/ShipmentAggregatorService.cs#L72), композиція [#L79](../CargoDelivery.HttpAggregator/Domain/Services/ShipmentAggregatorService.cs#L79)
+> 📍 **Вихідний код:** [ShipmentAggregatorService.cs#L42](../CargoDelivery.HttpAggregator/Domain/Services/ShipmentAggregatorService.cs#L42) — Guard Check [#L49](../CargoDelivery.HttpAggregator/Domain/Services/ShipmentAggregatorService.cs#L49), Fan-Out [#L63](../CargoDelivery.HttpAggregator/Domain/Services/ShipmentAggregatorService.cs#L63), Fan-In [#L72](../CargoDelivery.HttpAggregator/Domain/Services/ShipmentAggregatorService.cs#L72), композиція [#L79](../CargoDelivery.HttpAggregator/Domain/Services/ShipmentAggregatorService.cs#L79)
 
 ```csharp
 public async Task<ShipmentSummaryDto> GetShipmentSummaryAsync(Guid driverId, CancellationToken cancellationToken = default)
@@ -498,10 +503,10 @@ var notes = await _driverBlogApiClient.GetRoadNotesByDriverIdAsync(...);
 * **Критична залежність (Hard Dependency):** `DriversManagement` (дані про водія) та `CargoOrderingService` (вантажні замовлення). Без них диспетчер не може відправити машину в рейс. При їх недоступності агрегатор чесно повертає **503 Service Unavailable** (ProblemDetails), а не вигадані дані.
 * **Некритична залежність (Soft Dependency):** `DriversBlogManagement` (нотатки водія про стан дороги, погоду та враження). Якщо сервіс блогу падає через навантаження або перезапуск бази даних, диспетчер все одно повинен мати можливість працювати з водієм і вантажем!
 
-> 🐞 **Що було виправлено.** Раніше `CargoOrderApiClient` при будь-якій помилці повертав **вигаданий** рейс «Терміновий медичний вантаж Київ → Львів». Для критичної залежності це небезпечно: диспетчер бачив «дані», яких не існує. Тепер виняток прокидається, і контролер відповідає 503 ([ShipmentSummaryController.cs#L64-L73](../CargoDelivery.HttpAggregator/Controllers/ShipmentSummaryController.cs#L64)).
+> 🐞 **Що було виправлено.** Раніше `CargoOrderApiClient` при будь-якій помилці повертав **вигаданий** рейс «Терміновий медичний вантаж Київ → Львів». Для критичної залежності це небезпечно: диспетчер бачив «дані», яких не існує. Тепер виняток прокидається, і контролер відповідає 503 ([ShipmentSummaryController.cs#L64](../CargoDelivery.HttpAggregator/Controllers/ShipmentSummaryController.cs#L64)).
 
 ### Реалізація механізму безпечного виконання `SafeFetchRoadNotesAsync`
-> 📍 [ShipmentAggregatorService.cs#L103-L118](../CargoDelivery.HttpAggregator/Domain/Services/ShipmentAggregatorService.cs#L103)
+> 📍 [ShipmentAggregatorService.cs#L103](../CargoDelivery.HttpAggregator/Domain/Services/ShipmentAggregatorService.cs#L103)
 
 ```csharp
 private async Task<List<AggregatedBlogNoteDto>> SafeFetchRoadNotesAsync(
@@ -527,7 +532,7 @@ private async Task<List<AggregatedBlogNoteDto>> SafeFetchRoadNotesAsync(
 ```
 
 ### Деградація має бути ШВИДКОЮ: бюджет часу для м'якої залежності
-Перехопити виняток мало — важливо, **коли** він з'явиться. Якщо блог «завис» (порт приймає з'єднання, але не відповідає — саме так поводиться зупинений через дашборд Aspire сервіс), стандартний конвеєр Polly чекатиме до 30 с. Тому клієнт блогу має короткий бюджет: спроба 1 с, 1 повтор, загалом ≤ 3 с ([Program.cs#L55-L64](../CargoDelivery.HttpAggregator/Program.cs#L55)).
+Перехопити виняток мало — важливо, **коли** він з'явиться. Якщо блог «завис» (порт приймає з'єднання, але не відповідає — саме так поводиться зупинений через дашборд Aspire сервіс), стандартний конвеєр Polly чекатиме до 30 с. Тому клієнт блогу має короткий бюджет: спроба 1 с, 1 повтор, загалом ≤ 3 с ([Program.cs#L78](../CargoDelivery.HttpAggregator/Program.cs#L78)).
 
 | Вимір на стенді (блог зупинено) | До виправлення | Після |
 | :--- | :--- | :--- |
@@ -781,9 +786,9 @@ public sealed class SimulationController : ControllerBase
 6. Порахуйте ймовірність того, що хоча б одна з 5 паралельних гілок перевищить свій p99, якщо всі гілки незалежні.
 
 ### 🛠️ Практичне лабораторне завдання:
-Усі запити є у файлі [CargoDelivery.HttpAggregator.http](../CargoDelivery.HttpAggregator/CargoDelivery.HttpAggregator.http) (Visual Studio / Rider — вбудовано, VS Code — розширення REST Client).
-1. Запустіть рішення через `CargoDelivery.AppHost`.
-2. Створіть водія (запит 1️⃣), додайте демо-доставку і демо-пост (3️⃣, 4️⃣).
+Усі запити є у файлі [CargoDelivery.HttpAggregator.http](../CargoDelivery.HttpAggregator/CargoDelivery.HttpAggregator.http) (Visual Studio / Rider — вбудовано, VS Code — розширення REST Client) або в Swagger UI агрегатора: `https://localhost:57390/swagger`.
+1. Запустіть рішення через `CargoDelivery.AppHost` і зачекайте 10–20 с, поки відпрацює демо-сідинг (50 водіїв з доставками та замітками).
+2. Візьміть `id` будь-якого водія: `GET https://localhost:5001/api/drivers/all`. (Або створіть нового водія запитом 1️⃣ і додайте йому демо-доставку та демо-пост запитами 3️⃣, 4️⃣.)
 3. Викличте `GET /api/v1/shipment-summary/{id}` (7️⃣) і переконайтеся, що `aggregationStatus` = `Complete`, а `activeOrders` і `roadNotes` заповнені.
 4. Відкрийте Aspire Dashboard (`https://localhost:17048`) → **Traces** і знайдіть трейс `httpaggregator: GET api/v1/shipment-summary/{driverId:guid}`. Переконайтеся, що спани до `cargoorderingservice` і `driversblogmanagement` починаються одночасно.
 5. Зупиніть ресурс `driversblogmanagement` у дашборді (кнопка ■) та повторіть запит. Переконайтеся, що агрегатор повернув `200 OK` з `isDegraded: true` приблизно за 2 с. Запустіть блог знову (▶) і переконайтеся, що статус повернувся до `Complete`.

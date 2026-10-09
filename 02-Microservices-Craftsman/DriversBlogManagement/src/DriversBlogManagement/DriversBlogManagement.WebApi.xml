@@ -265,6 +265,35 @@
             Deletes an existing User record.
             </summary>
         </member>
+        <member name="T:DriversBlogManagement.Databases.DemoDataSeeder">
+             <summary>
+             ====================================================================================
+             🌱 ДЕМО-СІДИНГ DriversBlogManagement (Bogus) — ДОРОЖНІ ЗАМІТКИ ВОДІЇВ
+             ------------------------------------------------------------------------------------
+             ПРИЗНАЧЕННЯ:
+             Створює по одному посту ("дорожній замітці") для кожного тіньового водія, щоб gRPC
+             (GetDriverWithPosts), BFF і агрегатор повертали реальні дані.
+            
+             ЧОМУ СПЕРШУ ЧЕКАЄМО:
+             Водіїв блог НЕ створює сам — їх надсилає DriversManagement подією IDriverCreated
+             через RabbitMQ (споживач SyncDriver). Отже, на момент старту таблиця drivers порожня,
+             і сідер очікує, доки реплікація завершиться (кількість водіїв перестане зростати).
+             Це і є Eventual Consistency в дії: дані з'являються "трохи згодом".
+            
+             ОБМЕЖЕННЯ МОДЕЛІ:
+             У моделі Craftsman зв'язок Driver ↔ PostAboutDriver — "один-до-одного", тому
+             постів не більше, ніж водіїв (по одному на водія).
+            
+             Працює лише в Development і лише якщо постів ще немає.
+             ====================================================================================
+             </summary>
+        </member>
+        <member name="M:DriversBlogManagement.Databases.DemoDataSeeder.WaitForReplicatedDriversAsync(DriversBlogManagement.Databases.BlogManagementContext,System.Threading.CancellationToken)">
+            <summary>
+            Очікує, доки тіньові водії надійдуть через RabbitMQ: кількість має бути > 0 і не
+            змінюватись протягом двох перевірок поспіль (реплікацію завершено). Максимум ~3 хв.
+            </summary>
+        </member>
         <member name="M:DriversBlogManagement.Databases.EntityConfigurations.BlogUserConfiguration.Configure(Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder{DriversBlogManagement.Domain.BlogUsers.BlogUser})">
             <summary>
             The database configuration for BlogUsers. 

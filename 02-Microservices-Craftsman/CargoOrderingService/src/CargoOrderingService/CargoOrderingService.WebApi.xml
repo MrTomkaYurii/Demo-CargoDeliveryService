@@ -178,6 +178,35 @@
             Deletes an existing User record.
             </summary>
         </member>
+        <member name="T:CargoOrderingService.Databases.DemoDataSeeder">
+             <summary>
+             ====================================================================================
+             🌱 ДЕМО-СІДИНГ CargoOrderingService (Bogus) — ЗАМОВЛЕННЯ ТА ДОСТАВКИ
+             ------------------------------------------------------------------------------------
+             ПРИЗНАЧЕННЯ:
+             Створює 50 замовлень (Order) разом із доставками (Delivery), призначеними тіньовим
+             водіям, щоб BFF (driver-dashboard) і агрегатор (shipment-summary) показували рейси.
+            
+             ЧОМУ СПЕРШУ ЧЕКАЄМО:
+             Тіньових водіїв цей сервіс отримує асинхронно — подією IDriverCreated від
+             DriversManagement (споживач SyncDriverInOrdering). Сідер чекає, доки кількість водіїв
+             стабілізується, і лише тоді призначає їм замовлення (Eventual Consistency).
+            
+             МОДЕЛЬ:
+             Order ↔ Delivery — "один-до-одного" (Order отримує Id своєї Delivery). Order вже має
+             порожню Delivery за замовчуванням, тому ми заповнюємо її доменним методом Update(...)
+             і призначаємо водія і замовленню, і доставці (SetDriver).
+            
+             Працює лише в Development і лише якщо замовлень ще немає.
+             ====================================================================================
+             </summary>
+        </member>
+        <member name="M:CargoOrderingService.Databases.DemoDataSeeder.WaitForReplicatedDriversAsync(CargoOrderingService.Databases.OrderingContext,System.Threading.CancellationToken)">
+            <summary>
+            Очікує, доки тіньові водії надійдуть через RabbitMQ: кількість > 0 і не змінюється
+            протягом двох перевірок поспіль. Максимум ~3 хв.
+            </summary>
+        </member>
         <member name="M:CargoOrderingService.Databases.EntityConfigurations.DeliveryConfiguration.Configure(Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder{CargoOrderingService.Domain.Deliveries.Delivery})">
             <summary>
             The database configuration for Deliveries. 

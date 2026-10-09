@@ -165,7 +165,7 @@ public static class Extensions
 <a id="section-5"></a>
 ## 5. Деконструкція ConfigureOpenTelemetry: Параметри, джерела та фільтрація шумів
 
-Розглянемо найскладніший блок конфігурації ([Extensions.cs#L132-L166](../Aspire/CargoDelivery.ServiceDefaults/Extensions.cs#L132)):
+Розглянемо найскладніший блок конфігурації ([Extensions.cs#L132](../Aspire/CargoDelivery.ServiceDefaults/Extensions.cs#L132)):
 
 ```csharp
 public static TBuilder ConfigureOpenTelemetry<TBuilder>(this TBuilder builder) 
@@ -224,7 +224,7 @@ public static TBuilder ConfigureOpenTelemetry<TBuilder>(this TBuilder builder)
   * Використання оперативної пам'яті: `dotnet.process.memory.working_set`.
   * Стан черги завдань пулу потоків: `dotnet.thread_pool.queue.length`.
 
-#### 4. `tracing.AddSource(...)` та інструментації ([#L149-L160](../Aspire/CargoDelivery.ServiceDefaults/Extensions.cs#L149))
+#### 4. `tracing.AddSource(...)` та інструментації ([#L149](../Aspire/CargoDelivery.ServiceDefaults/Extensions.cs#L149))
 | Рядок конфігурації | Що з'являється в трейсі |
 | :--- | :--- |
 | `AddSource(builder.Environment.ApplicationName)` | Власні спани сервісу, створені через `new ActivitySource("DriversManagement").StartActivity(...)` |
@@ -240,7 +240,7 @@ public static TBuilder ConfigureOpenTelemetry<TBuilder>(this TBuilder builder)
 <a id="section-6"></a>
 ## 6. Проблема кардинальності та відсікання псевдо-трафіку Health Checks
 
-Уважно розглянемо рядок фільтрації ([Extensions.cs#L154-L156](../Aspire/CargoDelivery.ServiceDefaults/Extensions.cs#L154)):
+Уважно розглянемо рядок фільтрації ([Extensions.cs#L154](../Aspire/CargoDelivery.ServiceDefaults/Extensions.cs#L154)):
 ```csharp
 options.Filter = context =>
     !context.Request.Path.StartsWithSegments(HealthEndpointPath)
@@ -297,7 +297,7 @@ private static TBuilder AddOpenTelemetryExporters<TBuilder>(this TBuilder builde
     return builder;
 }
 ```
-> 📍 [Extensions.cs#L185-L196](../Aspire/CargoDelivery.ServiceDefaults/Extensions.cs#L185)
+> 📍 [Extensions.cs#L185](../Aspire/CargoDelivery.ServiceDefaults/Extensions.cs#L185)
 
 ### Принцип роботи захисного механізму:
 1. **Режим оркестрації Aspire:** AppHost автоматично встановлює змінні `OTEL_EXPORTER_OTLP_ENDPOINT` (у нашому стенді — `https://localhost:21114`, див. [launchSettings.json AppHost#L12](../Aspire/CargoDelivery.AppHost/Properties/launchSettings.json#L12)), `OTEL_EXPORTER_OTLP_PROTOCOL` та `OTEL_EXPORTER_OTLP_HEADERS` (API-ключ дашборду). Умова виконується, і сервіс починає передавати OTLP-пакети в дашборд. `UseOtlpExporter()` одним викликом вмикає експорт **усіх трьох** сигналів і сам читає ці змінні.
@@ -361,7 +361,7 @@ flowchart TD
 <a id="section-9"></a>
 ## 9. Глобальний тюнінг HttpClient: Polly Resilience та Service Discovery
 
-У файлі `Extensions.cs` блок ([#L73-L87](../Aspire/CargoDelivery.ServiceDefaults/Extensions.cs#L73)):
+У файлі `Extensions.cs` блок ([#L73](../Aspire/CargoDelivery.ServiceDefaults/Extensions.cs#L73)):
 ```csharp
 builder.Services.ConfigureHttpClientDefaults(http =>
 {
@@ -378,7 +378,7 @@ builder.Services.ConfigureHttpClientDefaults(http =>
 | Ситуація | Як правильно | Як неправильно |
 | :--- | :--- | :--- |
 | Клієнту достатньо стандартних параметрів | Нічого не робити — все вже налаштовано глобально | Дописувати `.AddStandardResilienceHandler()` ще раз: конвеєри **вкладуться** один в одного, і 4 спроби × 4 спроби = до 16 реальних запитів |
-| Клієнту потрібні інші параметри (короткий таймаут для некритичного сервісу) | `.RemoveAllResilienceHandlers().AddStandardResilienceHandler(o => …)` — див. [агрегатор Program.cs#L55-L64](../CargoDelivery.HttpAggregator/Program.cs#L55) | Налаштовувати `HttpClient.Timeout` — стандартний конвеєр його ігнорує й керує таймаутами сам |
+| Клієнту потрібні інші параметри (короткий таймаут для некритичного сервісу) | `.RemoveAllResilienceHandlers().AddStandardResilienceHandler(o => …)` — див. [агрегатор Program.cs#L78](../CargoDelivery.HttpAggregator/Program.cs#L78) | Налаштовувати `HttpClient.Timeout` — стандартний конвеєр його ігнорує й керує таймаутами сам |
 
 > 🐞 Саме подвійне підключення було в агрегаторі та BFF до виправлення: при недоступному сервісі кожен запит висів рівно 30 секунд (весь бюджет `TotalRequestTimeout`), а в логах видно було каскад вкладених повторів.
 
@@ -404,7 +404,7 @@ builder.Services.ConfigureHttpClientDefaults(http =>
 
 | Сервіс | Де викликається `AddServiceDefaults()` | Де викликається `MapDefaultEndpoints()` |
 | :--- | :--- | :--- |
-| CargoDelivery.HttpAggregator | Напряму: [Program.cs#L30](../CargoDelivery.HttpAggregator/Program.cs#L30) | [Program.cs#L129](../CargoDelivery.HttpAggregator/Program.cs#L129) |
+| CargoDelivery.HttpAggregator | Напряму: [Program.cs#L30](../CargoDelivery.HttpAggregator/Program.cs#L30) | [Program.cs#L152](../CargoDelivery.HttpAggregator/Program.cs#L152) |
 | DriversManagement | Через обгортку `OpenTelemetryRegistration`: [OpenTelemetryServiceExtension.cs#L20](../DriversManagement/src/DriversManagement/Extensions/Services/OpenTelemetryServiceExtension.cs#L20), яку викликає [WebAppServiceConfiguration.cs#L24](../DriversManagement/src/DriversManagement/Extensions/Services/WebAppServiceConfiguration.cs#L24) | [Program.cs#L57](../DriversManagement/src/DriversManagement/Program.cs#L57) |
 | DriversBlogManagement | [OpenTelemetryServiceExtension.cs#L20](../DriversBlogManagement/src/DriversBlogManagement/Extensions/Services/OpenTelemetryServiceExtension.cs#L20) | [Program.cs#L61](../DriversBlogManagement/src/DriversBlogManagement/Program.cs#L61) |
 | CargoOrderingService | [OpenTelemetryServiceExtension.cs#L20](../CargoOrderingService/src/CargoOrderingService/Extensions/Services/OpenTelemetryServiceExtension.cs#L20) | [Program.cs#L56](../CargoOrderingService/src/CargoOrderingService/Program.cs#L56) |
@@ -412,7 +412,7 @@ builder.Services.ConfigureHttpClientDefaults(http =>
 ### Пастка: `UseSerilog()` «з'їдає» OpenTelemetry-логи
 Craftsman-сервіси пишуть логи через Serilog: `builder.Host.UseSerilog()`. Цей виклик **замінює** всі стандартні провайдери логування `Microsoft.Extensions.Logging` — включно з OpenTelemetry-провайдером, який додав `AddServiceDefaults()`. Симптом: у дашборді вкладка **Console logs** показує логи сервісу, а **Structured logs** — порожня (там видно лише агрегатор, який Serilog не використовує).
 
-Рішення — попросити Serilog **додатково** пересилати події в інші зареєстровані провайдери ([DriversManagement/Program.cs#L23-L31](../DriversManagement/src/DriversManagement/Program.cs#L23)):
+Рішення — попросити Serilog **додатково** пересилати події в інші зареєстровані провайдери ([DriversManagement/Program.cs#L23](../DriversManagement/src/DriversManagement/Program.cs#L23)):
 
 ```csharp
 var serilogProviders = new LoggerProviderCollection();
