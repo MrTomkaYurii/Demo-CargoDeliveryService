@@ -100,26 +100,35 @@ var driversApi = builder.AddProject<Projects.DriversManagement>("driversmanageme
     .WithReference(cargoApi)
     .WithHttpHealthCheck("/health")
     .WaitFor(driversDb)
-    .WaitFor(rabbitmq)
-    .WaitFor(blogApi)
-    .WaitFor(cargoApi);
+    .WaitFor(rabbitmq);
 
 // ====================================================================================
-// 🛡️ 6. GATEWAY AGGREGATOR ДИСПЕТЧЕРА: CargoDelivery.HttpAggregator
+// 🛡️ 6. GATEWAY AGGREGATOR ДИСПЕТЧЕРА: CargoDelivery.HttpAggregator (:5005)
 // ------------------------------------------------------------------------------------
 // - Патерн Scatter-Gather: паралельний Fan-Out / Fan-In через IHttpClientFactory.
 // - Демонстрація OpenTelemetry Distributed Tracing (батьківські та дочірні спани).
 // - Демонстрація Polly Resilience (Retry, Timeout, Circuit Breaker).
-// - .WaitFor(...) гарантує, що агрегатор стартує лише після того, як залежні API стануть
-//   Healthy (їхній /health повертає 200 — див. .WithHttpHealthCheck вище).
+// - Не має власної БД чи брокера, тому стартує паралельно без блокування.
 // ====================================================================================
 var httpAggregator = builder.AddProject<Projects.CargoDelivery_HttpAggregator>("httpaggregator")
     .WithReference(driversApi)
     .WithReference(cargoApi)
     .WithReference(blogApi)
-    .WithHttpHealthCheck("/health")
-    .WaitFor(driversApi)
-    .WaitFor(cargoApi)
-    .WaitFor(blogApi);
+    .WithHttpHealthCheck("/health");
+
+// ====================================================================================
+// 🚪 7. ВХІДНИЙ API GATEWAY НА БАЗІ OCELOT: CargoDelivery.ApiGateway (:5000)
+// ------------------------------------------------------------------------------------
+// - Єдина вхідна точка (Reverse Proxy / Edge Gateway) для зовнішніх клієнтів.
+// - Декларативна маршрутизація (/gateway/*), Rate Limiting та трансформація заголовків.
+// - Вбудована агрегація Ocelot (/gateway/ocelot-aggregate/{id}) та кастомний
+//   C#-агрегатор IDefinedAggregator (/gateway/custom-aggregate/{id}).
+// ====================================================================================
+var apiGateway = builder.AddProject<Projects.CargoDelivery_ApiGateway>("apigateway")
+    .WithReference(driversApi)
+    .WithReference(cargoApi)
+    .WithReference(blogApi)
+    .WithReference(httpAggregator)
+    .WithHttpHealthCheck("/health");
 
 builder.Build().Run();

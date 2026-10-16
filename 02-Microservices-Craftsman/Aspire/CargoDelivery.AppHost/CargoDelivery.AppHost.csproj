@@ -18,6 +18,7 @@
     <ProjectReference Include="..\..\DriversBlogManagement\src\DriversBlogManagement\DriversBlogManagement.csproj" />
     <ProjectReference Include="..\..\DriversManagement\src\DriversManagement\DriversManagement.csproj" />
     <ProjectReference Include="..\..\CargoDelivery.HttpAggregator\CargoDelivery.HttpAggregator.csproj" />
+    <ProjectReference Include="..\..\CargoDelivery.ApiGateway\CargoDelivery.ApiGateway.csproj" />
   </ItemGroup>
 
 </Project>

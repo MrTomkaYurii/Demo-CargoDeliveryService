@@ -30,7 +30,8 @@ public sealed class DriverBlogApiClient : IDriverBlogApiClient
     }
 
     public async Task<List<AggregatedBlogNoteDto>> GetRoadNotesByDriverIdAsync(
-        Guid driverId, CancellationToken cancellationToken = default)
+        Guid driverId, 
+        CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("Отримання дорожніх заміток блогу для водія {DriverId}", driverId);
 

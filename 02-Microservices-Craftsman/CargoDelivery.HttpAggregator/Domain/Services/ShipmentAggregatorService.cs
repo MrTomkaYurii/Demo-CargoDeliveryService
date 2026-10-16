@@ -93,6 +93,34 @@ public sealed class ShipmentAggregatorService : IShipmentAggregatorService
         return summary;
     }
 
+                        // якщо потрібно 300мс на весь запит від агрегатора
+                        // Створюємо таймаут на 300 мілісекунд
+                        //using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+                        //cts.CancelAfter(TimeSpan.FromMilliseconds(300));
+
+                        //try
+                        //{
+                        //    // Запускаємо паралельно
+                        //    var ordersTask = _cargoOrderApiClient.GetActiveOrdersByDriverIdAsync(driverId, cts.Token);
+
+                        //var blogNotesTask = SafeFetchRoadNotesAsync(
+                        //    () => _driverBlogApiClient.GetRoadNotesByDriverIdAsync(driverId, cts.Token),
+                        //    onFailure: () => isDegraded = true);
+
+                        //// Чекаємо із загальним лімітом часу
+                        //await Task.WhenAll(ordersTask, blogNotesTask);
+                        //}
+                        //v catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+                        //{
+                        //    // Спрацював саме наш таймаут 300 мс (а не скасування від клієнта)
+                        //    _logger.LogWarning("Перевищено ліміт часу агрегації (300 мс). Застосовано аварійну деградацію.");
+                        //isDegraded = true;
+    
+                        //    // Якщо замовлення критичні і вони теж не встигли — це фатал, прокидаємо помилку.
+                        //    // Якщо замовлення вже встигли завершитися, а блог завис — можемо взяти те, що є.
+                        //}
+
+
     /// <summary>
     /// Обгортка відмовостійкості (Fault Isolation) для НЕКРИТИЧНОЇ залежності — блогу.
     /// Будь-який збій (HTTP 5xx після повторів Polly, таймаут, розімкнений Circuit Breaker)

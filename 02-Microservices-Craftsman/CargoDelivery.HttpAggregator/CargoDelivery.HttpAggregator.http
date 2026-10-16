@@ -13,7 +13,7 @@
 @drivers = https://localhost:5001
 @blog = https://localhost:5002
 @ordering = https://localhost:5003
-@aggregator = https://localhost:57390
+@aggregator = https://localhost:5005
 
 ### 0️⃣ Список усіх водіїв (уже заповнено демо-сідингом)
 GET {{drivers}}/api/drivers/all
@@ -84,3 +84,21 @@ GET {{aggregator}}/health
 
 ###
 GET {{aggregator}}/alive
+
+### ====================================================================================
+### 🚪 1️⃣4️⃣ OCELOT API GATEWAY (CargoDelivery.ApiGateway — https://localhost:5000)
+### ====================================================================================
+@gateway = https://localhost:5000
+
+### Карта маршрутів шлюзу Ocelot
+GET {{gateway}}/api/gateway/routes
+
+### Маршрутизація Ocelot Reverse Proxy -> DriversManagement (:5001) + Rate Limiting
+GET {{gateway}}/gateway/drivers/{{driverId}}
+
+### Декларативна JSON-агрегація Ocelot (секція Aggregates в ocelot.json без C# коду)
+GET {{gateway}}/gateway/ocelot-aggregate/{{driverId}}
+
+### Кастомна агрегація Ocelot через IDefinedAggregator (DriverSummaryDefinedAggregator.cs)
+GET {{gateway}}/gateway/custom-aggregate/{{driverId}}
+

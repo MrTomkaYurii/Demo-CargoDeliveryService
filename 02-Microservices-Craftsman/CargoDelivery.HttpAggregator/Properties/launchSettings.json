@@ -1,13 +1,13 @@
 {
   "profiles": {
-    "CargoDelivery.HttpAggregator": {
+    "Development": {
       "commandName": "Project",
       "launchBrowser": true,
       "launchUrl": "swagger",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"
       },
-      "applicationUrl": "https://localhost:57390;http://localhost:57391"
+      "applicationUrl": "https://localhost:5005"
     }
   }
 }

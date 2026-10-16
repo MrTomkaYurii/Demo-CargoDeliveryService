@@ -1,4 +1,4 @@
-
+﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 18
 VisualStudioVersion = 18.10.12201.205
@@ -7,7 +7,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "01-Ntier-Drivers", "01-Ntie
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "01-Documentation", "01-Documentation", "{A1B2C3D4-E5F6-4A1B-8C2D-3E4F5A6B7C8D}"
 	ProjectSection(SolutionItems) = preProject
-		01-Ntier-Drivers\README.md = 01-Ntier-Drivers\README.md
+		01-Ntier-Drivers\docs\Presentations\01-Ntier-3Tier-Architecture-Masterclass.md = 01-Ntier-Drivers\docs\Presentations\01-Ntier-3Tier-Architecture-Masterclass.md
 		01-Ntier-Drivers\docs\Guides\01_Patterns_Pagination.md = 01-Ntier-Drivers\docs\Guides\01_Patterns_Pagination.md
 		01-Ntier-Drivers\docs\Guides\02_Patterns_Validation.md = 01-Ntier-Drivers\docs\Guides\02_Patterns_Validation.md
 		01-Ntier-Drivers\docs\Guides\03_Patterns_Centralized_Exception_Handling.md = 01-Ntier-Drivers\docs\Guides\03_Patterns_Centralized_Exception_Handling.md
@@ -17,7 +17,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "01-Documentation", "01-Docu
 		01-Ntier-Drivers\docs\Guides\07_Patterns_Dual_Engine_ORM_vs_Dapper.md = 01-Ntier-Drivers\docs\Guides\07_Patterns_Dual_Engine_ORM_vs_Dapper.md
 		01-Ntier-Drivers\docs\Guides\08_Patterns_DTO_and_AutoMapper.md = 01-Ntier-Drivers\docs\Guides\08_Patterns_DTO_and_AutoMapper.md
 		01-Ntier-Drivers\docs\Guides\09_Patterns_Cancellation_Token.md = 01-Ntier-Drivers\docs\Guides\09_Patterns_Cancellation_Token.md
-		01-Ntier-Drivers\docs\Presentations\01-Ntier-3Tier-Architecture-Masterclass.md = 01-Ntier-Drivers\docs\Presentations\01-Ntier-3Tier-Architecture-Masterclass.md
+		01-Ntier-Drivers\README.md = 01-Ntier-Drivers\README.md
 		01-Ntier-Drivers\docs\Presentations\README.md = 01-Ntier-Drivers\docs\Presentations\README.md
 	EndProjectSection
 EndProject
@@ -30,8 +30,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "02-Microservices-Craftsman"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "02-01-Aspire-Documentation", "02-01-Aspire-Documentation", "{B1A2C3D4-E5F6-4A1B-8C2D-020102010201}"
 	ProjectSection(SolutionItems) = preProject
+		02-Microservices-Craftsman\02-01-Aspire-Documentation\00-Aspire-MasterClass.md = 02-Microservices-Craftsman\02-01-Aspire-Documentation\00-Aspire-MasterClass.md
 		02-Microservices-Craftsman\02-01-Aspire-Documentation\01_Aspire_Orchestration_AppHost_DeepDive.md = 02-Microservices-Craftsman\02-01-Aspire-Documentation\01_Aspire_Orchestration_AppHost_DeepDive.md
-		02-Microservices-Craftsman\02-01-Aspire-Documentation\02-01-Aspire-MasterClass.md = 02-Microservices-Craftsman\02-01-Aspire-Documentation\02-01-Aspire-MasterClass.md
 		02-Microservices-Craftsman\02-01-Aspire-Documentation\02_ServiceDefaults_Architecture_And_Parameters.md = 02-Microservices-Craftsman\02-01-Aspire-Documentation\02_ServiceDefaults_Architecture_And_Parameters.md
 		02-Microservices-Craftsman\02-01-Aspire-Documentation\03_HttpAggregator_Gateway_Architecture_And_Design.md = 02-Microservices-Craftsman\02-01-Aspire-Documentation\03_HttpAggregator_Gateway_Architecture_And_Design.md
 		02-Microservices-Craftsman\02-01-Aspire-Documentation\04_Distributed_Tracing_OpenTelemetry_Guide.md = 02-Microservices-Craftsman\02-01-Aspire-Documentation\04_Distributed_Tracing_OpenTelemetry_Guide.md
@@ -145,6 +145,14 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CargoDelivery.HttpAggregator", "02-Microservices-Craftsman\CargoDelivery.HttpAggregator\CargoDelivery.HttpAggregator.csproj", "{6805E9F0-AA3A-4338-9DD3-8B7CDF64C8ED}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CargoDelivery.HttpAggregator.Tests", "02-Microservices-Craftsman\CargoDelivery.HttpAggregator.Tests\CargoDelivery.HttpAggregator.Tests.csproj", "{0C1C684E-AF71-4A7C-8BFD-21B73045C747}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "pptx", "pptx", "{50F9B604-149B-4746-A031-C9D9D321CDCE}"
+	ProjectSection(SolutionItems) = preProject
+		02-Microservices-Craftsman\pptx\08-01 - NET 10 - gRPC Architecture & CargoDelivery Case Study.pptx = 02-Microservices-Craftsman\pptx\08-01 - NET 10 - gRPC Architecture & CargoDelivery Case Study.pptx
+		02-Microservices-Craftsman\pptx\08-02 - NET 10 - Ocelot API Gateway & HTTP Aggregator Patterns.pptx = 02-Microservices-Craftsman\pptx\08-02 - NET 10 - Ocelot API Gateway & HTTP Aggregator Patterns.pptx
+	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CargoDelivery.ApiGateway", "02-Microservices-Craftsman\CargoDelivery.ApiGateway\CargoDelivery.ApiGateway.csproj", "{9193B4FC-D98F-479D-BBFE-332FD65D33C9}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -536,6 +544,18 @@ Global
 		{0C1C684E-AF71-4A7C-8BFD-21B73045C747}.Release|x64.Build.0 = Release|Any CPU
 		{0C1C684E-AF71-4A7C-8BFD-21B73045C747}.Release|x86.ActiveCfg = Release|Any CPU
 		{0C1C684E-AF71-4A7C-8BFD-21B73045C747}.Release|x86.Build.0 = Release|Any CPU
+		{9193B4FC-D98F-479D-BBFE-332FD65D33C9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9193B4FC-D98F-479D-BBFE-332FD65D33C9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9193B4FC-D98F-479D-BBFE-332FD65D33C9}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{9193B4FC-D98F-479D-BBFE-332FD65D33C9}.Debug|x64.Build.0 = Debug|Any CPU
+		{9193B4FC-D98F-479D-BBFE-332FD65D33C9}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{9193B4FC-D98F-479D-BBFE-332FD65D33C9}.Debug|x86.Build.0 = Debug|Any CPU
+		{9193B4FC-D98F-479D-BBFE-332FD65D33C9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9193B4FC-D98F-479D-BBFE-332FD65D33C9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9193B4FC-D98F-479D-BBFE-332FD65D33C9}.Release|x64.ActiveCfg = Release|Any CPU
+		{9193B4FC-D98F-479D-BBFE-332FD65D33C9}.Release|x64.Build.0 = Release|Any CPU
+		{9193B4FC-D98F-479D-BBFE-332FD65D33C9}.Release|x86.ActiveCfg = Release|Any CPU
+		{9193B4FC-D98F-479D-BBFE-332FD65D33C9}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -585,6 +605,8 @@ Global
 		{26E172F7-91B3-435B-B43B-738F9605CC97} = {8393A3A9-BF1A-E615-C014-FEC34101FE9D}
 		{6805E9F0-AA3A-4338-9DD3-8B7CDF64C8ED} = {A0020002-0000-0000-0000-000000000002}
 		{0C1C684E-AF71-4A7C-8BFD-21B73045C747} = {A0020002-0000-0000-0000-000000000002}
+		{50F9B604-149B-4746-A031-C9D9D321CDCE} = {A0020002-0000-0000-0000-000000000002}
+		{9193B4FC-D98F-479D-BBFE-332FD65D33C9} = {A0020002-0000-0000-0000-000000000002}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {4F84E06C-5B88-446F-8BEF-60879A2BE854}

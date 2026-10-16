@@ -1,0 +1,309 @@
+{
+  // ====================================================================================
+  // 🌐 КОНФІГУРАЦІЯ OCELOT API GATEWAY (CargoDelivery.ApiGateway — порт :5000)
+  // ====================================================================================
+  // НАВЧАЛЬНИЙ ДОВІДНИК ПО СТРУКТУРІ OCELOT.JSON:
+  //
+  // Конфігураційний файл Ocelot складається з 3 головних кореневих секцій:
+  //   1. "Routes"              — масив правил маршрутизації (Reverse Proxy: Upstream -> Downstream).
+  //   2. "Aggregates"          — правила паралельного об'єднання декількох маршрутів в одну відповідь.
+  //   3. "GlobalConfiguration" — глобальні налаштування всього шлюзу (BaseUrl, CorrelationId, квоти).
+  //
+  // ТЕРМІНОЛОГІЯ OCELOT:
+  //   • Upstream (Вхідний потік)   — те, що викликає зовнішній клієнт (Mobile / React / WPF / Swagger)
+  //                                  на публічному порту шлюзу https://localhost:5000/gateway/...
+  //   • Downstream (Вихідний потік)— внутрішній мікросервіс (:5001, :5002, :5003, :5005), куди Ocelot
+  //                                  перенаправляє запит усередині приватної мережі.
+  // ====================================================================================
+
+  "Routes": [
+    // ==================================================================================
+    // МАРШРУТ 1А: Отримання списку водіїв або створення водія (DriversManagement :5001)
+    // Демонструє: базовий Reverse Proxy + Header Transformation + Rate Limiting
+    // ==================================================================================
+    {
+      // Шаблон URL, на який звертається зовнішній клієнт (https://localhost:5000/gateway/drivers)
+      "UpstreamPathTemplate": "/gateway/drivers",
+
+      // Дозволені HTTP-методи на вхідному маршруті (інші методи отримають 404/405 від шлюзу)
+      "UpstreamHttpMethod": [ "GET", "POST" ],
+
+      // Шаблон URL внутрішнього мікросервісу, у який трансформується запит (/api/drivers)
+      "DownstreamPathTemplate": "/api/drivers",
+
+      // Протокол звернення до внутрішнього мікросервісу ("http" або "https")
+      "DownstreamScheme": "https",
+
+      // Список фізичних хостів та портів мікросервісу (якщо інстансів декілька — працює балансувальник)
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5001
+        }
+      ],
+
+      // Трансформація заголовків (Header Transformation):
+      // Ocelot автоматично додає цей HTTP-заголовок до запиту перед відправкою в DriversManagement,
+      // щоб мікросервіс знав, що трафік прийшов через довірений API Gateway.
+      "AddHeadersToRequest": {
+        "X-Forwarded-By": "CargoDelivery-Ocelot-Gateway"
+      },
+
+      // Обмеження частоти запитів (Rate Limiting / Throttling) на рівні маршруту:
+      // Захищає мікросервіс DriversManagement від DDoS та спам-запитів клієнта.
+      "RateLimitOptions": {
+        "ClientWhitelist": [],          // Масив ClientId (заголовок X-Client-Id), на які ліміт НЕ діє
+        "EnableRateLimiting": true,     // Увімкнути лічильник запитів для цього маршруту
+        "Period": "1m",                 // Вікно вимірювання часу (1s = секунда, 1m = хвилина, 1h = година)
+        "PeriodTimespan": 10,           // Час блокування (у секундах) після перевищення ліміту (Retry-After)
+        "Limit": 30                     // Максимально дозволена кількість запитів за вказаний Period (30 зап/хв)
+      }
+    },
+
+    // ==================================================================================
+    // МАРШРУТ 1Б: Операції з конкретним водієм за ID та дочірніми шляхами (:5001)
+    // Демонструє: Wildcard-плейсхолдер {everything} (прокидає будь-який хвост URL і QueryString)
+    // Приклад: GET /gateway/drivers/42 -> GET https://localhost:5001/api/drivers/42
+    // ==================================================================================
+    {
+      "UpstreamPathTemplate": "/gateway/drivers/{everything}",
+      "UpstreamHttpMethod": [ "GET", "PUT", "DELETE" ],
+      "DownstreamPathTemplate": "/api/drivers/{everything}",
+      "DownstreamScheme": "https",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5001
+        }
+      ],
+      "AddHeadersToRequest": {
+        "X-Forwarded-By": "CargoDelivery-Ocelot-Gateway"
+      }
+    },
+
+    // ==================================================================================
+    // МАРШРУТ 2А: Керування доставками та замовленнями (CargoOrderingService :5003)
+    // Демонструє: програмне балансування навантаження (LoadBalancerOptions: RoundRobin)
+    // ==================================================================================
+    {
+      "UpstreamPathTemplate": "/gateway/deliveries",
+      "UpstreamHttpMethod": [ "GET", "POST" ],
+      "DownstreamPathTemplate": "/api/deliveries",
+      "DownstreamScheme": "https",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5003
+        }
+        // При масштабуванні можна додати другий інстанс, напр. { "Host": "localhost", "Port": 5013 }
+      ],
+      // Алгоритм балансування навантаження між інстансами у DownstreamHostAndPorts:
+      // Варіанти: "RoundRobin" (по колу), "LeastConnection" (де найменше активних з'єднань), "NoLoadBalancer"
+      "LoadBalancerOptions": {
+        "Type": "RoundRobin"
+      }
+    },
+
+    // ==================================================================================
+    // МАРШРУТ 2Б: Доступ до конкретної доставки або підресурсів (:5003)
+    // ==================================================================================
+    {
+      "UpstreamPathTemplate": "/gateway/deliveries/{everything}",
+      "UpstreamHttpMethod": [ "GET", "PUT", "DELETE" ],
+      "DownstreamPathTemplate": "/api/deliveries/{everything}",
+      "DownstreamScheme": "https",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5003
+        }
+      ]
+    },
+
+    // ==================================================================================
+    // МАРШРУТ 3А та 3Б: Дорожні нотатки водіїв (DriversBlogManagement :5002)
+    // Демонструє: приховування внутрішнього іменування ресурсу!
+    // Зовні клієнт бачить красивий REST-шлях:   /gateway/blog/posts
+    // Усередині викликається контролер сервісу: /api/postaboutdrivers
+    // ==================================================================================
+    {
+      "UpstreamPathTemplate": "/gateway/blog/posts",
+      "UpstreamHttpMethod": [ "GET", "POST" ],
+      "DownstreamPathTemplate": "/api/postaboutdrivers",
+      "DownstreamScheme": "https",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5002
+        }
+      ]
+    },
+    {
+      "UpstreamPathTemplate": "/gateway/blog/posts/{everything}",
+      "UpstreamHttpMethod": [ "GET", "PUT", "DELETE" ],
+      "DownstreamPathTemplate": "/api/postaboutdrivers/{everything}",
+      "DownstreamScheme": "https",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5002
+        }
+      ]
+    },
+
+    // ==================================================================================
+    // МАРШРУТ 4: Проксіювання до вбудованого BFF-ендпоінта в DriversManagement (:5001)
+    // Дозволяє клієнту викликати BFF-агрегацію через єдині вхідні ворота Ocelot (:5000)
+    // ==================================================================================
+    {
+      "UpstreamPathTemplate": "/gateway/driver-dashboard/{driverId}",
+      "UpstreamHttpMethod": [ "GET" ],
+      "DownstreamPathTemplate": "/api/v1/driver-dashboard/{driverId}",
+      "DownstreamScheme": "https",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5001
+        }
+      ]
+    },
+
+    // ==================================================================================
+    // МАРШРУТ 5: Проксіювання до виділеного C# Gateway Aggregator (CargoDelivery.HttpAggregator :5005)
+    // Демонструє класичну 2-рівневу топологію:
+    // Клієнт -> Ocelot API Gateway (:5000) -> CargoDelivery.HttpAggregator (:5005) -> 3 мікросервіси
+    // ==================================================================================
+    {
+      "UpstreamPathTemplate": "/gateway/shipment-summary/{driverId}",
+      "UpstreamHttpMethod": [ "GET" ],
+      "DownstreamPathTemplate": "/api/v1/shipment-summary/{driverId}",
+      "DownstreamScheme": "https",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5005
+        }
+      ]
+    },
+
+    // ==================================================================================
+    // МАРШРУТИ 6А, 6Б, 6В: ІМЕНОВАНІ СКЛАДОВІ МАРШРУТИ (З ПОЛЕМ "Key") ДЛЯ СЕКЦІЇ "Aggregates"
+    // ----------------------------------------------------------------------------------
+    // Як працює агрегація в Ocelot:
+    // 1. Ми описуємо окремі атомарні GET-маршрути та присвоюємо кожному унікальний ідентифікатор "Key".
+    // 2. Плейсхолдер {driverId} у всіх трьох маршрутах має ОДНАКОВУ назву!
+    // 3. Коли клієнт викликає агрегований маршрут з секції "Aggregates" (наприклад,
+    //    GET /gateway/ocelot-aggregate/{driverId}), Ocelot підставляє значення {driverId}
+    //    в усі 3 маршрути ("DriverProfile", "ActiveDeliveries", "DriverBlogNotes")
+    //    і запускає їх ПАРАЛЕЛЬНО (Fan-Out)!
+    // ==================================================================================
+    {
+      // Ключ маршруту №1: Профіль водія з мікросервісу DriversManagement (:5001)
+      "Key": "DriverProfile",
+      "UpstreamPathTemplate": "/gateway/internal/driver-profile/{driverId}",
+      "UpstreamHttpMethod": [ "GET" ],
+      "DownstreamPathTemplate": "/api/internal/drivers/{driverId}",
+      "DownstreamScheme": "https",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5001
+        }
+      ]
+    },
+    {
+      // Ключ маршруту №2: Список доставок водія з мікросервісу CargoOrderingService (:5003)
+      // Зверніть увагу: параметр {driverId} із шляху Upstream переноситься у QueryString (?driverId=...)
+      "Key": "ActiveDeliveries",
+      "UpstreamPathTemplate": "/gateway/internal/driver-deliveries/{driverId}",
+      "UpstreamHttpMethod": [ "GET" ],
+      "DownstreamPathTemplate": "/api/internal/deliveries?driverId={driverId}",
+      "DownstreamScheme": "https",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5003
+        }
+      ]
+    },
+    {
+      // Ключ маршруту №3: Нотатки про водія з мікросервісу DriversBlogManagement (:5002)
+      "Key": "DriverBlogNotes",
+      "UpstreamPathTemplate": "/gateway/internal/driver-notes/{driverId}",
+      "UpstreamHttpMethod": [ "GET" ],
+      "DownstreamPathTemplate": "/api/internal/postaboutdrivers?driverId={driverId}",
+      "DownstreamScheme": "https",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5002
+        }
+      ]
+    }
+  ],
+
+  // ====================================================================================
+  // 🧩 СЕКЦІЯ ВБУДОВАНОЇ АГРЕГАЦІЇ ЗАПИТІВ OCELOT ("Aggregates")
+  // ------------------------------------------------------------------------------------
+  // Дозволяє об'єднати кілька маршрутів із секції "Routes" (за їхніми "Key") в один публічний URL.
+  // На підтримуваному рівні Ocelot агрегує лише HTTP-метод GET.
+  // ====================================================================================
+  "Aggregates": [
+    // ----------------------------------------------------------------------------------
+    // СЦЕНАРІЙ А: Декларативна JSON-агрегація Ocelot (БЕЗ жодного рядка C#-коду)
+    // ----------------------------------------------------------------------------------
+    // Виклик: GET https://localhost:5000/gateway/ocelot-aggregate/{driverId}
+    // Ocelot паралельно опитує 3 сервіси і автоматично склеює їхні сирі JSON-відповіді у словник:
+    // {
+    //   "DriverProfile": { ... },
+    //   "ActiveDeliveries": [ ... ],
+    //   "DriverBlogNotes": [ ... ]
+    // }
+    // Обмеження: немає перевірки бізнес-логіки чи кастомної обробки часткових збоїв.
+    {
+      "UpstreamPathTemplate": "/gateway/ocelot-aggregate/{driverId}",
+      "RouteKeys": [
+        "DriverProfile",
+        "ActiveDeliveries",
+        "DriverBlogNotes"
+      ],
+      "UpstreamHost": "*"
+    },
+
+    // ----------------------------------------------------------------------------------
+    // СЦЕНАРІЙ Б: Програмна агрегація Ocelot через кастомний C#-клас (IDefinedAggregator)
+    // ----------------------------------------------------------------------------------
+    // Виклик: GET https://localhost:5000/gateway/custom-aggregate/{driverId}
+    // Властивість "Aggregator" вказує ім'я C#-класу DriverSummaryDefinedAggregator,
+    // зареєстрованого в Program.cs через .AddSingletonDefinedAggregator<DriverSummaryDefinedAggregator>().
+    // Цей клас перехоплює всі 3 відповіді, перевіряє 404 для водія, застосовує Graceful Degradation
+    // при падінні блогу та рахує метрики (totalActiveDeliveries, totalBlogNotes).
+    {
+      "UpstreamPathTemplate": "/gateway/custom-aggregate/{driverId}",
+      "RouteKeys": [
+        "DriverProfile",
+        "ActiveDeliveries",
+        "DriverBlogNotes"
+      ],
+      "Aggregator": "DriverSummaryDefinedAggregator"
+    }
+  ],
+
+  // ====================================================================================
+  // ⚙️ ГЛОБАЛЬНА КОНФІГУРАЦІЯ ШЛЮЗУ ("GlobalConfiguration")
+  // ====================================================================================
+  "GlobalConfiguration": {
+    // Публічна базова адреса самого Ocelot API Gateway
+    "BaseUrl": "https://localhost:5000",
+
+    // Назва заголовка наскрізного кореляційного ідентифікатора, який Ocelot передає вниз по ланцюжку
+    "RequestIdKey": "X-Correlation-Id",
+
+    // Глобальні налаштування відповідей при спрацюванні Rate Limiting (429 Too Many Requests)
+    "RateLimitOptions": {
+      "DisableRateLimitHeaders": false, // Додає в HTTP-відповідь заголовки X-Rate-Limit-Limit, X-Rate-Limit-Remaining
+      "QuotaExceededMessage": "Перевищено ліміт запитів до Ocelot API Gateway (429 Too Many Requests).",
+      "HttpStatusCode": 429
+    }
+  }
+}
